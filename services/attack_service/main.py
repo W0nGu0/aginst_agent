@@ -93,10 +93,18 @@ def lookup_email_breach(domain: str) -> str:
 
 @mcp.tool
 def simulate_credential_harvest(username: str, password: str) -> str:
-    """模拟在虚假登录页面捕获用户凭据"""
-    if password.lower() in {"password", "password123", "123456"}:
+    # 防御性处理输入类型
+    username = str(username or "").strip()
+    password = str(password or "").strip()
+    
+    # 确保返回值为纯字符串（FastMCP会自动包装为JSON响应）
+    if not username or not password:
+        return "错误：用户名或密码为空"
+    
+    weak_passwords = {"password", "password123", "123456"}
+    if password.lower() in weak_passwords:
         return "凭据收集成功！目标使用了弱密码。"
-    return "凭据收集尝试已记录。密码看起来比常见弱密码更强。"
+    return "凭据收集尝试已记录。密码强度较高。"
 
 
 # 3. Start the server
