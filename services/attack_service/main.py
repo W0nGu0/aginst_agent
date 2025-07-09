@@ -3,40 +3,11 @@ from fastmcp import FastMCP
 import random
 import httpx
 import json
-import logging
-from pydantic import BaseModel
-
-# --- Logging Setup ---
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # 1. Create a FastMCP server instance
 mcp = FastMCP(
     name="Attack Service"
 )
-app = mcp.app
-
-# --- Models for standard REST endpoints ---
-class Credentials(BaseModel):
-    username: str
-    password: str
-
-# --- Standard REST Endpoint for Credential Harvesting ---
-@app.post("/harvest")
-async def harvest_credentials(credentials: Credentials):
-    """
-    A standard REST endpoint to receive credentials from a compromised victim.
-    This is separate from MCP tools and is intended for direct HTTP calls.
-    """
-    logger.warning(
-        f"!!! Credentials Harvested !!! "
-        f"Username: {credentials.username}, Password: {credentials.password}"
-    )
-    # You can add logic here to save the credentials to a file or database
-    # For now, we just log them.
-    # We can also call the internal logic of the mcp tool
-    result = simulate_credential_harvest(credentials.username, credentials.password)
-    return {"status": "credentials received", "analysis": result}
 
 # 2. Define a tool using the @mcp.tool decorator
 @mcp.tool

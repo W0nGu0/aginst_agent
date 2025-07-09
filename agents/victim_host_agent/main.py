@@ -12,8 +12,8 @@ VICTIM_CONFIG = {
     "username": "victim_user",
     "password": "Password123!",
     "attack_service_credential_harvest_url": os.getenv(
-        "ATTACK_SERVICE_URL", "http://127.0.0.1:8001"
-    ) + "/harvest"
+        "ATTACK_SERVICE_URL", "http://127.0.0.1:8001/mcp/"
+    ) + "simulate_credential_harvest"
 }
 
 # --- Logging Setup ---
