@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # 前端应用 - 仅连接到前端网络
+  frontend:
+    image: nginx:latest
+    container_name: frontend
+    networks:
+      frontend_net:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+  
+  # 中间层API服务 - 连接前端和后端网络
+  api:
+    image: python:3.11-slim
+    container_name: api_service
+    networks:
+      - frontend_net
+      - backend_net
+    command: >
+      sh -c "python -m http.server 8000"
+  
+  # 数据库 - 仅连接到后端网络，前端无法直接访问
+  database:
+    image: mysql:8.0
+    container_name: database
+    networks:
+      backend_net:
+        ipv4_address: 172.21.0.10
+    environment:
+      MYSQL_ROOT_PASSWORD: example_password
+      MYSQL_DATABASE: app_db
+
+# 网络定义
+networks:
+  frontend_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+  backend_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24
+          gateway: 172.21.0.1 

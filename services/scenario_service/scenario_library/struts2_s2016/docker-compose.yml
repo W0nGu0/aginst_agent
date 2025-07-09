@@ -1,0 +1,7 @@
+version: '3'
+services:
+  struts2:
+    image: vulhub/struts2:2.3.15.1-s2-016
+    ports:
+      - "8080:8080"
+    restart: always 

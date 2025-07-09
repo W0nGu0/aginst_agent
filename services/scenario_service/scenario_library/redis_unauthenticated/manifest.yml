@@ -1,0 +1,9 @@
+# This file is a placeholder for the scenario manifest.
+# In a real implementation, this would contain the docker-compose.yml content,
+# metadata, required ports, etc.
+# For now, its existence is enough for the 'list_scenario_templates' tool to discover it.
+ 
+info:
+  name: "Redis with Unauthenticated Access"
+  description: "Deploys a Redis server with no password protection, a common misconfiguration."
+  version: "1.0" 

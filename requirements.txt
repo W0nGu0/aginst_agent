@@ -1,0 +1,16 @@
+# Common dependencies for all Python services and agents
+fastapi
+uvicorn
+python-dotenv
+requests
+
+# AI and LangChain
+langchain
+langchain-community
+langchain-deepseek
+# MCP Services
+fastmcp
+
+# Potentially needed for attack tools
+python-nmap
+paramiko 
