@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Segoe UI", system-ui, sans-serif;
+  }
+  
+  body {
+    @apply text-base-content;
+  }
+  
+  :root {
+    --primary-rgb: 61, 145, 255;
+    --secondary-rgb: 123, 104, 238;
+    --accent-rgb: 0, 229, 255;
+    
+    --primary: #3d91ff;
+    --primary-focus: #2d7fe8;
+    --primary-content: #ffffff;
+    
+    --secondary: #7b68ee;
+    --secondary-focus: #6a58d9;
+    --secondary-content: #ffffff;
+    
+    --accent: #00e5ff;
+    --accent-focus: #00ccdf;
+    --accent-content: #0f172a;
+    
+    --base-100-rgb: 22, 28, 45;
+    --base-200-rgb: 30, 38, 60;
+    --base-300-rgb: 40, 48, 70;
+    
+    --base-100: rgb(var(--base-100-rgb));
+    --base-200: rgb(var(--base-200-rgb));
+    --base-300: rgb(var(--base-300-rgb));
+    --base-content: #e2e8f0;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-[rgba(var(--base-100-rgb),0.7)] backdrop-blur-md border border-white/10 shadow-lg rounded-lg;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-secondary text-primary-content border-0 hover:opacity-90 transition-opacity;
+  }
+  
+  .btn-outline {
+    @apply border-primary border-opacity-30 text-primary hover:bg-primary hover:bg-opacity-10 hover:border-primary transition-colors;
+  }
+  
+  .card-glass {
+    @apply bg-base-100/60 backdrop-blur-sm border border-white/10 shadow-lg;
+  }
+  
+  .cyber-bg {
+    @apply relative overflow-hidden bg-gradient-to-br from-base-100 to-base-300;
+  }
+  
+  .cyber-bg::before {
+    content: '';
+    @apply absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(var(--primary-rgb),0.15)_0%,transparent_70%)] pointer-events-none;
+  }
+  
+  
+  .text-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent;
+  }
+  
+  .badge-glowing {
+    @apply bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border border-primary/30 animate-pulse;
+  }
+  
+  .divider-gradient {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent my-6;
+  }
+}
+
+.loading-overlay {
+  @apply fixed inset-0 bg-base-300/80 backdrop-blur-sm flex justify-center items-center z-50;
+}
+
+.loading-spinner {
+  @apply flex flex-col items-center;
+}
+
+.spinner {
+  @apply w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin;
+}
+
+.cyber-graphic {
+  @apply absolute w-full h-full overflow-hidden;
+}
+
+.cyber-circle {
+  @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border-2 border-primary/30;
+  box-shadow: 0 0 50px rgba(var(--primary-rgb), 0.25);
+}
+
+.cyber-grid {
+  @apply absolute inset-0 opacity-30;
+  background-image: 
+    linear-gradient(rgba(var(--primary-rgb), 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--primary-rgb), 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.cyber-nodes {
+  @apply absolute inset-0;
+}
+
+.cyber-nodes::before {
+  content: '';
+  @apply absolute w-full h-full;
+  background: radial-gradient(circle at 30% 40%, rgba(var(--primary-rgb), 0.1) 0%, transparent 60%),
+             radial-gradient(circle at 70% 60%, rgba(var(--secondary-rgb), 0.1) 0%, transparent 60%);
+}
+
+.pulse-waves {
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full;
+  background: radial-gradient(circle, transparent 65%, rgba(var(--accent-rgb), 0.05) 66%, transparent 70%);
+  animation: pulse 8s infinite linear;
+}
+
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.cyber-particle {
+  @apply absolute rounded-full opacity-50;
+}
+
+@keyframes scrollPrompts {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-900px); }
+}
+
+.scene-prompts {
+  animation: scrollPrompts 30s linear infinite;
+}
+
+.scene-prompt-item {
+  @apply transition-all hover:shadow-md hover:shadow-primary/20;
+}
+
+.scene-prompt-item:hover {
+  transform: translateY(-2px);
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+}
