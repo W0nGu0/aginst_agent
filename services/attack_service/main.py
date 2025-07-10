@@ -3,6 +3,7 @@ from fastmcp import FastMCP
 import random
 import httpx
 import json
+import uuid
 
 # 1. Create a FastMCP server instance
 mcp = FastMCP(
@@ -106,6 +107,36 @@ def simulate_credential_harvest(username: str, password: str) -> str:
         return "凭据收集成功！目标使用了弱密码。"
     return "凭据收集尝试已记录。密码强度较高。"
 
+# ----------------------- Privilege Escalation & Lateral Movement (Simulated) -----------------------
+
+# 为后续权限提升与横向移动增加一组简化工具，当前仅返回模拟数据，后续可接入真实 exploit 框架与 session 管理。
+
+@mcp.tool
+def search_exploit(service: str, version: str) -> str:
+    """模拟搜索漏洞利用模块，返回一个 JSON 字符串，其中包含是否匹配以及 module_id。"""
+    module_id = f"exploit_{service}_{version}".replace(" ", "_")
+    return json.dumps({"matched": True, "module": module_id})
+
+
+@mcp.tool
+def execute_exploit_module(module: str, target: str) -> str:
+    """模拟执行漏洞利用，成功后生成并返回 session_id。"""
+    session_id = f"sess_{uuid.uuid4().hex[:8]}"
+    return json.dumps({"status": "success", "session_id": session_id, "target": target})
+
+
+@mcp.tool
+def execute_shell_command(session_id: str, command: str) -> str:
+    """模拟在受控主机上执行命令并返回输出结果。"""
+    output = f"[{session_id}]$ {command}\n模拟输出：command executed successfully."
+    return output
+
+
+@mcp.tool
+def get_network_info(session_id: str) -> str:
+    """模拟收集当前主机可达的内网 IP，用于横向移动规划。"""
+    hosts = ["10.0.0.5", "10.0.0.6"]
+    return json.dumps({"session": session_id, "reachable_hosts": hosts})
 
 # 3. Start the server
 if __name__ == "__main__":
