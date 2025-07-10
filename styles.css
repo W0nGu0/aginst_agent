@@ -1,0 +1,263 @@
+/* 基础样式 */
+:root {
+    --primary: #4a9eff;
+    --primary-focus: #2389ff;
+    --primary-light: rgba(74, 158, 255, 0.2);
+    --secondary: #a370ff;
+    --secondary-light: rgba(163, 112, 255, 0.2);
+    --accent: #11dab7;
+    --accent-light: rgba(17, 218, 183, 0.2);
+    --base-100: #1f2937;
+    --base-200: #111827;
+    --base-300: #374151;
+    --base-content: #f3f4f6;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* 高科技图形效果 */
+.cyber-graphic {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.cyber-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-light);
+    box-shadow: 0 0 30px var(--primary-light);
+    animation: pulse 3s infinite;
+}
+
+.cyber-circle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 1px solid var(--secondary-light);
+    box-shadow: 0 0 20px var(--secondary-light);
+    animation: pulse 3s infinite 0.5s;
+}
+
+.cyber-circle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-light);
+    box-shadow: 0 0 10px var(--accent-light);
+    animation: pulse 3s infinite 1s;
+}
+
+.cyber-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(to right, var(--primary-light) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--primary-light) 1px, transparent 1px);
+    background-size: 30px 30px;
+    opacity: 0.2;
+}
+
+.cyber-nodes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.cyber-nodes::before,
+.cyber-nodes::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    animation: float 6s infinite;
+}
+
+.cyber-nodes::before {
+    top: 30%;
+    left: 30%;
+    box-shadow: 
+        100px 50px 0 -1px var(--secondary),
+        -100px 100px 0 -1px var(--accent),
+        200px -50px 0 -1px var(--primary),
+        -150px -100px 0 -1px var(--secondary),
+        120px 150px 0 -1px var(--accent),
+        -200px 50px 0 -1px var(--primary);
+}
+
+.cyber-nodes::after {
+    top: 40%;
+    left: 60%;
+    box-shadow: 
+        -50px -50px 0 -1px var(--secondary),
+        100px -100px 0 -1px var(--accent),
+        -150px 50px 0 -1px var(--primary),
+        50px 100px 0 -1px var(--secondary),
+        -100px -150px 0 -1px var(--accent),
+        150px 50px 0 -1px var(--primary);
+}
+
+.pulse-waves {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+}
+
+.pulse-waves::before,
+.pulse-waves::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--primary-light) 0%, transparent 70%);
+    opacity: 0;
+    animation: ripple 4s infinite;
+}
+
+.pulse-waves::after {
+    animation-delay: 2s;
+}
+
+/* 动态滚动提示词效果 */
+.scene-prompts-container {
+    position: relative;
+    width: 100%;
+    height: 140px;
+}
+
+.scene-prompts {
+    display: flex;
+    animation: scrollPrompts 30s linear infinite;
+}
+
+.scene-prompt-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.scene-prompt-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 动画关键帧 */
+@keyframes pulse {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes float {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-10px) scale(1.2); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes ripple {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+@keyframes scrollPrompts {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(calc(-1 * (64px * 6 + 1rem * 6))); }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .scene-prompts-container {
+        height: 160px;
+    }
+    
+    .scene-prompt-item {
+        width: 220px;
+    }
+}
+
+/* 添加胶卷效果 */
+.scene-prompts-container::before,
+.scene-prompts-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 30px;
+    z-index: 10;
+    background-repeat: repeat-y;
+    background-size: 30px auto;
+}
+
+.scene-prompts-container::before {
+    left: -15px;
+    background-image: linear-gradient(90deg, transparent, var(--base-200) 70%),
+                      repeating-linear-gradient(0deg, var(--primary-light) 0, var(--primary-light) 4px, transparent 4px, transparent 8px);
+}
+
+.scene-prompts-container::after {
+    right: -15px;
+    background-image: linear-gradient(270deg, transparent, var(--base-200) 70%),
+                      repeating-linear-gradient(0deg, var(--primary-light) 0, var(--primary-light) 4px, transparent 4px, transparent 8px);
+}
+
+/* 添加胶卷边框效果 */
+.scene-prompts {
+    position: relative;
+    padding: 10px 0;
+}
+
+.scene-prompts::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: 
+        repeating-linear-gradient(90deg, var(--primary-light) 0, var(--primary-light) 12px, transparent 12px, transparent 24px);
+}
+
+.scene-prompts::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: 
+        repeating-linear-gradient(90deg, var(--primary-light) 0, var(--primary-light) 12px, transparent 12px, transparent 24px);
+} 

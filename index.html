@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent 驱动的动态攻防推演靶场平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.0.0/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- 预加载Fabric.js库 -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js" as="script">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+</head>
+<body class="min-h-screen bg-base-200">
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100 bg-opacity-90 border-b border-base-300/30">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo位置 -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                        <span class="text-base-100 font-bold text-xl">AI</span>
+                    </div>
+                    <span class="ml-2 text-xl font-bold text-base-content">攻防靶场</span>
+                </div>
+                
+                <!-- 导航链接 -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="#" class="text-primary font-medium">首页</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">场景库</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">靶场实验</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">推演记录</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">知识库</a>
+                </div>
+                
+                <!-- 用户头像 -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                        <span class="text-base-100 font-bold">U</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <!-- 高科技图形展示区 -->
+        <div class="relative h-80 mb-16 rounded-2xl overflow-hidden">
+            <div class="absolute inset-0 bg-base-300 bg-opacity-50 flex items-center justify-center">
+                <div class="cyber-graphic">
+                    <div class="cyber-circle"></div>
+                    <div class="cyber-grid"></div>
+                    <div class="cyber-nodes"></div>
+                    <div class="pulse-waves"></div>
+                </div>
+                <div class="z-10 text-center">
+                    <h1 class="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+                        AI 驱动的动态攻防推演靶场
+                    </h1>
+                    <p class="text-base-content/80 max-w-2xl">
+                        通过智能AI创建逼真攻防场景，训练与提升网络安全技能，体验真实环境下的攻防对抗
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 动态滚动提示词胶卷 -->
+        <div class="mb-16 relative">
+            <div class="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-base-200 to-transparent z-10"></div>
+            <div class="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-base-200 to-transparent z-10"></div>
+            
+            <h2 class="text-2xl font-bold mb-6 text-base-content">
+                <span class="text-primary">#</span> 热门场景提示
+            </h2>
+            
+            <div class="scene-prompts-container overflow-hidden">
+                <div class="scene-prompts flex space-x-4 animate-scroll">
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-primary/70 mb-2">网络设施</div>
+                        <div class="text-base-content font-medium">企业内网渗透场景：多层防御网络架构下的横向移动与权限提升</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-secondary/70 mb-2">Web应用</div>
+                        <div class="text-base-content font-medium">电商平台API漏洞：OWASP Top 10漏洞利用与防护策略</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-accent/70 mb-2">物联网</div>
+                        <div class="text-base-content font-medium">智能家居设备攻防：固件逆向与安全通信协议分析</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-primary/70 mb-2">社会工程</div>
+                        <div class="text-base-content font-medium">目标定向钓鱼攻击：企业员工社会工程学攻防演练</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-secondary/70 mb-2">无线网络</div>
+                        <div class="text-base-content font-medium">公共WiFi中间人攻击：无线网络流量监听与安全加密通信</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-accent/70 mb-2">云原生</div>
+                        <div class="text-base-content font-medium">Kubernetes集群攻防：容器逃逸与权限边界突破演练</div>
+                    </div>
+                    <!-- 重复项用于无缝滚动 -->
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-primary/70 mb-2">网络设施</div>
+                        <div class="text-base-content font-medium">企业内网渗透场景：多层防御网络架构下的横向移动与权限提升</div>
+                    </div>
+                    <div class="scene-prompt-item flex-shrink-0 w-64 h-32 border border-base-300/30 rounded-lg p-4 bg-base-100 hover:border-primary/50 transition-all">
+                        <div class="text-xs text-secondary/70 mb-2">Web应用</div>
+                        <div class="text-base-content font-medium">电商平台API漏洞：OWASP Top 10漏洞利用与防护策略</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 场景生成输入区 -->
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold mb-6 text-base-content">
+                <span class="text-primary">#</span> 自定义场景生成
+            </h2>
+            
+            <div class="bg-base-100 rounded-2xl p-6 border border-base-300/30">
+                <div class="relative">
+                    <textarea 
+                        class="w-full h-32 bg-base-300/30 text-base-content rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder-base-content/40"
+                        placeholder="描述您想要的攻防场景，例如：'企业内网服务器被植入后门，需要进行应急响应与溯源分析...'"></textarea>
+                    
+                    <button class="absolute right-4 bottom-4 bg-gradient-to-r from-primary to-secondary text-base-100 py-2 px-6 rounded-lg font-medium hover:opacity-90 transition-all flex items-center">
+                        <span>场景生成</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 页脚装饰 -->
+    <footer class="w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></footer>
+    
+    <script src="main.js"></script>
+</body>
+</html> 

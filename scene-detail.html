@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业内网渗透场景 - AI Agent 驱动的动态攻防推演靶场平台</title>
+    <!-- 引入样式 -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.0.0/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- 尝试从CDN加载Fabric.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <!-- 备用本地加载 -->
+    <script>
+        if (typeof fabric === 'undefined') {
+            console.log('从CDN加载Fabric.js失败，尝试从本地加载');
+            document.write('<script src="./node_modules/fabric/dist/index.min.js"><\/script>');
+        } else {
+            console.log('从CDN成功加载Fabric.js');
+        }
+    </script>
+    <style>
+        /* 确保canvas容器有明确的尺寸 */
+        .topology-canvas-container {
+            width: 100%;
+            height: 500px;
+            position: relative;
+        }
+        
+        /* 确保canvas元素填充整个容器 */
+        #network-topology-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* 强制图标显示 */
+        .bi {
+            display: inline-block;
+            font-style: normal;
+            font-variant: normal;
+            text-rendering: auto;
+            line-height: 1;
+        }
+        
+        /* 调试辅助样式 */
+        .debug-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 9999;
+        }
+        
+        /* 添加画布加载动画 */
+        .canvas-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .canvas-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-base-200">
+    <!-- 调试信息区 -->
+    <div class="debug-info" id="debug-info">正在初始化...</div>
+    
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100 bg-opacity-90 border-b border-base-300/30">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo位置 -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                        <span class="text-base-100 font-bold text-xl">AI</span>
+                    </div>
+                    <span class="ml-2 text-xl font-bold text-base-content">攻防靶场</span>
+                </div>
+                
+                <!-- 导航链接 -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html" class="text-base-content/70 hover:text-primary font-medium">首页</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">场景库</a>
+                    <a href="#" class="text-primary font-medium">靶场实验</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">推演记录</a>
+                    <a href="#" class="text-base-content/70 hover:text-primary font-medium">知识库</a>
+                </div>
+                
+                <!-- 用户头像 -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                        <span class="text-base-100 font-bold">U</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 pt-20 pb-16">
+        <!-- 面包屑导航 -->
+        <div class="mb-2 flex items-center text-sm text-base-content/60">
+            <a href="index.html" class="hover:text-primary">首页</a>
+            <span class="mx-2">/</span>
+            <a href="#" class="hover:text-primary">场景库</a>
+            <span class="mx-2">/</span>
+            <span class="text-primary">企业内网渗透场景</span>
+        </div>
+        
+        <!-- 场景标题 -->
+        <div class="mb-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-base-content">
+                企业内网渗透场景：多层防御网络架构下的横向移动与权限提升
+            </h1>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                <span class="bg-primary/20 text-primary px-2 py-1 rounded-md">网络设施</span>
+                <span class="text-base-content/60">难度: 
+                    <span class="text-warning">中级</span>
+                </span>
+                <span class="text-base-content/60">预计用时: 60-90分钟</span>
+                <span class="text-base-content/60">创建时间: 2023-06-10</span>
+            </div>
+        </div>
+        
+        <!-- 内容主区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧 - 网络拓扑图和场景描述 -->
+            <div class="lg:col-span-2">
+                <!-- 交互式网络拓扑图 -->
+                <div class="bg-base-100 rounded-xl p-4 md:p-6 mb-6 border border-base-300/30 relative overflow-hidden">
+                    <div class="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 blur-3xl rounded-full"></div>
+                    <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-secondary/5 blur-3xl rounded-full"></div>
+                    
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-bold text-base-content flex items-center">
+                            <span class="text-primary text-2xl mr-2">#</span> 
+                            <span>交互式网络拓扑图</span>
+                        </h2>
+                        
+                        <!-- 工具栏 -->
+                        <div class="flex space-x-2">
+                            <button id="select-mode" class="btn btn-sm btn-outline mode-button">
+                                <i class="bi bi-cursor"></i> 选择
+                            </button>
+                            <button id="connect-mode" class="btn btn-sm btn-outline mode-button">
+                                <i class="bi bi-link"></i> 连接
+                            </button>
+                            <button id="pan-mode" class="btn btn-sm btn-outline mode-button">
+                                <i class="bi bi-hand"></i> 平移
+                            </button>
+                            <button id="delete-selected" class="btn btn-sm btn-outline">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 缩放控制 -->
+                    <div class="flex justify-end mb-2 text-sm">
+                        <button id="zoom-in" class="btn btn-sm btn-ghost">
+                            <i class="bi bi-zoom-in"></i>
+                        </button>
+                        <button id="zoom-out" class="btn btn-sm btn-ghost">
+                            <i class="bi bi-zoom-out"></i>
+                        </button>
+                        <button id="zoom-fit" class="btn btn-sm btn-ghost">
+                            <i class="bi bi-aspect-ratio"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 拓扑图容器 -->
+                    <div class="topology-canvas-container w-full h-[500px] bg-base-300/30 rounded-lg relative overflow-hidden">
+                        <!-- 加载动画 -->
+                        <div class="canvas-loading" id="canvas-loading">
+                            <div class="canvas-loading-spinner"></div>
+                        </div>
+                        
+                        <!-- 强调边框 -->
+                        <div class="absolute inset-0 border-2 border-primary/10 rounded-lg pointer-events-none"></div>
+                        
+                        <!-- Fabric.js画布 -->
+                        <canvas id="network-topology"></canvas>
+                    </div>
+                    
+                    <!-- 状态栏 -->
+                    <div class="flex justify-between items-center mt-2 text-xs text-base-content/60">
+                        <div id="cursor-position">位置: 0, 0</div>
+                        <div id="zoom-level">缩放: 100%</div>
+                        <div id="selection-info">已选择: 无</div>
+                        <div id="mode-status"></div>
+                    </div>
+                </div>
+                
+                <!-- 场景描述 -->
+                <div class="bg-base-100 rounded-xl p-6 mb-6 border border-base-300/30">
+                    <h2 class="text-xl font-bold mb-4 text-base-content">
+                        <span class="text-primary">#</span> 场景描述
+                    </h2>
+                    <p class="text-base-content/80 mb-4">
+                        在这个模拟的企业网络环境中，你将扮演一名渗透测试工程师，受邀对某跨国企业的内网安全进行评估。该企业采用了多层防御架构，包括DMZ区域、办公网络和核心业务区。你的任务是从一个已获取初始访问权限的边缘服务器开始，通过横向移动技术逐步提升权限，最终获取核心业务系统的控制权。
+                    </p>
+                    <p class="text-base-content/80">
+                        这个场景涵盖了多种网络设备、服务器操作系统和应用程序，你需要识别常见的配置错误、漏洞利用以及权限提升技术。全程将模拟真实企业网络环境中的防御机制，包括防火墙、IDS/IPS、EDR等安全产品。
+                    </p>
+                </div>
+                
+                <!-- 场景目标 -->
+                <div class="bg-base-100 rounded-xl p-6 mb-6 border border-base-300/30">
+                    <h2 class="text-xl font-bold mb-4 text-base-content">
+                        <span class="text-primary">#</span> 场景目标
+                    </h2>
+                    <ul class="list-disc list-inside text-base-content/80 space-y-2">
+                        <li>从边缘服务器获取初始立足点</li>
+                        <li>绕过网络分段，实现向内网的横向移动</li>
+                        <li>识别并利用Windows域环境中的弱点</li>
+                        <li>获取域管理员权限</li>
+                        <li>访问核心业务系统并提取指定的机密数据</li>
+                        <li>全程规避安全设备的检测</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 右侧 - 操作日志和控制面板 -->
+            <div class="lg:col-span-1">
+                <!-- 设备面板 -->
+                <div class="bg-base-100 rounded-xl p-6 mb-6 border border-base-300/30">
+                    <h2 class="text-xl font-bold mb-4 text-base-content">
+                        <span class="text-primary">#</span> 设备库
+                    </h2>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <div class="device-item" data-device="router">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-router-fill text-xl text-success"></i>
+                                <div class="text-xs mt-1">路由器</div>
+                            </div>
+                        </div>
+                        <div class="device-item" data-device="firewall">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-shield-fill-check text-xl text-error"></i>
+                                <div class="text-xs mt-1">防火墙</div>
+                            </div>
+                        </div>
+                        <div class="device-item" data-device="switch">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-ethernet text-xl text-info"></i>
+                                <div class="text-xs mt-1">交换机</div>
+                            </div>
+                        </div>
+                        <div class="device-item" data-device="server">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-server text-xl text-warning"></i>
+                                <div class="text-xs mt-1">服务器</div>
+                            </div>
+                        </div>
+                        <div class="device-item" data-device="pc">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-pc-display text-xl text-secondary"></i>
+                                <div class="text-xs mt-1">工作站</div>
+                            </div>
+                        </div>
+                        <div class="device-item" data-device="ids">
+                            <div class="p-2 bg-base-300/30 rounded-lg flex flex-col items-center justify-center hover:bg-base-300/50 cursor-pointer transition-colors">
+                                <i class="bi bi-shield-fill-exclamation text-xl text-secondary"></i>
+                                <div class="text-xs mt-1">IDS</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-base-content/60">拖放设备到拓扑图区域以添加设备</p>
+                </div>
+                
+                <!-- 属性面板 -->
+                <div class="bg-base-100 rounded-xl p-6 mb-6 border border-base-300/30">
+                    <h2 class="text-xl font-bold mb-4 text-base-content">
+                        <span class="text-primary">#</span> 属性面板
+                    </h2>
+                    
+                    <!-- 未选择任何对象时显示 -->
+                    <div id="no-selection" class="text-center py-4 text-base-content/60">
+                        <i class="bi bi-arrow-up-left text-2xl mb-2"></i>
+                        <p>请选择设备或连接</p>
+                    </div>
+                    
+                    <!-- 设备属性 -->
+                    <div id="device-properties" class="hidden">
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">设备名称</label>
+                            <input id="device-name" type="text" class="input input-sm input-bordered w-full">
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">IP地址</label>
+                            <input id="device-ip" type="text" class="input input-sm input-bordered w-full">
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">MAC地址</label>
+                            <input id="device-mac" type="text" class="input input-sm input-bordered w-full">
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">描述</label>
+                            <textarea id="device-description" class="textarea textarea-sm textarea-bordered w-full" rows="2"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-sm w-full">应用更改</button>
+                    </div>
+                    
+                    <!-- 连接属性 -->
+                    <div id="connection-properties" class="hidden">
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">连接类型</label>
+                            <select id="connection-type" class="select select-sm select-bordered w-full">
+                                <option value="ethernet">以太网</option>
+                                <option value="fiber">光纤</option>
+                                <option value="wireless">无线</option>
+                                <option value="serial">串行</option>
+                                <option value="vpn">VPN</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">带宽</label>
+                            <select id="connection-bandwidth" class="select select-sm select-bordered w-full">
+                                <option value="10mbps">10 Mbps</option>
+                                <option value="100mbps">100 Mbps</option>
+                                <option value="1gbps">1 Gbps</option>
+                                <option value="10gbps">10 Gbps</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-sm text-base-content/60 mb-1 block">延迟 (ms)</label>
+                            <input id="connection-latency" type="number" class="input input-sm input-bordered w-full">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-full">应用更改</button>
+                    </div>
+                </div>
+                
+                <!-- 操作日志面板 -->
+                <div id="log-panel" class="bg-base-100 rounded-xl p-6 border border-base-300/30 sticky top-24">
+                    <h2 class="text-xl font-bold mb-4 text-base-content">
+                        <span class="text-primary">#</span> 操作日志
+                    </h2>
+                    <div id="log-entries" class="overflow-y-auto max-h-[300px]">
+                        <!-- 日志内容将由JavaScript动态添加 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 底部版权信息 -->
+    <footer class="bg-base-100 border-t border-base-300/30 py-6">
+        <div class="container mx-auto px-4 text-center text-base-content/60 text-sm">
+            <p>© 2023 AI Agent 驱动的动态攻防推演靶场平台 | 由 Claude 提供技术支持</p>
+        </div>
+    </footer>
+    
+    <!-- 加载业务脚本 -->
+    <script src="optimized-topology.js"></script>
+    
+    <!-- 初始化网络拓扑图 -->
+    <script>
+        // 页面加载完成后初始化拓扑图
+        document.addEventListener('DOMContentLoaded', () => {
+            // 调试函数
+            function updateDebug(message) {
+                const debugEl = document.getElementById('debug-info');
+                if (debugEl) {
+                    debugEl.textContent = message;
+                    console.log("[调试]", message);
+                }
+            }
+            
+            // 添加日志条目
+            function addLogEntry(message, type = 'info') {
+                const logPanel = document.getElementById('log-entries');
+                if (!logPanel) return;
+                
+                const entry = document.createElement('div');
+                entry.className = 'mb-1 text-sm';
+                
+                const time = new Date().toLocaleTimeString();
+                const color = 
+                    type === 'error' ? 'text-error' : 
+                    type === 'success' ? 'text-success' : 
+                    type === 'warning' ? 'text-warning' : 'text-info';
+                
+                entry.innerHTML = `<span class="opacity-70">[${time}]</span> <span class="${color}">${message}</span>`;
+                logPanel.appendChild(entry);
+                logPanel.scrollTop = logPanel.scrollHeight;
+                
+                // 同时输出到控制台
+                console[type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log'](message);
+            }
+            
+            try {
+                // 检查Fabric.js是否加载
+                if (typeof fabric === 'undefined') {
+                    throw new Error('Fabric.js未加载');
+                }
+                
+                // 在Fabric.js 6.x中，版本属性可能有变化
+                updateDebug('Fabric.js已加载');
+                
+                // 检查NetworkTopology类是否可用
+                if (typeof NetworkTopology === 'undefined') {
+                    throw new Error('NetworkTopology类未加载');
+                }
+                
+                updateDebug('NetworkTopology类已加载，准备初始化拓扑图');
+                
+                // 获取Canvas容器宽高
+                const container = document.querySelector('.topology-canvas-container');
+                if (!container) {
+                    throw new Error('找不到拓扑图容器');
+                }
+                
+                // 创建拓扑图实例
+                const topology = new NetworkTopology({
+                    canvasId: 'network-topology',
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    backgroundColor: 'rgba(26, 26, 48, 0.5)'
+                });
+                
+                // 初始化拓扑图
+                addLogEntry('正在初始化网络拓扑图...', 'info');
+                topology.initialize()
+                    .then(() => {
+                        updateDebug('拓扑图初始化成功');
+                        addLogEntry('网络拓扑图初始化成功', 'success');
+                        
+                        // 隐藏加载动画
+                        const loadingEl = document.getElementById('canvas-loading');
+                        if (loadingEl) loadingEl.style.display = 'none';
+                        
+                        // 创建示例拓扑
+                        topology.createSampleTopology();
+                        addLogEntry('已创建示例拓扑图', 'success');
+                        
+                        // 设置模式按钮
+                        document.getElementById('select-mode').addEventListener('click', () => {
+                            topology.setMode('select');
+                            updateModeButtons('select-mode');
+                        });
+                        
+                        document.getElementById('connect-mode').addEventListener('click', () => {
+                            topology.setMode('connect');
+                            updateModeButtons('connect-mode');
+                        });
+                        
+                        document.getElementById('pan-mode').addEventListener('click', () => {
+                            topology.setMode('pan');
+                            updateModeButtons('pan-mode');
+                        });
+                        
+                        // 删除按钮
+                        document.getElementById('delete-selected').addEventListener('click', () => {
+                            if (topology.deleteSelected()) {
+                                addLogEntry('已删除选中的对象', 'success');
+                            } else {
+                                addLogEntry('没有选中任何对象', 'warning');
+                            }
+                        });
+                        
+                        // 缩放控制
+                        document.getElementById('zoom-in').addEventListener('click', () => {
+                            topology.zoomIn();
+                        });
+                        
+                        document.getElementById('zoom-out').addEventListener('click', () => {
+                            topology.zoomOut();
+                        });
+                        
+                        document.getElementById('zoom-fit').addEventListener('click', () => {
+                            topology.resetView();
+                            // 更新缩放显示
+                            const debugEl = document.getElementById('debug-info');
+                            if (debugEl) {
+                                debugEl.textContent = '缩放已重置';
+                            }
+                        });
+                        
+                        // 更新模式按钮样式
+                        function updateModeButtons(activeButtonId) {
+                            const buttons = document.querySelectorAll('.mode-button');
+                            buttons.forEach(btn => {
+                                btn.classList.remove('btn-primary');
+                                btn.classList.add('btn-outline');
+                            });
+                            
+                            const activeButton = document.getElementById(activeButtonId);
+                            if (activeButton) {
+                                activeButton.classList.remove('btn-outline');
+                                activeButton.classList.add('btn-primary');
+                            }
+                        }
+                        
+                        // 初始状态激活选择模式
+                        updateModeButtons('select-mode');
+                        
+                        // 监听选择改变事件
+                        topology.on('selectionChanged', (data) => {
+                            const deviceProps = document.getElementById('device-properties');
+                            const connectionProps = document.getElementById('connection-properties');
+                            const noSelection = document.getElementById('no-selection');
+                            
+                            // 隐藏所有属性面板
+                            deviceProps.classList.add('hidden');
+                            connectionProps.classList.add('hidden');
+                            noSelection.classList.remove('hidden');
+                            
+                            if (data.object) {
+                                if (data.object.type === 'device') {
+                                    // 显示设备属性
+                                    deviceProps.classList.remove('hidden');
+                                    noSelection.classList.add('hidden');
+                                    
+                                    // 填充表单
+                                    document.getElementById('device-name').value = data.object.deviceData.name || '';
+                                    document.getElementById('device-ip').value = data.object.deviceData.ip || '';
+                                    document.getElementById('device-mac').value = data.object.deviceData.mac || '';
+                                    document.getElementById('device-description').value = data.object.deviceData.description || '';
+                                    
+                                    // 添加设备属性应用按钮事件
+                                    const applyButton = deviceProps.querySelector('button');
+                                    if (applyButton) {
+                                        applyButton.onclick = function() {
+                                            // 更新设备数据
+                                            data.object.deviceData.name = document.getElementById('device-name').value;
+                                            data.object.deviceData.ip = document.getElementById('device-ip').value;
+                                            data.object.deviceData.mac = document.getElementById('device-mac').value;
+                                            data.object.deviceData.description = document.getElementById('device-description').value;
+                                            
+                                            // 更新标签
+                                            if (data.object.label) {
+                                                data.object.label.set({ text: data.object.deviceData.name });
+                                                topology.canvas.renderAll();
+                                            }
+                                            
+                                            updateDebug(`已更新设备 ${data.object.deviceData.name} 的属性`);
+                                            addLogEntry(`已更新设备 ${data.object.deviceData.name} 的属性`, 'success');
+                                        };
+                                    }
+                                    
+                                } else if (data.object.type === 'connection') {
+                                    // 显示连接属性
+                                    connectionProps.classList.remove('hidden');
+                                    noSelection.classList.add('hidden');
+                                    
+                                    // 设置连接类型
+                                    document.getElementById('connection-type').value = data.object.connectionType || 'ethernet';
+                                    
+                                    // 添加连接属性应用按钮事件
+                                    const applyButton = connectionProps.querySelector('button');
+                                    if (applyButton) {
+                                        applyButton.onclick = function() {
+                                            const type = document.getElementById('connection-type').value;
+                                            
+                                            // 获取连接样式
+                                            const connTypes = {
+                                                'ethernet': { color: '#2196F3', width: 2, dash: [] },
+                                                'fiber': { color: '#FF9800', width: 2, dash: [] },
+                                                'wireless': { color: '#4CAF50', width: 2, dash: [3, 3] },
+                                                'serial': { color: '#9C27B0', width: 2, dash: [5, 5] },
+                                                'vpn': { color: '#607D8B', width: 2, dash: [10, 5] }
+                                            };
+                                            
+                                            const connType = connTypes[type] || connTypes.ethernet;
+                                            
+                                            // 更新连接属性
+                                            data.object.set({
+                                                stroke: connType.color,
+                                                strokeWidth: connType.width,
+                                                strokeDashArray: connType.dash,
+                                                connectionType: type
+                                            });
+                                            
+                                            topology.canvas.renderAll();
+                                            updateDebug('已更新连接属性');
+                                            addLogEntry('已更新连接属性', 'success');
+                                        };
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        updateDebug('拓扑图初始化失败: ' + error.message);
+                        console.error('拓扑图初始化失败:', error);
+                        addLogEntry('拓扑图初始化失败: ' + error.message, 'error');
+                    });
+                    
+                // 将拓扑图实例添加到全局变量
+                window.topology = topology;
+                
+            } catch (error) {
+                updateDebug('错误: ' + error.message);
+                console.error('初始化错误:', error);
+                addLogEntry('初始化过程中出现错误: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html> 
