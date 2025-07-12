@@ -1,0 +1,224 @@
+version: '3.9'
+
+services:
+  cnt-sql:
+    build: ../images/cnt-sql
+    container_name: cnt-sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpass}
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testpass
+      - COMPANY=ACME_CORP
+      - ROLE=server
+      - HOST_TYPE=CNT-SQL
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.23
+    ports:
+      - "3306:3306"
+
+  cnt-files:
+    build: ../images/cnt-files
+    container_name: cnt-files
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.6
+    ports:
+      - "8080:80"
+
+  cnt-syslog:
+    build: ../images/cnt-syslog
+    container_name: cnt-syslog
+    networks:
+      siem_segment:
+        ipv4_address: 192.168.66.20
+    ports:
+      - "514:514/udp"
+
+  ws-ubuntu-cnt1:
+    build: ../images/ws-ubuntu
+    container_name: ws-ubuntu-cnt1
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=alice
+      - PASSWORD=alice123
+      - ROLE=developer
+      - HOST_TYPE=WS-UBUNTU
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.9
+    ports:
+      - "5001:5000"
+
+  ws-ubuntu-cnt2:
+    build: ../images/ws-ubuntu
+    container_name: ws-ubuntu-cnt2
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=bob
+      - PASSWORD=bob123
+      - ROLE=qa
+      - HOST_TYPE=WS-UBUNTU
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.34
+    ports:
+      - "5002:5000"
+
+  attacker:
+    image: python:3.9-slim
+    container_name: attacker
+    command: ["sleep", "infinity"]
+    networks:
+      internet:
+        ipv4_address: 199.203.100.10
+    tty: true
+
+  attack-node:
+    image: python:3.9-slim
+    container_name: attack-node
+    command: ["sleep", "infinity"]
+    networks:
+      internet:
+        ipv4_address: 199.203.100.11
+    tty: true
+
+  cnt-dmz-wp1:
+    build: ../images/cnt-dmz-wp1
+    container_name: cnt-dmz-wp1
+    networks:
+      mdz_segment:
+        ipv4_address: 172.16.100.10
+    ports:
+      - "8081:80"
+
+  cnt-dmz-apache1:
+    build: ../images/cnt-dmz-apache
+    container_name: cnt-dmz-apache1
+    networks:
+      mdz_segment:
+        ipv4_address: 172.16.100.11
+    ports:
+      - "8082:80"
+
+  cnt-dmz-dns:
+    build: ../images/cnt-dmz-dns
+    container_name: cnt-dmz-dns
+    networks:
+      mdz_segment:
+        ipv4_address: 172.16.100.53
+
+  cnt-dmz-mailrelay:
+    build: ../images/cnt-dmz-mailrelay
+    container_name: cnt-dmz-mailrelay
+    networks:
+      mdz_segment:
+        ipv4_address: 172.16.100.25
+    ports:
+      - "2525:25"
+
+  cnt-db:
+    build: ../images/cnt-db
+    container_name: cnt-db
+    environment:
+      - POSTGRES_PASSWORD=dbpass
+      - COMPANY=ACME_CORP
+      - ROLE=database
+      - HOST_TYPE=CNT-DB
+    networks:
+      db_segment:
+        ipv4_address: 192.168.214.10
+    ports:
+      - "5432:5432"
+
+  vpn:
+    build: ../images/vpn
+    container_name: vpn
+    networks:
+      vpn_segment:
+        ipv4_address: 192.168.110.5
+    ports:
+      - "1194:1194/udp"
+      - "7505:7505"
+      - "8000:8000"
+
+  cnt-fw:
+    build: ../images/fw
+    container_name: cnt-fw
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.254
+      siem_segment:
+        ipv4_address: 192.168.66.254
+      user_segment:
+        ipv4_address: 192.168.100.254
+      vpn_segment:
+        ipv4_address: 192.168.110.254
+      db_segment:
+        ipv4_address: 192.168.214.254
+      fw_link:
+        ipv4_address: 192.168.254.3
+
+  cnt-dmz-fw:
+    build: ../images/fw
+    container_name: cnt-dmz-fw
+    networks:
+      fw_link:
+        ipv4_address: 192.168.254.2
+      mdz_segment:
+        ipv4_address: 172.16.100.254
+      internet:
+        ipv4_address: 199.203.100.2
+
+networks:
+  fw_link:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.254.0/29
+          gateway: 192.168.254.1
+  server_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.200.0/24
+          gateway: 192.168.200.1
+  siem_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.66.0/24
+          gateway: 192.168.66.1
+  user_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
+  vpn_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.110.0/24
+          gateway: 192.168.110.1
+  db_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.214.0/24
+          gateway: 192.168.214.1
+  mdz_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.100.0/24
+          gateway: 172.16.100.1
+  internet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 199.203.100.0/24
+          gateway: 199.203.100.1
+
+ 
