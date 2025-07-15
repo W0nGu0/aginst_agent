@@ -1,10 +1,12 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAppStore } from './stores/app'
 import { computed } from 'vue'
 
 const appStore = useAppStore()
 const theme = computed(() => appStore.currentTheme)
+const route = useRoute()
+const hideNav = computed(() => route.path === '/login')
 
 function toggleTheme() {
   appStore.toggleTheme()
@@ -14,7 +16,7 @@ function toggleTheme() {
 <template>
   <div class="app min-h-screen bg-base-200" :data-theme="theme">
     <!-- 导航栏 -->
-    <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100/80 border-b border-white/10">
+    <nav v-if="!hideNav" class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100/80 border-b border-white/10">
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center h-16">
           <!-- Logo位置 -->
@@ -28,25 +30,35 @@ function toggleTheme() {
           <!-- 导航链接 -->
           <div class="hidden md:flex space-x-8">
             <RouterLink 
-              to="/" 
+              to="/home" 
               class="text-base-content/70 hover:text-primary font-medium transition-colors"
               active-class="text-primary border-b-2 border-primary/70">
               首页
             </RouterLink>
             <RouterLink 
-              to="/scene-detail" 
+              to="/against" 
               class="text-base-content/70 hover:text-primary font-medium transition-colors"
               active-class="text-primary border-b-2 border-primary/70">
-              场景库
+              动态靶场
             </RouterLink>
             <RouterLink 
-              to="/topology" 
+              to="/history" 
               class="text-base-content/70 hover:text-primary font-medium transition-colors"
               active-class="text-primary border-b-2 border-primary/70">
-              靶场实验
+              推演记录
             </RouterLink>
-            <a href="#" class="text-base-content/70 hover:text-primary font-medium transition-colors">推演记录</a>
-            <a href="#" class="text-base-content/70 hover:text-primary font-medium transition-colors">知识库</a>
+            <RouterLink 
+              to="/personal" 
+              class="text-base-content/70 hover:text-primary font-medium transition-colors"
+              active-class="text-primary border-b-2 border-primary/70">
+              个人中心
+            </RouterLink>
+            <RouterLink 
+              to="/settings" 
+              class="text-base-content/70 hover:text-primary font-medium transition-colors"
+              active-class="text-primary border-b-2 border-primary/70">
+              Agent设置
+            </RouterLink>
           </div>
           
           <!-- 用户头像 -->
@@ -69,7 +81,7 @@ function toggleTheme() {
     </nav>
     
     <!-- 主要内容 -->
-    <main class="container mx-auto px-4 pt-24 pb-16">
+    <main class="w-full px-6 pt-24 pb-16">
       <RouterView v-slot="{ Component }">
         <Transition name="fade" mode="out-in">
           <component :is="Component" />

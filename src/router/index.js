@@ -5,18 +5,42 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('../views/HomeView.vue')
+      redirect: '/login'
     },
     {
-      path: '/scene-detail',
-      name: 'sceneDetail',
-      component: () => import('../views/SceneDetailView.vue')
+      path: '/home',
+      name: 'home',
+      component: () => import('../views/user/Home/HomeView.vue')
+    },
+    {
+      path: '/against',
+      name: 'against',
+      component: () => import('../views/user/Against/Create.vue')
     },
     {
       path: '/topology',
       name: 'topology',
-      component: () => import('../views/TopologyView.vue')
+      component: () => import('../views/user/Against/Topology/TopologyView.vue')
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('../views/user/History/HistoryView.vue')
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('../views/user/Tool/ToolView.vue')
+    },
+    {
+      path: '/personal',
+      name: 'personal',
+      component: () => import('../views/user/Personal/PersonalView.vue')
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/user/Login/LoginView.vue')
     }
   ]
 })
