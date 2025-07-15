@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from pathlib import Path
 from dotenv import load_dotenv
+import random
 
 from fastmcp import FastMCP
 from langchain_deepseek import ChatDeepSeek
@@ -159,6 +160,52 @@ tools = [
     get_network_info,
 ]
 
+# --- 新增：社会工程学工具封装 -------------------------------------------
+@tool
+async def craft_doc_with_enable_macro(victim_name: str) -> str:
+    """生成诱导启用宏的文档下载链接。"""
+    async with attack_service_client.client as client:
+        res = await client.call_tool("craft_doc_with_enable_macro", arguments={"victim_name": victim_name})
+    return "\n".join([b.text for b in res.content if hasattr(b, "text")])
+
+@tool
+async def simulate_sextortion_email(victim_name: str, position: str) -> str:
+    """生成性勒索邮件内容。"""
+    async with attack_service_client.client as client:
+        res = await client.call_tool("simulate_sextortion_email", arguments={"victim_name": victim_name, "position": position})
+    return "\n".join([b.text for b in res.content if hasattr(b, "text")])
+
+@tool
+async def craft_affinity_chat(common_interest: str, first_question: str = "能加个微信聊细节吗？") -> str:
+    """基于共同爱好生成亲和聊天脚本并返回对话开场白。"""
+    async with attack_service_client.client as client:
+        res = await client.call_tool("craft_affinity_chat", arguments={"common_interest": common_interest, "first_question": first_question})
+    return "\n".join([b.text for b in res.content if hasattr(b, "text")])
+
+@tool
+async def craft_fake_job_offer(target_name: str, desired_role: str, salary_range: str, form_link: str) -> str:
+    """生成虚假的招聘信息，诱导受害者填写个人信息。"""
+    async with attack_service_client.client as client:
+        res = await client.call_tool(
+            "craft_fake_job_offer",
+            arguments={
+                "target_name": target_name,
+                "desired_role": desired_role,
+                "salary_range": salary_range,
+                "form_link": form_link,
+            },
+        )
+    return "\n".join([b.text for b in res.content if hasattr(b, "text")])
+# --------------------------------------------------------------------------
+
+# Append new tools to tools list
+tools.extend([
+    craft_doc_with_enable_macro,
+    simulate_sextortion_email,
+    craft_affinity_chat,
+    craft_fake_job_offer,
+])
+
 # --- 定义Agent ---
 # 这是给Agent的指令，告诉它它的角色、能力和目标
 prompt = ChatPromptTemplate.from_messages(
@@ -214,6 +261,42 @@ async def execute_full_attack(request: AttackRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"攻击流程执行失败: {str(e)}")
+
+# --- 新增 API: 随机社会工程学攻击 -----------------------------------------
+class SocialEngRequest(BaseModel):
+    victim_name: str = "Alice"
+    company: str = "ACME_CORP"
+
+@app.post("/execute_social_engineering")
+async def execute_social_engineering(req: SocialEngRequest):
+    """随机选择一种社会工程学技巧并生成相应 payload 返回。"""
+    tactics = [
+        ("phishing_email", craft_phishing_email),
+        ("enable_macro", craft_doc_with_enable_macro),
+        ("sextortion", simulate_sextortion_email),
+        ("affinity_chat", craft_affinity_chat),
+        ("fake_job_offer", craft_fake_job_offer),
+    ]
+    tactic_name, tool_fn = random.choice(tactics)
+
+    if tactic_name == "phishing_email":
+        result = await tool_fn(target_name=req.victim_name, company=req.company, malicious_link="http://evil.example.com/login")
+    elif tactic_name == "enable_macro":
+        result = await tool_fn(victim_name=req.victim_name)
+    elif tactic_name == "sextortion":
+        result = await tool_fn(victim_name=req.victim_name, position="CTO")
+    elif tactic_name == "affinity_chat":
+        result = await tool_fn(common_interest="摇滚音乐")
+    else:  # fake_job_offer
+        result = await tool_fn(
+            target_name=req.victim_name,
+            desired_role="Senior DevOps Engineer",
+            salary_range="¥70万-90万",
+            form_link="https://tinyurl.com/apply-now",
+        )
+
+    return {"tactic": tactic_name, "payload": result}
+# --------------------------------------------------------------------------
 
 
 if __name__ == "__main__":

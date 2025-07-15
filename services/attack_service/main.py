@@ -138,6 +138,50 @@ def get_network_info(session_id: str) -> str:
     hosts = ["10.0.0.5", "10.0.0.6"]
     return json.dumps({"session": session_id, "reachable_hosts": hosts})
 
+# ----------------------- Social Engineering – New Tools -----------------------
+# 说明：为了演示社会工程学攻击，这里实现 4 个轻量级工具，返回字符串即可被前端渲染。
+
+import base64
+from datetime import datetime
+
+@mcp.tool
+def craft_doc_with_enable_macro(victim_name: str) -> str:
+    """生成一个诱导受害者启用宏的伪 Word 文档下载链接（Base64 Data URL 占位）。"""
+    fake_doc = f"Enable Macro Payload for {victim_name} @ {datetime.utcnow().isoformat()}".encode()
+    data_url = "data:application/vnd.ms-word;base64," + base64.b64encode(fake_doc).decode()
+    return (
+        f"已生成诱导启用宏的文档，受害者启用宏后将执行 VBA 恶意代码。\n"
+        f"下载链接（占位）：{data_url}"
+    )
+
+@mcp.tool
+def simulate_sextortion_email(victim_name: str, position: str) -> str:
+    """生成性勒索邮件内容，威胁公开隐私并索要比特币赎金。"""
+    btc_address = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+    return (
+        f"亲爱的 {victim_name} ({position})，\n\n"
+        "我们掌握了你的隐私影像，如果48小时内未支付 0.5 BTC 到下列地址，视频将被公开：\n"
+        f"{btc_address}\n\n切勿尝试报警！"
+    )
+
+@mcp.tool
+def craft_affinity_chat(common_interest: str, first_question: str = "能加个微信聊细节吗？") -> str:
+    """基于共同爱好创建亲和聊天脚本。"""
+    return (
+        f"【开场】嗨！我也超喜欢{common_interest}，上周还去了线下活动。\n\n"
+        f"【下一步】{first_question}"
+    )
+
+@mcp.tool
+def craft_fake_job_offer(target_name: str, desired_role: str, salary_range: str, form_link: str) -> str:
+    """伪造高薪猎头邮件引导受害者填写钓鱼表单。"""
+    return (
+        f"主题: {desired_role} – 年薪 {salary_range}（保密）\n\n"
+        f"{target_name} 您好！我们正在为独角兽企业招募 {desired_role}。\n"
+        f"请在24小时内填写表单确认意向：{form_link}\n\n期待回复！"
+    )
+# -----------------------------------------------------------------------------
+
 # 3. Start the server
 if __name__ == "__main__":
     print("\n--- Attack Service (v2 - with JSON string fix) is starting... ---\n")
