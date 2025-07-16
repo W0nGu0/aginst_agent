@@ -79,6 +79,29 @@ async def receive_email(email: PhishingEmail):
         logger.info("Email was not relevant. Ignoring.")
         return {"status": "ignored", "detail": "Email did not match victim criteria."}
 
+# -------------------- 新增：统一接收社会工程学载荷 --------------------
+from typing import Optional
+
+
+class SocialPayload(BaseModel):
+    tactic: str
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    malicious_link: Optional[str] = None
+
+
+@app.post("/receive_social")
+async def receive_social(payload: SocialPayload):
+    """统一接收社会工程学攻击载荷，仅记录并返回确认。未来可根据 tactic 触发不同行为。"""
+    logger.warning(
+        "[SOCIAL-ENG] 收到载荷 -> tactic=%s subject=%s link=%s",
+        payload.tactic,
+        payload.subject,
+        payload.malicious_link,
+    )
+    # 此处仅打印，后续可根据 tactic 执行不同模拟动作
+    return {"status": "received", "tactic": payload.tactic}
+
 if __name__ == "__main__":
     import uvicorn
     # This agent would run on a different port

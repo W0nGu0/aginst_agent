@@ -206,6 +206,59 @@ tools.extend([
     craft_fake_job_offer,
 ])
 
+# ------------------ Helper: 生成随机社会工程学载荷 ------------------
+
+async def _generate_random_social_payload(victim_name: str, company_name: str):
+    tactics = [
+        ("phishing_email", craft_phishing_email),
+        ("enable_macro", craft_doc_with_enable_macro),
+        ("sextortion", simulate_sextortion_email),
+        ("affinity_chat", craft_affinity_chat),
+        ("fake_job_offer", craft_fake_job_offer),
+    ]
+    tactic_name, tool_fn = random.choice(tactics)
+
+    if tactic_name == "phishing_email":
+        result = await tool_fn(target_name=victim_name, company=company_name, malicious_link="http://evil.example.com/login")
+        payload = {
+            "tactic": tactic_name,
+            "subject": "钓鱼邮件",
+            "body": result,
+            "malicious_link": "http://evil.example.com/login",
+        }
+    elif tactic_name == "enable_macro":
+        link = await tool_fn(victim_name=victim_name)
+        payload = {"tactic": tactic_name, "subject": "启用宏文档", "body": link, "malicious_link": None}
+    elif tactic_name == "sextortion":
+        body = await tool_fn(victim_name=victim_name, position="Manager")
+        payload = {"tactic": tactic_name, "subject": "紧急！", "body": body, "malicious_link": None}
+    elif tactic_name == "affinity_chat":
+        body = await tool_fn(common_interest="摄影")
+        payload = {"tactic": tactic_name, "subject": "你好！", "body": body, "malicious_link": None}
+    else:  # fake_job_offer
+        body = await tool_fn(target_name=victim_name, desired_role="DevOps", salary_range="60W-80W", form_link="https://tinyurl.com/apply")
+        payload = {"tactic": tactic_name, "subject": "高薪职位", "body": body, "malicious_link": None}
+
+    return payload
+
+# -------------------- 发送社会工程学载荷 -----------------------------
+
+@tool
+async def send_payload_to_victim_social(victim_url: str, payload: dict) -> str:
+    """将社会工程学载荷 POST 至 /receive_social。"""
+    try:
+        if not victim_url.endswith("/receive_social"):
+            victim_url = victim_url.rstrip("/") + "/receive_social"
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(victim_url, json=payload, timeout=20)
+            resp.raise_for_status()
+            return f"已发送 tactic={payload['tactic']} 至 {victim_url}，受害者响应: {resp.json()}"
+    except Exception as e:
+        return f"发送社会工程学载荷失败: {e}"
+
+tools.append(send_payload_to_victim_social)
+# --------------------------------------------------------------------
+
 # --- 定义Agent ---
 # 这是给Agent的指令，告诉它它的角色、能力和目标
 prompt = ChatPromptTemplate.from_messages(
@@ -297,6 +350,19 @@ async def execute_social_engineering(req: SocialEngRequest):
 
     return {"tactic": tactic_name, "payload": result}
 # --------------------------------------------------------------------------
+
+# 新增端点：完整随机社会工程学攻击（无需 LangChain 规划）
+class RandomAttackReq(BaseModel):
+    victim_url: str = "http://127.0.0.1:8005"  # 基础 URL
+    victim_name: str = "Alice"
+    company: str = "ACME_CORP"
+
+
+@app.post("/execute_random_social_attack")
+async def execute_random_social_attack(req: RandomAttackReq):
+    payload = await _generate_random_social_payload(req.victim_name, req.company)
+    result = await send_payload_to_victim_social(req.victim_url, payload)
+    return {"tactic": payload["tactic"], "send_result": result}
 
 
 if __name__ == "__main__":
