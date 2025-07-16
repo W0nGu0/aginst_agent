@@ -5,7 +5,9 @@ export const useAppStore = defineStore('app', {
     isLoading: false,
     currentScene: null,
     sceneList: [],
-    currentTheme: 'night'
+    currentTheme: 'night',
+    user: null,
+    isAuthenticated: false
   }),
   
   actions: {
@@ -24,6 +26,16 @@ export const useAppStore = defineStore('app', {
     toggleTheme() {
       this.currentTheme = this.currentTheme === 'night' ? 'light' : 'night'
       document.documentElement.setAttribute('data-theme', this.currentTheme)
+    },
+
+    login(username) {
+      this.user = username
+      this.isAuthenticated = true
+    },
+
+    logout() {
+      this.user = null
+      this.isAuthenticated = false
     }
   },
   
