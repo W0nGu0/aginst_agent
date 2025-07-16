@@ -1,11 +1,16 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
-      redirect: '/login'
+      name: 'login',
+      component: () => import('../views/user/Login/LoginView.vue')
+    },
+    {
+      path: '/login',
+      redirect: '/' // 兼容旧链接
     },
     {
       path: '/home',
@@ -36,11 +41,6 @@ const router = createRouter({
       path: '/personal',
       name: 'personal',
       component: () => import('../views/user/Personal/PersonalView.vue')
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/user/Login/LoginView.vue')
     }
   ]
 })
