@@ -35,8 +35,11 @@
           <input v-model="password" type="password" placeholder="密码" class="input input-bordered w-full" />
           <button class="btn btn-primary w-full transition-transform duration-200 hover:-translate-y-0.5" type="submit">登录</button>
           <p v-if="errorMsg" class="text-error text-sm text-center">{{ errorMsg }}</p>
+          <div class="flex justify-between mt-4 text-sm">
+            <RouterLink to="/register" class="text-primary hover:underline">立即注册</RouterLink>
+            <RouterLink to="/forgot" class="text-primary hover:underline">忘记密码</RouterLink>
+          </div>
         </form>
-        <p class="text-sm text-base-content/60 mt-4 text-center">默认账号: user / 123456</p>
       </div>
     </div>
   </div>
@@ -44,7 +47,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useAppStore } from '../../../stores/app'
 import logoSvg from '../../../assets/logo.svg'
 

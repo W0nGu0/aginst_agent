@@ -6,7 +6,7 @@ import { computed } from 'vue'
 const appStore = useAppStore()
 const theme = computed(() => appStore.currentTheme)
 const route = useRoute()
-const hideNav = computed(() => route.name === 'login')
+const hideNav = computed(() => ['login','register','forgot'].includes(route.name))
 
 function toggleTheme() {
   appStore.toggleTheme()

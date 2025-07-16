@@ -13,6 +13,16 @@ const router = createRouter({
       redirect: '/' // 兼容旧链接
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/user/Login/RegisterView.vue')
+    },
+    {
+      path: '/forgot',
+      name: 'forgot',
+      component: () => import('../views/user/Login/ForgotPasswordView.vue')
+    },
+    {
       path: '/home',
       name: 'home',
       component: () => import('../views/user/Home/HomeView.vue')
