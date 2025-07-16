@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden">
     <!-- 左侧介绍区 -->
-    <div class="relative hidden lg:flex flex-col justify-center items-center w-1/2 bg-base-200 text-base-100 p-12 animate-fade-in overflow-hidden">
+    <div class="relative hidden lg:flex flex-col justify-center items-center w-1/2 cyber-bg text-base-100 p-12 animate-fade-in overflow-hidden">
       <!-- 动态高科技背景 -->
       <div class="cyber-graphic absolute inset-0 pointer-events-none">
         <div class="cyber-circle animate-pulse-slow"></div>
