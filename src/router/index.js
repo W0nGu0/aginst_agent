@@ -47,6 +47,11 @@ const router = createRouter({
       component: () => import('../views/user/History/HistoryView.vue')
     },
     {
+      path: '/history/:id',
+      name: 'historyDetail',
+      component: () => import('../views/user/History/HistoryDetailView.vue')
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/user/Agent_setting/AgentSettingsView.vue')

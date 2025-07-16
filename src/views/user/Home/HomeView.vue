@@ -29,10 +29,10 @@
         <div class="glass-panel p-6 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
           <h3 class="text-2xl font-semibold mb-4 text-primary text-center">平台特色</h3>
           <ul class="space-y-2 text-base-content/70">
-            <li>• 场景一键生成</li>
-            <li>• 自动脚本部署</li>
+            <li>• 场景一键生成、大模型语义解析</li>
+            <li>• 深度强化学习驱动的攻防agent体系、Agent 智能协同</li>
             <li>• 实时指标监控</li>
-            <li>• Agent 智能协同</li>
+            <li>• 全域量化指标</li>
           </ul>
         </div>
       </div>
