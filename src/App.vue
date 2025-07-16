@@ -81,7 +81,7 @@ function toggleTheme() {
     </nav>
     
     <!-- 主要内容 -->
-    <main class="w-full px-6 pt-24 pb-16">
+    <main :class="['w-full', hideNav ? 'px-0 pt-0 pb-0' : 'px-6 pt-24 pb-16']">
       <RouterView v-slot="{ Component }">
         <Transition name="fade" mode="out-in">
           <component :is="Component" />
