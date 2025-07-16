@@ -28,6 +28,10 @@ const router = createRouter({
       component: () => import('../views/user/Home/HomeView.vue')
     },
     {
+      path: '/user',
+      redirect: '/home'
+    },
+    {
       path: '/against',
       name: 'against',
       component: () => import('../views/user/Against/Create.vue')
