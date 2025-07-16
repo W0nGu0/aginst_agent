@@ -49,12 +49,17 @@ const router = createRouter({
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/user/Tool/ToolView.vue')
+      component: () => import('../views/user/Agent_setting/AgentSettingsView.vue')
     },
     {
       path: '/personal',
       name: 'personal',
       component: () => import('../views/user/Personal/PersonalView.vue')
+    },
+    {
+      path: '/performance',
+      name: 'performance',
+      component: () => import('../views/user/Agent_performance/performance.vue')
     }
   ]
 })

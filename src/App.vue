@@ -18,7 +18,7 @@ function toggleTheme() {
     <!-- 导航栏 -->
     <nav v-if="!hideNav" class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100/80 border-b border-white/10">
       <div class="mx-auto px-6 w-full">
-        <div class="flex justify-between items-center h-16">
+        <div class="flex items-center h-16">
           <!-- Logo位置 -->
           <div class="flex items-center">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center shadow-glow-sm">
@@ -28,37 +28,13 @@ function toggleTheme() {
           </div>
           
           <!-- 导航链接 -->
-          <div class="hidden md:flex space-x-8">
-            <RouterLink 
-              to="/home" 
-              class="text-base-content/70 hover:text-primary font-medium transition-colors"
-              active-class="text-primary border-b-2 border-primary/70">
-              首页
-            </RouterLink>
-            <RouterLink 
-              to="/against" 
-              class="text-base-content/70 hover:text-primary font-medium transition-colors"
-              active-class="text-primary border-b-2 border-primary/70">
-              动态靶场
-            </RouterLink>
-            <RouterLink 
-              to="/history" 
-              class="text-base-content/70 hover:text-primary font-medium transition-colors"
-              active-class="text-primary border-b-2 border-primary/70">
-              推演记录
-            </RouterLink>
-            <RouterLink 
-              to="/personal" 
-              class="text-base-content/70 hover:text-primary font-medium transition-colors"
-              active-class="text-primary border-b-2 border-primary/70">
-              个人中心
-            </RouterLink>
-            <RouterLink 
-              to="/settings" 
-              class="text-base-content/70 hover:text-primary font-medium transition-colors"
-              active-class="text-primary border-b-2 border-primary/70">
-              Agent设置
-            </RouterLink>
+          <div class="hidden md:flex space-x-8 ml-auto mr-6">
+            <RouterLink to="/home" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">首页</RouterLink>
+            <RouterLink to="/settings" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">Agent设置</RouterLink>
+            <RouterLink to="/against" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">动态靶场</RouterLink>
+            <RouterLink to="/history" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">推演记录</RouterLink>
+            <RouterLink to="/performance" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">Agent性能</RouterLink>
+            <RouterLink to="/personal" class="text-base-content/70 hover:text-primary font-medium transition-colors" active-class="text-primary border-b-2 border-primary/70">个人中心</RouterLink>
           </div>
           
           <!-- 用户头像 -->
