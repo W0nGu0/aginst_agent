@@ -17,7 +17,7 @@ function toggleTheme() {
   <div class="app min-h-screen bg-base-200" :data-theme="theme">
     <!-- 导航栏 -->
     <nav v-if="!hideNav" class="fixed top-0 w-full z-50 backdrop-blur-md bg-base-100/80 border-b border-white/10">
-      <div class="container mx-auto px-4">
+      <div class="mx-auto px-6 w-full">
         <div class="flex justify-between items-center h-16">
           <!-- Logo位置 -->
           <div class="flex items-center">
