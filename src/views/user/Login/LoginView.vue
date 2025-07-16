@@ -2,7 +2,7 @@
   <div class="h-screen w-screen flex flex-col lg:flex-row">
     <!-- 左侧介绍区 -->
     <div class="hidden lg:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-primary to-secondary text-base-100 p-12 animate-fade-in">
-      <h1 class="text-5xl font-extrabold mb-6">AI 攻防推演平台</h1>
+      <h1 class="text-5xl font-extrabold mb-6">AI-Force 靶场推演智枢</h1>
       <p class="text-xl opacity-90 leading-relaxed mb-10 max-w-md text-center">
         构建真实网络环境，体验攻防对抗，快速提升网络安全技能。
       </p>
