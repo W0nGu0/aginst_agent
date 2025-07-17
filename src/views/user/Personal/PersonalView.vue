@@ -67,7 +67,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- 红队能力雷达图 -->
       <div class="bg-base-100 rounded-xl shadow-lg p-6">
-        <h2 class="text-xl font-bold mb-4 text-primary">红队能力画像</h2>
+        <h2 class="text-xl font-bold mb-4 text-primary">红队参与能力画像</h2>
         <div class="h-80">
           <canvas id="redTeamRadarChart"></canvas>
         </div>
@@ -75,7 +75,7 @@
 
       <!-- 蓝队能力雷达图 -->
       <div class="bg-base-100 rounded-xl shadow-lg p-6">
-        <h2 class="text-xl font-bold mb-4 text-secondary">蓝队能力画像</h2>
+        <h2 class="text-xl font-bold mb-4 text-secondary">蓝队参与能力画像</h2>
         <div class="h-80">
           <canvas id="blueTeamRadarChart"></canvas>
         </div>

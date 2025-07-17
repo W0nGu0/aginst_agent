@@ -16,7 +16,7 @@
           AI 驱动的攻防推演平台
         </h1>
         <p class="text-base-content/80 text-lg md:text-xl mb-10 max-w-2xl">
-          集成智能推荐、可视化网络拓扑与实时演练，帮助安全从业者迅速构建并体验逼真的攻防场景。
+          集成可视化网络拓扑、实时演练与智能评估体系，帮助安全从业者迅速构建并体验高度仿真的攻防场景。
         </p>
         <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
           <RouterLink to="/against" class="btn btn-primary btn-lg shadow-lg transition-transform duration-200 hover:-translate-y-1">立即创建动态靶场</RouterLink>
@@ -31,7 +31,7 @@
           <ul class="space-y-2 text-base-content/70">
             <li>• 场景一键生成、大模型语义解析</li>
             <li>• 深度强化学习驱动的攻防agent体系、Agent 智能协同</li>
-            <li>• 实时指标监控</li>
+            <li>• 实时态势监控</li>
             <li>• 全域量化指标</li>
           </ul>
         </div>
@@ -44,15 +44,15 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <div class="glass-panel p-8 text-center transition-transform duration-300 hover:-translate-y-2">
           <h3 class="text-xl font-semibold mb-2">智能场景生成</h3>
-          <p class="text-base-content/70">基于自然语言描述，一键生成个性化攻防场景。</p>
+          <p class="text-base-content/70">基于场景生成智能体和自然语言描述，一键生成个性化攻防场景。</p>
         </div>
         <div class="glass-panel p-8 text-center transition-transform duration-300 hover:-translate-y-2">
-          <h3 class="text-xl font-semibold mb-2">可视化拓扑设计</h3>
-          <p class="text-base-content/70">拖拽式网络拓扑编辑器，快速搭建复杂网络环境。</p>
+          <h3 class="text-xl font-semibold mb-2">高度仿真攻防推演</h3>
+          <p class="text-base-content/70">基于攻击智能体和防御智能体体系，完成贴合真实业务场景的攻防推演。</p>
         </div>
         <div class="glass-panel p-8 text-center transition-transform duration-300 hover:-translate-y-2">
-          <h3 class="text-xl font-semibold mb-2">实时演练与记录</h3>
-          <p class="text-base-content/70">实时监控攻防过程，自动生成推演报告。</p>
+          <h3 class="text-xl font-semibold mb-2">全域动态量化评估</h3>
+          <p class="text-base-content/70">基于中控智能体和评估智能体的全域实时监控技术，获取演练数据并自动生成推演报告。</p>
         </div>
       </div>
     </section>
