@@ -48,7 +48,7 @@ const rows = ref(Array.from({ length: 15 }, (_, i) => ({
 function viewDetail(id) {
   window.location.hash = `#/history/${id}`
 }
-</script>
+</script> 
 
 <style scoped>
 .history-bg::before {
