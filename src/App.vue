@@ -24,7 +24,7 @@ function toggleTheme() {
             <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center shadow-glow-sm">
               <span class="text-base-100 font-bold text-xl">AI</span>
             </div>
-            <span class="ml-2 text-xl font-bold text-gradient">攻防靶场</span>
+            <span class="ml-2 text-xl font-bold text-gradient">靶场推演智枢</span>
           </div>
           
           <!-- 导航链接 -->

@@ -7,7 +7,7 @@
         <div class="avatar">
           <div
             class="w-24 h-24 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center shadow-glow-sm">
-            <span class="text-base-100 font-bold text-3xl">Z</span>
+            <span class="text-base-100 font-bold text-3xl flex items-center justify-center w-full h-full">Z</span>
           </div>
         </div>
 
@@ -84,22 +84,6 @@
 
     <!-- 详细能力指标 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- 蓝队详细指标 -->
-      <div class="bg-base-100 rounded-xl shadow-lg p-6">
-        <h2 class="text-xl font-bold mb-4 text-secondary">蓝队能力详情</h2>
-        <div class="space-y-4">
-          <div v-for="(item, index) in blueTeamMetrics" :key="index">
-            <div class="flex justify-between items-center mb-1">
-              <span class="text-sm">{{ item.label }}</span>
-              <span class="text-sm font-medium">{{ item.value }}%</span>
-            </div>
-            <div class="w-full bg-base-300 rounded-full h-2">
-              <div class="bg-secondary h-2 rounded-full" :style="`width: ${item.value}%`"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 红队详细指标 -->
       <div class="bg-base-100 rounded-xl shadow-lg p-6">
         <h2 class="text-xl font-bold mb-4 text-primary">红队能力详情</h2>
@@ -111,6 +95,22 @@
             </div>
             <div class="w-full bg-base-300 rounded-full h-2">
               <div class="bg-primary h-2 rounded-full" :style="`width: ${item.value}%`"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 蓝队详细指标 -->
+      <div class="bg-base-100 rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-bold mb-4 text-secondary">蓝队能力详情</h2>
+        <div class="space-y-4">
+          <div v-for="(item, index) in blueTeamMetrics" :key="index">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm">{{ item.label }}</span>
+              <span class="text-sm font-medium">{{ item.value }}%</span>
+            </div>
+            <div class="w-full bg-base-300 rounded-full h-2">
+              <div class="bg-secondary h-2 rounded-full" :style="`width: ${item.value}%`"></div>
             </div>
           </div>
         </div>
