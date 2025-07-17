@@ -16,8 +16,37 @@
 
       <!-- 右侧圆环图 -->
       <div class="space-y-6">
-        <DonutCard title="红队评估指标" color="primary" :data="redData" />
-        <DonutCard title="蓝队评估指标" color="secondary" :data="blueData" />
+        <!-- 红队评估指标 -->
+        <div class="bg-base-100 rounded-xl shadow-lg p-6">
+          <h3 class="text-xl font-bold text-primary mb-4">红队评估指标</h3>
+          <div class="flex flex-col md:flex-row items-center gap-6">
+            <div class="w-64 h-64">
+              <canvas id="redTeamChart"></canvas>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div v-for="(item, index) in redData" :key="index" class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm" :style="`background-color: ${redChartColors[index]}`"></div>
+                <span class="text-sm">{{ item.label }}: {{ item.value }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 蓝队评估指标 -->
+        <div class="bg-base-100 rounded-xl shadow-lg p-6">
+          <h3 class="text-xl font-bold text-secondary mb-4">蓝队评估指标</h3>
+          <div class="flex flex-col md:flex-row items-center gap-6">
+            <div class="w-64 h-64">
+              <canvas id="blueTeamChart"></canvas>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div v-for="(item, index) in blueData" :key="index" class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm" :style="`background-color: ${blueChartColors[index]}`"></div>
+                <span class="text-sm">{{ item.label }}: {{ item.value }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -64,28 +93,122 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import DonutCard from './components/DonutCard.vue'
+import Chart from 'chart.js/auto'
 
 const router = useRouter()
 function goBack() { router.back() }
 
+// 红方核心能力维度数据
 const redData = ref([
-  { label: '攻击战术多样性', value: 30 },
-  { label: '漏洞利用成功率', value: 25 },
-  { label: '路径优化能力', value: 22 },
-  { label: '隐蔽渗透能力', value: 23 }
+  { label: '目标识别与情报收集(H)', value: 22 },
+  { label: '漏洞利用与攻击执行(I)', value: 20 },
+  { label: '横向移动与权限提升(J)', value: 18 },
+  { label: '隐蔽性与对抗规避(K)', value: 15 },
+  { label: '攻击链完整性(L)', value: 13 },
+  { label: '智能决策与策略演化(M)', value: 12 }
 ])
+
+// 红队图表颜色
+const redChartColors = [
+  '#ff6b81', // 浅红
+  '#ff4757', // 红色
+  '#ff1f3d', // 深红
+  '#ff5252', // 鲜红
+  '#ff3838', // 亮红
+  '#ff4d4d'  // 橙红
+]
+
+// 蓝方核心能力维度数据
 const blueData = ref([
-  { label: '防御响应时间', value: 25 },
-  { label: '阻断成功率', value: 27 },
-  { label: '误报率(反向)', value: 18 },
-  { label: '补漏及时率', value: 30 }
+  { label: '攻击预防能力(A)', value: 18 },
+  { label: '防御加固能力(B)', value: 17 },
+  { label: '反制能力(C)', value: 14 },
+  { label: '事件检测能力(D)', value: 16 },
+  { label: '事件响应能力(E)', value: 15 },
+  { label: '关联分析能力(F)', value: 10 },
+  { label: '安全运营能力(G)', value: 10 }
 ])
+
+// 蓝队图表颜色
+const blueChartColors = [
+  '#70a1ff', // 浅蓝
+  '#1e90ff', // 道奇蓝
+  '#3742fa', // 蓝色
+  '#5352ed', // 明亮的蓝色
+  '#2e86de', // 天蓝色
+  '#0984e3', // 电子蓝
+  '#00a8ff'  // 鲜蓝
+]
 
 const metrics = [
   { label: '漏洞修复率', value: 76, bar: 'bg-primary' },
   { label: '威胁检测精度', value: 82, bar: 'bg-secondary' }
 ]
+
+// 初始化图表
+onMounted(() => {
+  // 红队评估指标图表
+  new Chart(document.getElementById('redTeamChart'), {
+    type: 'doughnut',
+    data: {
+      labels: redData.value.map(item => item.label),
+      datasets: [{
+        data: redData.value.map(item => item.value),
+        backgroundColor: redChartColors,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        hoverOffset: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.label}: ${context.raw}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 蓝队评估指标图表
+  new Chart(document.getElementById('blueTeamChart'), {
+    type: 'doughnut',
+    data: {
+      labels: blueData.value.map(item => item.label),
+      datasets: [{
+        data: blueData.value.map(item => item.value),
+        backgroundColor: blueChartColors,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        hoverOffset: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.label}: ${context.raw}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+});
 </script> 
