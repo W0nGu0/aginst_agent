@@ -4,8 +4,7 @@
     <header class="py-6 px-4 sm:px-6 lg:px-8 bg-base-100 shadow-md">
       <div class="container mx-auto">
         <h1
-          class="text-3xl md:text-4xl font-bold text-left bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-gradient animate-gradient leading-snug"
-        >
+          class="text-3xl md:text-4xl font-bold text-left bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent text-gradient animate-gradient leading-snug">
           Agent 性能概览
         </h1>
         <p class="text-left text-base-content/70 mt-2">
@@ -19,31 +18,300 @@
       <section class="mb-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- 攻击Agent指标 -->
-          <div
-            class="bg-base-100 rounded-xl shadow-lg p-6 transform transition-all hover:shadow-xl"
-          >
+          <div class="bg-base-100 rounded-xl shadow-lg p-6 transform transition-all hover:shadow-xl">
             <div class="flex items-center mb-6">
-              <div
-                class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-primary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 19l-7-7 7-7"
-                  />
+              <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
               </div>
               <h2 class="text-2xl font-bold text-base-content">
                 攻击Agent性能指标
               </h2>
+            </div>
+
+            <!-- 红方核心能力维度 -->
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold mb-3 text-base-content/80">
+                红方核心能力维度
+              </h3>
+
+              <!-- 红方能力维度选项卡 -->
+              <div class="tabs tabs-boxed bg-base-200 mb-4">
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'target-identification' }"
+                  @click="setRedActiveTab('target-identification')">目标识别与情报收集</a>
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'vulnerability-exploitation' }"
+                  @click="setRedActiveTab('vulnerability-exploitation')">漏洞利用与攻击执行</a>
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'lateral-movement' }"
+                  @click="setRedActiveTab('lateral-movement')">横向移动与权限提升</a>
+              </div>
+              <div class="tabs tabs-boxed bg-base-200 mb-4">
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'stealth-capability' }"
+                  @click="setRedActiveTab('stealth-capability')">隐蔽性与对抗规避</a>
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'attack-chain' }"
+                  @click="setRedActiveTab('attack-chain')">攻击链完整性</a>
+                <a class="tab" :class="{ 'tab-active': redActiveTab === 'intelligent-decision' }"
+                  @click="setRedActiveTab('intelligent-decision')">智能决策与策略演化</a>
+              </div>
+
+              <!-- 目标识别与情报收集能力 -->
+              <div v-if="redActiveTab === 'target-identification'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">H1: 资产探测成功率</span>
+                      <span class="text-lg font-bold text-primary">94%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 94%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">H2: 端口/服务识别准确率</span>
+                      <span class="text-lg font-bold text-primary">89%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 89%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">H3: 漏洞指纹识别广度</span>
+                      <span class="text-lg font-bold text-primary">85%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 85%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">目标识别与情报收集能力总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:91; --size:3rem;">91%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 漏洞利用与攻击执行能力 -->
+              <div v-if="redActiveTab === 'vulnerability-exploitation'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">I1: 漏洞利用成功率</span>
+                      <span class="text-lg font-bold text-primary">87%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 87%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">I2: 漏洞利用自动化程度</span>
+                      <span class="text-lg font-bold text-primary">92%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 92%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">I3: 武器化工具多样性</span>
+                      <span class="text-lg font-bold text-primary">83%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 83%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">漏洞利用与攻击执行能力总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:88; --size:3rem;">88%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 横向移动与权限提升能力 -->
+              <div v-if="redActiveTab === 'lateral-movement'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">J1: 横向路径深度（跳数）</span>
+                      <span class="text-lg font-bold text-primary">4.7</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 85%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">J2: 提权成功率</span>
+                      <span class="text-lg font-bold text-primary">82%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 82%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">J3: 凭证抓取效率</span>
+                      <span class="text-lg font-bold text-primary">88%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 88%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">横向移动与权限提升能力总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:85; --size:3rem;">85%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 隐蔽性与对抗规避能力 -->
+              <div v-if="redActiveTab === 'stealth-capability'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">K1: 被检测率（与防御系统关联）</span>
+                      <span class="text-lg font-bold text-primary">18%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 82%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">K2: 日志残留数量</span>
+                      <span class="text-lg font-bold text-primary">低</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 90%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">K3: 使用抗检测技术数</span>
+                      <span class="text-lg font-bold text-primary">12</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 86%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">隐蔽性与对抗规避能力总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:86; --size:3rem;">86%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 攻击链完整性与任务完成度 -->
+              <div v-if="redActiveTab === 'attack-chain'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">L1: 拿到目标Flag数</span>
+                      <span class="text-lg font-bold text-primary">8/10</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 80%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">L2: 攻击路径图节点覆盖率</span>
+                      <span class="text-lg font-bold text-primary">92%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 92%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">L3: 关键资产控制率</span>
+                      <span class="text-lg font-bold text-primary">78%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 78%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">攻击链完整性与任务完成度总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:83; --size:3rem;">83%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 智能决策与策略演化能力 -->
+              <div v-if="redActiveTab === 'intelligent-decision'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">M1: 决策响应时间</span>
+                      <span class="text-lg font-bold text-primary">1.2秒</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 94%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">M2: 策略变化频次</span>
+                      <span class="text-lg font-bold text-primary">高</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 88%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">M3: 环境自适应性得分</span>
+                      <span class="text-lg font-bold text-primary">90%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-primary h-2.5 rounded-full" style="width: 90%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">智能决策与策略演化能力总评分</h3>
+                    <div class="radial-progress text-primary" style="--value:91; --size:3rem;">91%</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- 决策成功率 -->
@@ -68,31 +336,336 @@
           </div>
 
           <!-- 防御Agent指标 -->
-          <div
-            class="bg-base-100 rounded-xl shadow-lg p-6 transform transition-all hover:shadow-xl"
-          >
+          <div class="bg-base-100 rounded-xl shadow-lg p-6 transform transition-all hover:shadow-xl">
             <div class="flex items-center mb-6">
-              <div
-                class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mr-3"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-secondary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+              <div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <h2 class="text-2xl font-bold text-base-content">
                 防御Agent性能指标
               </h2>
+            </div>
+
+            <!-- 蓝方核心能力维度 -->
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold mb-3 text-base-content/80">
+                蓝方核心能力维度
+              </h3>
+
+              <!-- 蓝方能力维度选项卡 -->
+              <div class="tabs tabs-boxed bg-base-200 mb-4">
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'attack-prevention' }"
+                  @click="setBlueActiveTab('attack-prevention')">攻击预防能力</a>
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'defense-reinforcement' }"
+                  @click="setBlueActiveTab('defense-reinforcement')">防御加固能力</a>
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'counter-attack' }"
+                  @click="setBlueActiveTab('counter-attack')">反制能力</a>
+              </div>
+              <div class="tabs tabs-boxed bg-base-200 mb-4">
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'event-detection' }"
+                  @click="setBlueActiveTab('event-detection')">事件检测能力</a>
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'event-response' }"
+                  @click="setBlueActiveTab('event-response')">事件响应能力</a>
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'correlation-analysis' }"
+                  @click="setBlueActiveTab('correlation-analysis')">关联分析能力</a>
+                <a class="tab" :class="{ 'tab-active': blueActiveTab === 'security-operation' }"
+                  @click="setBlueActiveTab('security-operation')">安全运营能力</a>
+              </div>
+
+              <!-- 攻击预防能力 -->
+              <div v-if="blueActiveTab === 'attack-prevention'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">A1: 漏洞预警能力</span>
+                      <span class="text-lg font-bold text-secondary">85%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 85%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">A2: 漏洞评估能力</span>
+                      <span class="text-lg font-bold text-secondary">92%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 92%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">A3: 漏洞修复能力</span>
+                      <span class="text-lg font-bold text-secondary">78%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 78%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">攻击预防能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:86; --size:3rem;">86%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 防御加固能力 -->
+              <div v-if="blueActiveTab === 'defense-reinforcement'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">B1-B6: 安全功能与配置管理</span>
+                      <span class="text-lg font-bold text-secondary">87%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 87%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">B7-B12: 访问控制管理</span>
+                      <span class="text-lg font-bold text-secondary">89%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 89%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">B13-B14: 更新与备份管理</span>
+                      <span class="text-lg font-bold text-secondary">91%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 91%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">防御加固能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:88; --size:3rem;">88%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 反制能力 -->
+              <div v-if="blueActiveTab === 'counter-attack'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">C1: 攻击诱捕能力</span>
+                      <span class="text-lg font-bold text-secondary">83%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 83%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">C2: 攻击溯源能力</span>
+                      <span class="text-lg font-bold text-secondary">76%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 76%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">C3: 攻击反制能力</span>
+                      <span class="text-lg font-bold text-secondary">68%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 68%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">反制能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:76; --size:3rem;">76%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 事件检测能力 -->
+              <div v-if="blueActiveTab === 'event-detection'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">D1-D2: 服务&应用检测能力</span>
+                      <span class="text-lg font-bold text-secondary">90%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 90%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">D3-D5: 主机&终端检测能力</span>
+                      <span class="text-lg font-bold text-secondary">86%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 86%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">D6: 网络流量监测能力</span>
+                      <span class="text-lg font-bold text-secondary">91%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 91%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">事件检测能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:88; --size:3rem;">88%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 事件响应能力 -->
+              <div v-if="blueActiveTab === 'event-response'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">E1-E2: 服务&应用响应能力</span>
+                      <span class="text-lg font-bold text-secondary">84%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 84%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">E3-E4: 主机&终端响应能力</span>
+                      <span class="text-lg font-bold text-secondary">88%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 88%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">E5: 网络流量阻断能力</span>
+                      <span class="text-lg font-bold text-secondary">89%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 89%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">事件响应能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:87; --size:3rem;">87%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 关联分析能力 -->
+              <div v-if="blueActiveTab === 'correlation-analysis'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">F1: 策略中心</span>
+                      <span class="text-lg font-bold text-secondary">82%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 82%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">F2: 情报中心</span>
+                      <span class="text-lg font-bold text-secondary">85%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 85%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">关联分析能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:84; --size:3rem;">84%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 安全运营能力 -->
+              <div v-if="blueActiveTab === 'security-operation'" class="mt-4">
+                <div class="grid grid-cols-1 gap-4">
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">G1: 安全培训能力</span>
+                      <span class="text-lg font-bold text-secondary">79%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 79%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">G2: 安全对抗能力</span>
+                      <span class="text-lg font-bold text-secondary">86%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 86%"></div>
+                    </div>
+                  </div>
+
+                  <div class="bg-base-300/30 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="font-medium">G3: 安全运营能力</span>
+                      <span class="text-lg font-bold text-secondary">90%</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5">
+                      <div class="bg-secondary h-2.5 rounded-full" style="width: 90%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 总体评分 -->
+                <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mt-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base-content/90">安全运营能力总评分</h3>
+                    <div class="radial-progress text-secondary" style="--value:85; --size:3rem;">85%</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- 防御成功率 -->
@@ -121,22 +694,11 @@
       <!-- 系统稳定性指标区域 -->
       <section class="bg-base-100 rounded-xl shadow-lg p-6">
         <h2 class="text-2xl font-bold mb-6 flex items-center text-base-content">
-          <div
-            class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center mr-3"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-6 w-6 text-accent"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-              />
+          <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           </div>
           系统稳定性指标
@@ -184,9 +746,7 @@
             <p class="text-xs text-base-content/60 mt-1">↑ 2.3% 较昨日</p>
           </div>
 
-          <div
-            class="bg-secondary/10 border border-secondary/20 rounded-lg p-4"
-          >
+          <div class="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
             <h4 class="text-sm font-medium text-base-content/60">
               活跃Agent数量
             </h4>
@@ -214,8 +774,29 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import Chart from "chart.js/auto";
+
+// 红蓝方能力维度选项卡状态
+const redActiveTab = ref('target-identification');
+const blueActiveTab = ref('attack-prevention');
+
+// 选项卡切换函数
+const setRedActiveTab = (tab) => {
+  redActiveTab.value = tab;
+  // 在下一个渲染周期初始化图表
+  setTimeout(() => {
+    initRedTeamCharts(tab);
+  }, 50);
+};
+
+const setBlueActiveTab = (tab) => {
+  blueActiveTab.value = tab;
+  // 在下一个渲染周期初始化图表
+  setTimeout(() => {
+    initBlueTeamCharts(tab);
+  }, 50);
+};
 
 // 模拟数据 - 攻击Agent
 const attackSuccessRateData = {
@@ -469,9 +1050,11 @@ onMounted(() => {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
