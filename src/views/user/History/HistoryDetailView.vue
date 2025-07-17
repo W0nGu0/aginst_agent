@@ -1,6 +1,8 @@
 <template>
   <div class="p-6 md:p-10 space-y-6">
-    <button class="btn btn-ghost mb-4" @click="goBack">← 返回</button>
+    <button class="btn btn-outline btn-sm flex items-center gap-1 mb-4 hover:-translate-y-0.5 transition-transform" @click="goBack">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg> 返回
+    </button>
 
     <div class="grid md:grid-cols-2 gap-6">
       <!-- 视频占位 -->
@@ -70,14 +72,16 @@ const router = useRouter()
 function goBack() { router.back() }
 
 const redData = ref([
-  { label: '攻击战术多样性', value: 75 },
-  { label: '漏洞利用成功率', value: 68 },
-  { label: '路径优化能力', value: 92 }
+  { label: '攻击战术多样性', value: 30 },
+  { label: '漏洞利用成功率', value: 25 },
+  { label: '路径优化能力', value: 22 },
+  { label: '隐蔽渗透能力', value: 23 }
 ])
 const blueData = ref([
-  { label: '防御响应时间', value: 70 },
-  { label: '攻击阻止成功率', value: 80 },
-  { label: '漏洞补漏率', value: 88 }
+  { label: '防御响应时间', value: 25 },
+  { label: '阻断成功率', value: 27 },
+  { label: '误报率(反向)', value: 18 },
+  { label: '补漏及时率', value: 30 }
 ])
 
 const metrics = [
