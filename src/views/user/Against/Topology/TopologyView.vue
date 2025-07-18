@@ -1140,7 +1140,7 @@ class NetworkTopology {
 
     const label = new fabric.Text(text, {
       left: device.left,
-      top: device.top + device.height / 2 + 10,
+      top: device.top + device.height / 2 + 20, // 将标签位置向下移动，从+10改为+20
       fontSize: 14,
       fill: '#ffffff',
       textAlign: 'center',
