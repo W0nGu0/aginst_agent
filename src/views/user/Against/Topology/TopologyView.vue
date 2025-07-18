@@ -276,38 +276,60 @@ async function destroyScenario() {
 
 // 根据容器信息更新设备
 function updateDevicesWithContainerInfo(containerInfo) {
-  if (!containerInfo || !containerInfo.running_services) return
-
+  if (!containerInfo) return;
+  
   // 遍历所有设备，更新状态
   for (const [id, device] of Object.entries(topology.devices)) {
-    const deviceName = device.deviceData.name
-
+    const deviceName = device.deviceData.name;
+    
     // 查找对应的容器信息
-    const containerData = containerInfo.running_services.find(
+    const runningContainer = containerInfo.running_services.find(
       service => service.name === deviceName || service.name.includes(deviceName)
-    )
-
-    if (containerData) {
-      // 更新设备数据
-      device.deviceData.status = 'running'
-      device.deviceData.containerId = containerData.id
-      device.deviceData.containerIp = containerData.ip || device.deviceData.ip
-
+    );
+    
+    const failedContainer = containerInfo.failed_services?.find(
+      service => service.name === deviceName || service.name.includes(deviceName)
+    );
+    
+    if (runningContainer) {
+      // 更新运行中的设备
+      device.deviceData.status = 'running';
+      device.deviceData.containerId = runningContainer.id;
+      device.deviceData.containerIp = runningContainer.ip || device.deviceData.ip;
+      
       // 更新设备标签，显示IP
-      topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`)
-
-      // 可以添加视觉指示器表示设备正在运行
-      device.set({ opacity: 1 })
+      topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
+      
+      // 设置为不透明，表示正在运行
+      device.set({ opacity: 1 });
+    } else if (failedContainer) {
+      // 更新失败的设备
+      device.deviceData.status = 'failed';
+      device.deviceData.error = failedContainer.error;
+      
+      // 更新设备标签，显示错误
+      topology._updateLabel(device, `${device.deviceData.name}\n[失败]`);
+      
+      // 设置为半透明红色，表示失败
+      device.set({ 
+        opacity: 0.7,
+        filters: [new fabric.Image.filters.BlendColor({
+          color: '#FF0000',
+          mode: 'tint',
+          alpha: 0.3
+        })]
+      });
     } else {
       // 设备未运行
-      device.deviceData.status = 'stopped'
-      device.set({ opacity: 0.6 })
+      device.deviceData.status = 'stopped';
+      device.set({ opacity: 0.6 });
     }
   }
-
+  
   // 刷新画布
-  topology.canvas.requestRenderAll()
+  topology.canvas.requestRenderAll();
 }
+
 
 // 根据 docker-compose 文件创建公司拓扑图
 async function createCompanyTopology(isTransparent = false) {
