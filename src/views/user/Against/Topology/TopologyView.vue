@@ -60,21 +60,21 @@ let fabricLoaded = true // 直接设置为 true，因为我们已经通过 impor
 
 // 设备类型及其颜色
 const deviceTypes = {
-  'router': '#4CAF50',
-  'firewall': '#F44336',
-  'switch': '#2196F3',
-  'server': '#FF9800',
-  'pc': '#9C27B0',
-  'ids': '#673AB7'
-  ,'file': '#795548'
-  ,'siem': '#607d8b'
-  ,'vpn': '#009688'
-  ,'db': '#3f51b5'
-  ,'ubuntu': '#ff5722'
-  ,'web': '#03a9f4'
-  ,'dns': '#8bc34a'
-  ,'mail': '#6d4c41'
-  ,'cloud': '#00bcd4'
+  'router': '#4CAF50',      // 路由器
+  'firewall': '#F44336',    // 防火墙
+  'switch': '#2196F3',      // 交换机
+  'server': '#FF9800',      // 通用服务器
+  'pc': '#9C27B0',          // 工作站/终端
+  'db': '#3f51b5',          // 数据库服务器
+  'web': '#03a9f4',         // Web服务器
+  'app': '#795548',         // 应用服务器
+  'file': '#607d8b',        // 文件服务器
+  'mail': '#6d4c41',        // 邮件服务器
+  'cloud': '#00bcd4',       // 云服务/互联网
+  'vpn': '#009688',         // VPN网关
+  'dns': '#8bc34a',         // DNS服务器
+  'proxy': '#ff5722',       // 代理服务器
+  'load': '#673AB7'         // 负载均衡器
 }
 
 // 计算属性
@@ -191,7 +191,7 @@ function resetView() {
 }
 
 // 全屏切换
-function toggleFullScreen () {
+function toggleFullScreen() {
   const elem = document.getElementById('topology-wrapper')
   if (!elem) return
   if (!document.fullscreenElement) {
@@ -313,37 +313,6 @@ function updateDevicesWithContainerInfo(containerInfo) {
   topology.canvas.requestRenderAll()
 }
 
-// 预设网络拓扑
-async function createPresetNetwork() {
-  // 防止重复生成
-  topology.clear()
-
-  // 创建核心设备
-  const internalFW = await topology.createDevice('firewall', { left: 250, top: 200, deviceData: { name: 'Internal FW', ip: '192.168.1.1' } })
-  const externalFW = await topology.createDevice('firewall', { left: 550, top: 200, deviceData: { name: 'External FW', ip: '10.0.0.1' } })
-
-  topology.addConnection(internalFW, externalFW)
-
-  // 内网段设备
-  const fileSrv = await topology.createDevice('file', { left: 100, top: 50, deviceData: { name: 'FileSrv', ip: '192.168.200.10' } })
-  const siemSrv = await topology.createDevice('siem', { left: 100, top: 150, deviceData: { name: 'CNT-syslog', ip: '192.168.22.10' } })
-  const vpnDev = await topology.createDevice('vpn', { left: 100, top: 250, deviceData: { name: 'VPN', ip: '192.168.110.10' } })
-  const dbSrv = await topology.createDevice('db', { left: 100, top: 350, deviceData: { name: 'DB', ip: '192.168.214.20' } })
-  const ubuntu1 = await topology.createDevice('ubuntu', { left: 400, top: 50, deviceData: { name: 'Ubuntu-1', ip: '192.168.214.10' } })
-  const ubuntu2 = await topology.createDevice('ubuntu', { left: 400, top: 150, deviceData: { name: 'Ubuntu-2', ip: '192.168.214.11' } })
-
-    // 连接内网段
-    ;[fileSrv, siemSrv, vpnDev, dbSrv, ubuntu1, ubuntu2].forEach(dev => topology.addConnection(internalFW, dev))
-
-  // DMZ设备
-  const webSrv = await topology.createDevice('web', { left: 700, top: 50, deviceData: { name: 'Web', ip: '172.16.100.10' } })
-  const dnsSrv = await topology.createDevice('dns', { left: 700, top: 150, deviceData: { name: 'DNS', ip: '172.16.100.11' } })
-  const mailSrv = await topology.createDevice('mail', { left: 700, top: 250, deviceData: { name: 'Mail', ip: '172.16.100.12' } })
-  const cloud = await topology.createDevice('cloud', { left: 900, top: 200, deviceData: { name: 'Internet', ip: '199.203.100.1' } })
-
-    ;[webSrv, dnsSrv, mailSrv, cloud].forEach(dev => topology.addConnection(externalFW, dev))
-}
-
 // 根据 docker-compose 文件创建公司拓扑图
 async function createCompanyTopology(isTransparent = false) {
   // 防止重复生成
@@ -357,9 +326,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 400, 
     top: 300, 
     deviceData: { 
-      name: 'cnt-fw', 
+      name: '内部防火墙', 
       ip: '192.168.200.254',
-      description: '内部防火墙'
+      description: '内部网络防火墙'
     }
   })
   internalFW.set({ opacity })
@@ -368,9 +337,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 650, 
     top: 300, 
     deviceData: { 
-      name: 'cnt-dmz-fw', 
+      name: '外部防火墙', 
       ip: '199.203.100.2',
-      description: '外部防火墙'
+      description: 'DMZ区域防火墙'
     }
   })
   externalFW.set({ opacity })
@@ -383,9 +352,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 200, 
     top: 150, 
     deviceData: { 
-      name: 'cnt-sql', 
+      name: '数据库', 
       ip: '192.168.200.23',
-      description: 'SQL 数据库服务器'
+      description: 'MySQL数据库服务器'
     }
   })
   sqlServer.set({ opacity })
@@ -394,96 +363,96 @@ async function createCompanyTopology(isTransparent = false) {
     left: 200, 
     top: 250, 
     deviceData: { 
-      name: 'cnt-files', 
+      name: '文件服务器', 
       ip: '192.168.200.6',
-      description: '文件服务器'
+      description: '企业文件存储服务器'
     }
   })
   fileServer.set({ opacity })
   
-  // 创建 SIEM 段设备
-  const syslogServer = await topology.createDevice('siem', { 
+  // 创建日志服务器
+  const syslogServer = await topology.createDevice('server', { 
     left: 200, 
     top: 350, 
     deviceData: { 
-      name: 'cnt-syslog', 
+      name: '日志服务器', 
       ip: '192.168.66.20',
-      description: '系统日志服务器'
+      description: '系统日志收集服务器'
     }
   })
   syslogServer.set({ opacity })
   
   // 创建用户段设备
-  const ubuntu1 = await topology.createDevice('ubuntu', { 
+  const workstation1 = await topology.createDevice('pc', { 
     left: 200, 
     top: 450, 
     deviceData: { 
-      name: 'ws-ubuntu-cnt1', 
+      name: '工作站-1', 
       ip: '192.168.100.9',
-      description: 'Ubuntu 工作站 1'
+      description: '开发人员工作站'
     }
   })
-  ubuntu1.set({ opacity })
+  workstation1.set({ opacity })
   
-  const ubuntu2 = await topology.createDevice('ubuntu', { 
+  const workstation2 = await topology.createDevice('pc', { 
     left: 200, 
     top: 550, 
     deviceData: { 
-      name: 'ws-ubuntu-cnt2', 
+      name: '工作站-2', 
       ip: '192.168.100.34',
-      description: 'Ubuntu 工作站 2'
+      description: 'QA测试工作站'
     }
   })
-  ubuntu2.set({ opacity })
+  workstation2.set({ opacity })
   
   // 创建 VPN 设备
   const vpnServer = await topology.createDevice('vpn', { 
     left: 400, 
     top: 150, 
     deviceData: { 
-      name: 'vpn', 
+      name: 'VPN网关', 
       ip: '192.168.110.5',
-      description: 'VPN 服务器'
+      description: '远程访问VPN服务器'
     }
   })
   vpnServer.set({ opacity })
   
   // 创建数据库段设备
-  const dbServer = await topology.createDevice('db', { 
+  const pgdbServer = await topology.createDevice('db', { 
     left: 400, 
     top: 450, 
     deviceData: { 
-      name: 'cnt-db', 
+      name: 'PostgreSQL', 
       ip: '192.168.214.10',
-      description: 'PostgreSQL 数据库服务器'
+      description: 'PostgreSQL数据库服务器'
     }
   })
-  dbServer.set({ opacity })
+  pgdbServer.set({ opacity })
   
   // 连接内部设备到内部防火墙
-  ;[sqlServer, fileServer, syslogServer, ubuntu1, ubuntu2, vpnServer, dbServer].forEach(dev => {
+  ;[sqlServer, fileServer, syslogServer, workstation1, workstation2, vpnServer, pgdbServer].forEach(dev => {
     topology.addConnection(internalFW, dev)
   })
   
   // 创建 DMZ 段设备
-  const webServer = await topology.createDevice('web', { 
+  const wpServer = await topology.createDevice('web', { 
     left: 850, 
     top: 150, 
     deviceData: { 
-      name: 'cnt-dmz-wp1', 
+      name: 'WordPress', 
       ip: '172.16.100.10',
-      description: 'WordPress 服务器'
+      description: '企业WordPress网站'
     }
   })
-  webServer.set({ opacity })
+  wpServer.set({ opacity })
   
   const apacheServer = await topology.createDevice('web', { 
     left: 850, 
     top: 250, 
     deviceData: { 
-      name: 'cnt-dmz-apache1', 
+      name: 'Apache', 
       ip: '172.16.100.11',
-      description: 'Apache 服务器'
+      description: 'Apache Web服务器'
     }
   })
   apacheServer.set({ opacity })
@@ -492,9 +461,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 850, 
     top: 350, 
     deviceData: { 
-      name: 'cnt-dmz-dns', 
+      name: 'DNS服务器', 
       ip: '172.16.100.53',
-      description: 'DNS 服务器'
+      description: '域名解析服务器'
     }
   })
   dnsServer.set({ opacity })
@@ -503,9 +472,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 850, 
     top: 450, 
     deviceData: { 
-      name: 'cnt-dmz-mailrelay', 
+      name: '邮件服务器', 
       ip: '172.16.100.25',
-      description: '邮件中继服务器'
+      description: '企业邮件中继服务器'
     }
   })
   mailServer.set({ opacity })
@@ -515,9 +484,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 850, 
     top: 550, 
     deviceData: { 
-      name: 'Internet', 
+      name: '互联网', 
       ip: '199.203.100.1',
-      description: '互联网'
+      description: '外部互联网'
     }
   })
   internet.set({ opacity })
@@ -527,9 +496,9 @@ async function createCompanyTopology(isTransparent = false) {
     left: 1000, 
     top: 350, 
     deviceData: { 
-      name: 'attacker', 
+      name: '攻击者', 
       ip: '199.203.100.10',
-      description: '攻击者'
+      description: '外部攻击者'
     }
   })
   attacker.set({ opacity })
@@ -538,15 +507,15 @@ async function createCompanyTopology(isTransparent = false) {
     left: 1000, 
     top: 450, 
     deviceData: { 
-      name: 'attack-node', 
+      name: '攻击节点', 
       ip: '199.203.100.11',
-      description: '攻击节点'
+      description: '攻击跳板机'
     }
   })
   attackNode.set({ opacity })
   
   // 连接 DMZ 设备到外部防火墙
-  ;[webServer, apacheServer, dnsServer, mailServer].forEach(dev => {
+  ;[wpServer, apacheServer, dnsServer, mailServer].forEach(dev => {
     topology.addConnection(externalFW, dev)
   })
   
@@ -556,8 +525,8 @@ async function createCompanyTopology(isTransparent = false) {
   topology.addConnection(internet, attackNode)
   
   return {
-    internalFW, externalFW, sqlServer, fileServer, syslogServer, ubuntu1, ubuntu2,
-    vpnServer, dbServer, webServer, apacheServer, dnsServer, mailServer, internet,
+    internalFW, externalFW, sqlServer, fileServer, syslogServer, workstation1, workstation2,
+    vpnServer, pgdbServer, wpServer, apacheServer, dnsServer, mailServer, internet,
     attacker, attackNode
   }
 }
@@ -570,16 +539,16 @@ function getDeviceIcon(type) {
     'switch': '/图标/交换机.svg',
     'server': '/图标/应用服务器.svg',
     'pc': '/图标/PC.svg',
-    'ids': '/图标/入侵检测系统(IDS).svg'
-    ,'file': '/图标/文件服务器.svg'
-    ,'siem': '/图标/系统日志.svg'
-    ,'vpn': '/图标/VPN网关.svg'
-    ,'db': '/图标/数据库服务器.svg'
-    ,'ubuntu': '/图标/PC.svg'
-    ,'web': '/图标/Web服务器.svg'
-    ,'dns': '/图标/DNS服务器.svg'
-    ,'mail': '/图标/邮件服务器.svg'
-    ,'cloud': '/图标/云环境.svg'
+    'db': '/图标/数据库服务器.svg',
+    'web': '/图标/Web服务器.svg',
+    'app': '/图标/应用服务器.svg',
+    'file': '/图标/文件服务器.svg',
+    'mail': '/图标/邮件服务器.svg',
+    'cloud': '/图标/云环境.svg',
+    'vpn': '/图标/VPN网关.svg',
+    'dns': '/图标/DNS服务器.svg',
+    'proxy': '/图标/代理服务器.svg',
+    'load': '/图标/负载均衡.svg'
   }
   
   return iconMap[type] || ''
@@ -592,17 +561,17 @@ function getDeviceTypeName(type) {
     'firewall': '防火墙',
     'switch': '交换机',
     'server': '服务器',
-    'pc': '计算机',
-    'ids': '入侵检测'
-    , 'file': '文件服务器'
-    , 'siem': '日志服务器'
-    , 'vpn': 'VPN设备'
-    , 'db': '数据库'
-    , 'ubuntu': 'Ubuntu'
-    , 'web': 'Web服务器'
-    , 'dns': 'DNS服务器'
-    , 'mail': '邮件服务器'
-    , 'cloud': '云'
+    'pc': '工作站',
+    'db': '数据库',
+    'web': 'Web服务器',
+    'app': '应用服务器',
+    'file': '文件服务器',
+    'mail': '邮件服务器',
+    'cloud': '互联网',
+    'vpn': 'VPN网关',
+    'dns': 'DNS服务器',
+    'proxy': '代理服务器',
+    'load': '负载均衡'
   }
 
   return typeMap[type] || type
@@ -613,9 +582,8 @@ class NetworkTopology {
   constructor(options = {}) {
     this.options = Object.assign({
       canvasId: 'network-topology',
-      width: 800,
-      height: 720,
       width: 1280,
+      height: 720,
       backgroundColor: 'rgba(30, 30, 47, 0.5)'
     }, options);
 
@@ -739,10 +707,10 @@ class NetworkTopology {
           type: 'device',
           deviceType: deviceType,
           deviceData: {
-            name: deviceOptions.name,
-            ip: deviceOptions.ip,
-            mac: deviceOptions.mac || this._generateRandomMAC(),
-            description: deviceOptions.description || ''
+            name: deviceOptions.deviceData?.name || deviceOptions.name,
+            ip: deviceOptions.deviceData?.ip || deviceOptions.ip,
+            mac: deviceOptions.deviceData?.mac || this._generateRandomMAC(),
+            description: deviceOptions.deviceData?.description || ''
           }
         });
 
@@ -909,18 +877,6 @@ class NetworkTopology {
     this.canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
   }
 
-  // 生成场景
-  generateScenario() {
-    // TODO: 实现生成场景逻辑
-    console.log('生成场景');
-  }
-
-  // 销毁场景
-  destroyScenario() {
-    // TODO: 实现销毁场景逻辑
-    console.log('销毁场景');
-  }
-
   // 注册事件监听
   on(eventName, callback) {
     if (!this.eventListeners[eventName]) {
@@ -1073,17 +1029,25 @@ class NetworkTopology {
 
   // 获取默认设备名称
   _getDefaultName(deviceType) {
-    const prefixMap = {
-      'router': 'R',
-      'firewall': 'FW',
-      'switch': 'SW',
-      'server': 'SRV',
-      'pc': 'PC',
-      'ids': 'IDS'
+    const nameMap = {
+      'router': '路由器',
+      'firewall': '防火墙',
+      'switch': '交换机',
+      'server': '服务器',
+      'pc': '工作站',
+      'db': '数据库',
+      'web': 'Web服务器',
+      'app': '应用服务器',
+      'file': '文件服务器',
+      'mail': '邮件服务器',
+      'cloud': '互联网',
+      'vpn': 'VPN网关',
+      'dns': 'DNS服务器',
+      'proxy': '代理服务器',
+      'load': '负载均衡'
     };
 
-    const prefix = prefixMap[deviceType] || 'DEV';
-    return `${prefix}-${Math.floor(Math.random() * 900 + 100)}`;
+    return `${nameMap[deviceType] || '设备'}-${Math.floor(Math.random() * 100 + 1)}`;
   }
 
   // 生成随机IP
@@ -1189,4 +1153,4 @@ class NetworkTopology {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-</style> 
+</style>
