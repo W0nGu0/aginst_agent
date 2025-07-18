@@ -370,14 +370,14 @@ async function createCompanyTopology(isTransparent = false) {
   })
   fileServer.set({ opacity })
   
-  // 创建日志服务器
+  // 创建邮件服务器
   const syslogServer = await topology.createDevice('server', { 
     left: 200, 
     top: 350, 
     deviceData: { 
-      name: '日志服务器', 
+      name: '邮件服务器', 
       ip: '192.168.66.20',
-      description: '系统日志收集服务器'
+      description: '邮件存储服务器'
     }
   })
   syslogServer.set({ opacity })
