@@ -103,7 +103,16 @@ services:
   cnt-dmz-dns:
     build: ../images/cnt-dmz-dns
     container_name: cnt-dmz-dns
-    privileged: true  # 添加特权模式，解决权限问题
+    privileged: true # 添加特权模式，解决权限问题
+    volumes:
+      - /tmp/dns/run:/run/named # 创建目录用于存储会话密钥
+      - /tmp/dns/share:/usr/share/dns # 挂载根提示文件目录
+    command: >
+      bash -c "mkdir -p /run/named && 
+              mkdir -p /usr/share/dns && 
+              touch /usr/share/dns/root.hints && 
+              chown -R bind:bind /run/named /usr/share/dns && 
+              named -g -u bind"
     networks:
       mdz_segment:
         ipv4_address: 172.16.100.53
@@ -134,7 +143,15 @@ services:
   vpn:
     build: ../images/vpn
     container_name: vpn
-    privileged: true  # 添加特权模式，解决权限问题
+    privileged: true # 添加特权模式，解决权限问题
+    cap_add:
+      - NET_ADMIN # 添加网络管理权限
+    devices:
+      - /dev/net/tun:/dev/net/tun # 添加 TUN 设备
+    volumes:
+      - /tmp/vpn/log:/var/log # 挂载日志目录，方便调试
+      - /tmp/vpn/share:/opt/share # 挂载共享目录，确保持久化
+    command: sleep infinity
     networks:
       vpn_segment:
         ipv4_address: 192.168.110.5
@@ -146,7 +163,7 @@ services:
   cnt-fw:
     build: ../images/fw
     container_name: cnt-fw
-    privileged: true  # 添加特权模式，允许修改系统参数
+    privileged: true # 添加特权模式，允许修改系统参数
     networks:
       server_segment:
         ipv4_address: 192.168.200.254
@@ -164,7 +181,7 @@ services:
   cnt-dmz-fw:
     build: ../images/fw
     container_name: cnt-dmz-fw
-    privileged: true  # 添加特权模式，允许修改系统参数
+    privileged: true # 添加特权模式，允许修改系统参数
     networks:
       fw_link:
         ipv4_address: 192.168.254.2
