@@ -387,7 +387,7 @@ async function createCompanyTopology(isTransparent = false) {
     left: 200, 
     top: 450, 
     deviceData: { 
-      name: '工作站-1', 
+      name: 'PC-1', 
       ip: '192.168.100.9',
       description: '开发人员工作站'
     }
@@ -398,7 +398,7 @@ async function createCompanyTopology(isTransparent = false) {
     left: 200, 
     top: 550, 
     deviceData: { 
-      name: '工作站-2', 
+      name: 'PC-2', 
       ip: '192.168.100.34',
       description: 'QA测试工作站'
     }
@@ -537,15 +537,15 @@ function getDeviceIcon(type) {
     'router': '/图标/路由器.svg',
     'firewall': '/图标/防火墙.svg',
     'switch': '/图标/交换机.svg',
-    'server': '/图标/应用服务器.svg',
-    'pc': '/图标/PC.svg',
+    'server': '/图标/服务器.svg',
+    'pc': '/图标/pc.svg',
     'db': '/图标/数据库服务器.svg',
     'web': '/图标/Web服务器.svg',
     'app': '/图标/应用服务器.svg',
     'file': '/图标/文件服务器.svg',
     'mail': '/图标/邮件服务器.svg',
-    'cloud': '/图标/云环境.svg',
-    'vpn': '/图标/VPN网关.svg',
+    'cloud': '/图标/互联网.svg',
+    'vpn': '/图标/VPN.svg',
     'dns': '/图标/DNS服务器.svg',
     'proxy': '/图标/代理服务器.svg',
     'load': '/图标/负载均衡.svg'
@@ -561,7 +561,7 @@ function getDeviceTypeName(type) {
     'firewall': '防火墙',
     'switch': '交换机',
     'server': '服务器',
-    'pc': '工作站',
+    'pc': 'PC',
     'db': '数据库',
     'web': 'Web服务器',
     'app': '应用服务器',
@@ -741,16 +741,39 @@ class NetworkTopology {
           // 调整尺寸
           const scale = deviceOptions.size / Math.max(img.width, img.height);
           img.scale(scale);
-          finalizeDevice(img);
+          
+          // 创建背景矩形，使图标更美观
+          const bgColor = this.deviceColors[deviceType] || '#EFF6FF';
+          const rect = new fabric.Rect({
+            width: deviceOptions.size,
+            height: deviceOptions.size,
+            fill: bgColor,
+            rx: 12,
+            ry: 12,
+            stroke: '#E2E8F0',
+            strokeWidth: 1
+          });
+          
+          // 创建图标组合
+          const group = new fabric.Group([rect, img], {
+            left: 0,
+            top: 0,
+            originX: 'center',
+            originY: 'center'
+          });
+          
+          finalizeDevice(group);
         }, { crossOrigin: 'anonymous' });
       } else {
         // 无图标时使用矩形
         const rect = new fabric.Rect({
           width: deviceOptions.size,
           height: deviceOptions.size,
-          fill: '#666',
-          stroke: '#fff',
-          strokeWidth: 2
+          fill: '#EFF6FF',
+          rx: 12,
+          ry: 12,
+          stroke: '#E2E8F0',
+          strokeWidth: 1
         });
         finalizeDevice(rect);
       }
@@ -1034,7 +1057,7 @@ class NetworkTopology {
       'firewall': '防火墙',
       'switch': '交换机',
       'server': '服务器',
-      'pc': '工作站',
+      'pc': 'PC',
       'db': '数据库',
       'web': 'Web服务器',
       'app': '应用服务器',
