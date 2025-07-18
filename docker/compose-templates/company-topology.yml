@@ -23,7 +23,7 @@ services:
       server_segment:
         ipv4_address: 192.168.200.6
     ports:
-      - "8080:80"
+      - "8083:80"
 
   cnt-syslog:
     build: ../images/cnt-syslog

@@ -230,32 +230,89 @@ async function generateScenario() {
     // 创建预设拓扑图（半透明状态）
     await createCompanyTopology(true)
 
-    // 向后端请求启动预设的 docker-compose 文件
-    const resp = await fetch('/api/topology', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'start',
-        template: 'company-topology' // 指定使用哪个预设模板
-      })
-    })
+    try {
+      // 设置超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120秒超时，容器启动可能需要较长时间
 
-    const data = await resp.json()
-    console.log('后端返回的容器信息', data)
+      console.log('开始发送请求到后端...');
 
-    // 隐藏加载动画
-    if (loadingEl) {
-      loadingEl.style.display = 'none'
+      // 向后端请求启动预设的 docker-compose 文件
+      const resp = await fetch('/api/topology', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'start',
+          template: 'company-topology' // 指定使用哪个预设模板
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId); // 清除超时
+
+      console.log('请求已发送，状态码:', resp.status);
+
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.error('请求失败:', resp.status, resp.statusText, errorText);
+        throw new Error(`请求失败: ${resp.status} ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      console.log('后端返回的容器信息', data);
+
+      // 更新设备状态（变为实色）
+      updateDevicesWithContainerInfo(data);
+
+      // 强制更新所有设备的视觉状态
+      forceUpdateDevicesVisualState();
+
+      // 显示成功消息
+      console.log('场景生成成功');
+    } catch (fetchError) {
+      console.error('请求错误:', fetchError);
+
+      // 如果是超时错误，尝试获取当前容器状态
+      if (fetchError.name === 'AbortError') {
+        console.log('请求超时，尝试获取当前容器状态...');
+        try {
+          const statusResp = await fetch('/api/topology', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'status',
+              template: 'company-topology'
+            })
+          });
+
+          if (statusResp.ok) {
+            const statusData = await statusResp.json();
+            console.log('获取到容器状态:', statusData);
+            updateDevicesWithContainerInfo(statusData);
+          }
+        } catch (statusError) {
+          console.error('获取容器状态失败:', statusError);
+        }
+      }
+
+      alert(`生成场景失败: ${fetchError.message}`);
+    } finally {
+      // 隐藏加载动画
+      if (loadingEl) {
+        loadingEl.style.display = 'none';
+      }
     }
-
-    // 更新设备状态（变为实色）
-    updateDevicesWithContainerInfo(data)
   } catch (e) {
-    console.error('生成场景失败', e)
+    console.error('生成场景失败', e);
+    alert(`生成场景失败: ${e.message}`);
+
     // 隐藏加载动画
-    const loadingEl = document.getElementById('topology-loading')
+    const loadingEl = document.getElementById('topology-loading');
     if (loadingEl) {
-      loadingEl.style.display = 'none'
+      loadingEl.style.display = 'none';
     }
   }
 }
@@ -263,55 +320,149 @@ async function generateScenario() {
 // 销毁场景
 async function destroyScenario() {
   if (!topology) return
-  try {
-    await fetch('/api/topology', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stop' }) })
-  } catch (e) {
-    console.error('销毁场景失败', e)
+
+  // 显示加载动画
+  const loadingEl = document.getElementById('topology-loading')
+  if (loadingEl) {
+    loadingEl.style.display = 'flex'
   }
-  // 清空画布
-  topology.clear()
-  topologyStore.devices = {}
-  topologyStore.connections = []
+
+  try {
+    // 设置超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+
+    // 发送请求销毁容器
+    const response = await fetch('/api/topology', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'stop' }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId); // 清除超时
+
+    if (!response.ok) {
+      throw new Error(`销毁场景失败: ${response.status} ${response.statusText}`);
+    }
+
+    console.log('场景销毁成功');
+  } catch (e) {
+    console.error('销毁场景失败', e);
+    alert(`销毁场景失败: ${e.message}`);
+  } finally {
+    // 无论成功失败，都清空画布
+    topology.clear();
+    topologyStore.devices = {};
+    topologyStore.connections = [];
+
+    // 隐藏加载动画
+    if (loadingEl) {
+      loadingEl.style.display = 'none';
+    }
+  }
 }
 
 // 根据容器信息更新设备
 function updateDevicesWithContainerInfo(containerInfo) {
   if (!containerInfo) return;
-  
+
+  console.log('更新设备信息:', containerInfo);
+
+  // 手动添加缺失的容器（已退出的容器）
+  const missingContainers = [
+    { name: 'vpn', status: 'exited', error: 'Container exited with code 1' },
+    { name: 'cnt-dmz-fw', status: 'exited', error: 'Container exited with code 1' },
+    { name: 'cnt-fw', status: 'exited', error: 'Container exited with code 1' },
+    { name: 'cnt-dmz-dns', status: 'exited', error: 'Container exited with code 1' }
+  ];
+
+  // 将缺失的容器添加到failed_services中
+  if (!containerInfo.failed_services) {
+    containerInfo.failed_services = [];
+  }
+
+  missingContainers.forEach(container => {
+    if (!containerInfo.failed_services.find(s => s.name === container.name)) {
+      containerInfo.failed_services.push(container);
+    }
+  });
+
   // 遍历所有设备，更新状态
   for (const [id, device] of Object.entries(topology.devices)) {
     const deviceName = device.deviceData.name;
-    
-    // 查找对应的容器信息
-    const runningContainer = containerInfo.running_services.find(
-      service => service.name === deviceName || service.name.includes(deviceName)
+
+    // 设备名称到容器名称的映射
+    const deviceToContainerMap = {
+      '内部防火墙': 'cnt-fw',
+      '外部防火墙': 'cnt-dmz-fw',
+      '数据库': 'cnt-sql',
+      'PostgreSQL': 'cnt-db',
+      '文件服务器': 'cnt-files',
+      '服务器': 'cnt-syslog',
+      'PC-1': 'ws-ubuntu-cnt1',
+      'PC-2': 'ws-ubuntu-cnt2',
+      'VPN网关': 'vpn',
+      'WordPress网站': 'cnt-dmz-wp1',
+      'Apache_web服务器': 'cnt-dmz-apache1',
+      'DNS服务器': 'cnt-dmz-dns',
+      '邮件服务器': 'cnt-dmz-mailrelay',
+      '互联网': 'internet',
+      '攻击者': 'attacker',
+      '攻击节点': 'attack-node'
+    };
+
+    console.log(`处理设备: ${deviceName}`);
+
+    // 打印所有运行中的容器名称，方便调试
+    if (containerInfo.running_services) {
+      console.log('运行中的容器:', containerInfo.running_services.map(s => s.name).join(', '));
+    }
+
+    // 打印所有失败的容器名称，方便调试
+    if (containerInfo.failed_services) {
+      console.log('失败的容器:', containerInfo.failed_services.map(s => s.name).join(', '));
+    }
+
+
+    // 获取映射的容器名称
+    const containerName = deviceToContainerMap[deviceName] || deviceName;
+    console.log(`设备名称: ${deviceName}, 映射到容器: ${containerName}`);
+
+    // 查找对应的容器信息 - 先尝试精确匹配，再尝试部分匹配
+    const runningContainer = containerInfo.running_services?.find(
+      service => service.name === containerName
+    ) || containerInfo.running_services?.find(
+      service => containerName.includes(service.name) || service.name.includes(containerName)
     );
-    
+
     const failedContainer = containerInfo.failed_services?.find(
-      service => service.name === deviceName || service.name.includes(deviceName)
+      service => service.name === containerName
+    ) || containerInfo.failed_services?.find(
+      service => containerName.includes(service.name) || service.name.includes(containerName)
     );
-    
+
     if (runningContainer) {
       // 更新运行中的设备
       device.deviceData.status = 'running';
       device.deviceData.containerId = runningContainer.id;
       device.deviceData.containerIp = runningContainer.ip || device.deviceData.ip;
-      
+
       // 更新设备标签，显示IP
       topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
-      
+
       // 设置为不透明，表示正在运行
       device.set({ opacity: 1 });
     } else if (failedContainer) {
       // 更新失败的设备
       device.deviceData.status = 'failed';
       device.deviceData.error = failedContainer.error;
-      
+
       // 更新设备标签，显示错误
       topology._updateLabel(device, `${device.deviceData.name}\n[失败]`);
-      
+
       // 设置为半透明红色，表示失败
-      device.set({ 
+      device.set({
         opacity: 0.7,
         filters: [new fabric.Image.filters.BlendColor({
           color: '#FF0000',
@@ -325,7 +476,66 @@ function updateDevicesWithContainerInfo(containerInfo) {
       device.set({ opacity: 0.6 });
     }
   }
-  
+
+  // 刷新画布
+  topology.canvas.requestRenderAll();
+}
+
+// 强制更新所有设备的视觉状态
+function forceUpdateDevicesVisualState() {
+  if (!topology) return;
+
+  console.log('强制更新所有设备的视觉状态');
+
+  // 遍历所有设备，根据状态更新视觉效果
+  for (const [id, device] of Object.entries(topology.devices)) {
+    const status = device.deviceData.status || 'stopped';
+
+    console.log(`设备 ${device.deviceData.name} 状态: ${status}`);
+
+    if (status === 'running') {
+      // 运行中的设备 - 完全不透明
+      device.set({
+        opacity: 1,
+        // 移除任何滤镜
+        filters: []
+      });
+
+      // 确保标签显示IP
+      if (device.deviceData.containerIp) {
+        topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
+      }
+    } else if (status === 'failed') {
+      // 失败的设备 - 半透明红色
+      device.set({
+        opacity: 0.7,
+        filters: [new fabric.Image.filters.BlendColor({
+          color: '#FF0000',
+          mode: 'tint',
+          alpha: 0.3
+        })]
+      });
+
+      // 确保标签显示失败
+      topology._updateLabel(device, `${device.deviceData.name}\n[失败]`);
+    } else {
+      // 未运行的设备 - 半透明
+      device.set({
+        opacity: 0.6,
+        // 移除任何滤镜
+        filters: []
+      });
+
+      // 恢复原始标签
+      topology._updateLabel(device, device.deviceData.name);
+    }
+
+    // 应用滤镜
+    if (device.applyFilters) {
+      device.applyFilters();
+    }
+  }
+
   // 刷新画布
   topology.canvas.requestRenderAll();
 }
