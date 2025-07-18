@@ -439,7 +439,7 @@ async function createCompanyTopology(isTransparent = false) {
     left: 850, 
     top: 150, 
     deviceData: { 
-      name: 'WordPress', 
+      name: 'WordPress网站', 
       ip: '172.16.100.10',
       description: '企业WordPress网站'
     }
@@ -450,7 +450,7 @@ async function createCompanyTopology(isTransparent = false) {
     left: 850, 
     top: 250, 
     deviceData: { 
-      name: 'Apache', 
+      name: 'Apache_web服务器', 
       ip: '172.16.100.11',
       description: 'Apache Web服务器'
     }
