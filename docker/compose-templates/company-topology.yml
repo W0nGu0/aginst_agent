@@ -103,6 +103,7 @@ services:
   cnt-dmz-dns:
     build: ../images/cnt-dmz-dns
     container_name: cnt-dmz-dns
+    privileged: true  # 添加特权模式，解决权限问题
     networks:
       mdz_segment:
         ipv4_address: 172.16.100.53
@@ -133,6 +134,7 @@ services:
   vpn:
     build: ../images/vpn
     container_name: vpn
+    privileged: true  # 添加特权模式，解决权限问题
     networks:
       vpn_segment:
         ipv4_address: 192.168.110.5
@@ -144,6 +146,7 @@ services:
   cnt-fw:
     build: ../images/fw
     container_name: cnt-fw
+    privileged: true  # 添加特权模式，允许修改系统参数
     networks:
       server_segment:
         ipv4_address: 192.168.200.254
@@ -161,6 +164,7 @@ services:
   cnt-dmz-fw:
     build: ../images/fw
     container_name: cnt-dmz-fw
+    privileged: true  # 添加特权模式，允许修改系统参数
     networks:
       fw_link:
         ipv4_address: 192.168.254.2
@@ -218,5 +222,3 @@ networks:
       config:
         - subnet: 199.203.100.0/24
           gateway: 199.203.100.1
-
- 

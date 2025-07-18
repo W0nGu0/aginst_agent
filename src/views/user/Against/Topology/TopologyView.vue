@@ -66,7 +66,6 @@ const deviceTypes = {
   'app': '#795548',         // 应用服务器
   'file': '#607d8b',        // 文件服务器
   'mail': '#6d4c41',        // 邮件服务器
-  'cloud': '#00bcd4',       // 云服务/互联网
   'vpn': '#009688',         // VPN网关
   'dns': '#8bc34a',         // DNS服务器
   'proxy': '#ff5722',       // 代理服务器
@@ -578,7 +577,7 @@ async function createCompanyTopology(isTransparent = false) {
   // 创建服务器段设备
   const sqlServer = await topology.createDevice('db', {
     left: 200,
-    top: 150,
+    top: 50,
     deviceData: {
       name: '数据库',
       ip: '192.168.200.23',
@@ -589,7 +588,7 @@ async function createCompanyTopology(isTransparent = false) {
 
   const fileServer = await topology.createDevice('file', {
     left: 200,
-    top: 250,
+    top: 175,
     deviceData: {
       name: '文件服务器',
       ip: '192.168.200.6',
@@ -601,7 +600,7 @@ async function createCompanyTopology(isTransparent = false) {
   // 创建服务器
   const syslogServer = await topology.createDevice('server', {
     left: 200,
-    top: 350,
+    top: 300,
     deviceData: {
       name: '服务器',
       ip: '192.168.66.20',
@@ -613,7 +612,7 @@ async function createCompanyTopology(isTransparent = false) {
   // 创建用户段设备
   const workstation1 = await topology.createDevice('pc', {
     left: 200,
-    top: 450,
+    top: 425,
     deviceData: {
       name: 'PC-1',
       ip: '192.168.100.9',
@@ -664,7 +663,7 @@ async function createCompanyTopology(isTransparent = false) {
 
   // 创建 DMZ 段设备
   const wpServer = await topology.createDevice('web', {
-    left: 850,
+    left: 600,
     top: 150,
     deviceData: {
       name: 'WordPress网站',
@@ -675,8 +674,8 @@ async function createCompanyTopology(isTransparent = false) {
   wpServer.set({ opacity })
 
   const apacheServer = await topology.createDevice('web', {
-    left: 850,
-    top: 250,
+    left: 750,
+    top: 150,
     deviceData: {
       name: 'Apache_web服务器',
       ip: '172.16.100.11',
@@ -686,8 +685,8 @@ async function createCompanyTopology(isTransparent = false) {
   apacheServer.set({ opacity })
 
   const dnsServer = await topology.createDevice('dns', {
-    left: 850,
-    top: 350,
+    left: 600,
+    top: 450,
     deviceData: {
       name: 'DNS服务器',
       ip: '172.16.100.53',
@@ -697,7 +696,7 @@ async function createCompanyTopology(isTransparent = false) {
   dnsServer.set({ opacity })
 
   const mailServer = await topology.createDevice('mail', {
-    left: 850,
+    left: 750,
     top: 450,
     deviceData: {
       name: '邮件服务器',
@@ -707,22 +706,10 @@ async function createCompanyTopology(isTransparent = false) {
   })
   mailServer.set({ opacity })
 
-  // 创建互联网
-  const internet = await topology.createDevice('cloud', {
-    left: 850,
-    top: 550,
-    deviceData: {
-      name: '互联网',
-      ip: '199.203.100.1',
-      description: '外部互联网'
-    }
-  })
-  internet.set({ opacity })
-
   // 创建攻击者
   const attacker = await topology.createDevice('pc', {
     left: 1000,
-    top: 350,
+    top: 250,
     deviceData: {
       name: '攻击者',
       ip: '199.203.100.10',
@@ -733,7 +720,7 @@ async function createCompanyTopology(isTransparent = false) {
 
   const attackNode = await topology.createDevice('pc', {
     left: 1000,
-    top: 450,
+    top: 350,
     deviceData: {
       name: '攻击节点',
       ip: '199.203.100.11',
@@ -747,14 +734,13 @@ async function createCompanyTopology(isTransparent = false) {
       topology.addConnection(externalFW, dev)
     })
 
-  // 连接互联网和攻击者
-  topology.addConnection(externalFW, internet)
-  topology.addConnection(internet, attacker)
-  topology.addConnection(internet, attackNode)
+  // 直接将攻击者和攻击节点连接到外部防火墙
+  topology.addConnection(externalFW, attacker)
+  topology.addConnection(externalFW, attackNode)
 
   return {
     internalFW, externalFW, sqlServer, fileServer, syslogServer, workstation1, workstation2,
-    vpnServer, pgdbServer, wpServer, apacheServer, dnsServer, mailServer, internet,
+    vpnServer, pgdbServer, wpServer, apacheServer, dnsServer, mailServer,
     attacker, attackNode
   }
 }
@@ -772,7 +758,6 @@ function getDeviceIcon(type) {
     'app': '/图标/应用服务器.svg',
     'file': '/图标/文件服务器.svg',
     'mail': '/图标/邮件服务器.svg',
-    'cloud': '/图标/互联网.svg',
     'vpn': '/图标/VPN.svg',
     'dns': '/图标/DNS服务器.svg',
     'proxy': '/图标/代理服务器.svg',
@@ -795,7 +780,6 @@ function getDeviceTypeName(type) {
     'app': '应用服务器',
     'file': '文件服务器',
     'mail': '邮件服务器',
-    'cloud': '互联网',
     'vpn': 'VPN网关',
     'dns': 'DNS服务器',
     'proxy': '代理服务器',
@@ -1302,7 +1286,6 @@ class NetworkTopology {
       'app': '应用服务器',
       'file': '文件服务器',
       'mail': '邮件服务器',
-      'cloud': '互联网',
       'vpn': 'VPN网关',
       'dns': 'DNS服务器',
       'proxy': '代理服务器',
