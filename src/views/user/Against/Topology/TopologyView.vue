@@ -6,9 +6,13 @@
         <h2 class="text-xl font-semibold mb-4 flex items-center">
           <span class="text-primary mr-2">#</span>设备库
         </h2>
-
+        
         <div class="device-grid">
-          <div v-for="(color, type) in deviceTypes" :key="type" class="device-item" @click="createDevice(type)">
+          <div 
+            v-for="(color, type) in deviceTypes" 
+            :key="type"
+            class="device-item" 
+            @click="createDevice(type)">
             <div class="device-icon" :style="`background-color: ${color}`">
               <img :src="getDeviceIcon(type)" class="w-6 h-6" alt="">
             </div>
@@ -16,7 +20,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- 右侧拓扑图区域 -->
       <div class="bg-base-100 rounded-lg p-4 border border-base-300/30">
         <h2 class="text-xl font-semibold mb-4 flex items-center justify-between">
@@ -30,7 +34,7 @@
             <button @click="toggleFullScreen" class="btn btn-sm">全屏</button>
           </div>
         </h2>
-
+        
         <div class="topology-container relative" id="topology-wrapper">
           <div id="topology-loading" class="absolute inset-0 bg-base-300/50 flex items-center justify-center z-10">
             <div class="loading-spinner">
@@ -62,15 +66,15 @@ const deviceTypes = {
   'server': '#FF9800',
   'pc': '#9C27B0',
   'ids': '#673AB7'
-  , 'file': '#795548'
-  , 'siem': '#607d8b'
-  , 'vpn': '#009688'
-  , 'db': '#3f51b5'
-  , 'ubuntu': '#ff5722'
-  , 'web': '#03a9f4'
-  , 'dns': '#8bc34a'
-  , 'mail': '#6d4c41'
-  , 'cloud': '#00bcd4'
+  ,'file': '#795548'
+  ,'siem': '#607d8b'
+  ,'vpn': '#009688'
+  ,'db': '#3f51b5'
+  ,'ubuntu': '#ff5722'
+  ,'web': '#03a9f4'
+  ,'dns': '#8bc34a'
+  ,'mail': '#6d4c41'
+  ,'cloud': '#00bcd4'
 }
 
 // 计算属性
@@ -103,18 +107,18 @@ function initializeTopology() {
     console.error('Fabric.js未加载，无法初始化拓扑图')
     return
   }
-
+  
   topology = new NetworkTopology({
     canvasId: 'network-topology'
   })
-
+  
   topology.initialize().then(() => {
     console.log('拓扑图初始化完成')
     // 监听事件
     topology.on('objectSelected', (data) => {
       topologyStore.setSelectedObject(data.object)
     })
-
+    
     // 初始化canvas
     topologyStore.setCanvas(topology.canvas)
   }).catch(err => {
@@ -125,7 +129,7 @@ function initializeTopology() {
 // 设置模式
 function setMode(mode) {
   if (!topology) return
-
+  
   topology.setMode(mode)
   topologyStore.setMode(mode)
 }
@@ -133,14 +137,14 @@ function setMode(mode) {
 // 创建设备
 function createDevice(type) {
   if (!topology) return
-
+  
   topology.createDevice(type)
 }
 
 // 删除选中对象
 function deleteSelected() {
   if (!topology) return
-
+  
   topology.deleteSelected()
   topologyStore.setSelectedObject(null)
 }
@@ -148,10 +152,10 @@ function deleteSelected() {
 // 更新设备属性
 function updateDeviceProperty() {
   if (!topology || !selectedDevice.value) return
-
+  
   // 更新设备标签
   topology._updateLabel(selectedDevice.value, selectedDevice.value.deviceData.name)
-
+  
   // 更新画布
   topology.canvas.requestRenderAll()
 }
@@ -159,14 +163,14 @@ function updateDeviceProperty() {
 // 更新连接类型
 function updateConnectionType() {
   if (!topology || !selectedConnection.value) return
-
+  
   const connType = topology.connectionTypes[selectedConnection.value.connectionType] || topology.connectionTypes.ethernet
-
+  
   selectedConnection.value.set({
     stroke: connType.color,
     strokeDashArray: connType.dash
   })
-
+  
   topology.canvas.requestRenderAll()
 }
 
@@ -187,7 +191,7 @@ function resetView() {
 }
 
 // 全屏切换
-function toggleFullScreen() {
+function toggleFullScreen () {
   const elem = document.getElementById('topology-wrapper')
   if (!elem) return
   if (!document.fullscreenElement) {
@@ -209,7 +213,7 @@ document.addEventListener('fullscreenchange', () => {
 // 保存拓扑图
 function saveTopology() {
   if (!topology) return
-
+  
   // TODO: 实现保存功能
   console.log('保存拓扑图')
 }
@@ -218,75 +222,38 @@ function saveTopology() {
 async function generateScenario() {
   if (!topology) return
   try {
-    // 收集当前拓扑图信息
-    const topologyData = {
-      action: 'start',
-      devices: {},
-      connections: []
-    }
-
-    // 收集设备信息
-    for (const [id, device] of Object.entries(topology.devices)) {
-      topologyData.devices[id] = {
-        type: device.deviceType,
-        name: device.deviceData.name,
-        ip: device.deviceData.ip,
-        position: {
-          x: device.left,
-          y: device.top
-        }
-      }
-    }
-
-    // 收集连接信息
-    topology.connections.forEach((conn, index) => {
-      // 找到源设备和目标设备的ID
-      let sourceId = null
-      let targetId = null
-
-      for (const [id, device] of Object.entries(topology.devices)) {
-        if (device === conn.source) sourceId = id
-        if (device === conn.target) targetId = id
-      }
-
-      if (sourceId && targetId) {
-        topologyData.connections.push({
-          id: `conn_${index}`,
-          source: sourceId,
-          target: targetId,
-          type: conn.connectionType || 'ethernet'
-        })
-      }
-    })
-
+    // 清空当前拓扑图
+    topology.clear()
+    
     // 显示加载动画
     const loadingEl = document.getElementById('topology-loading')
     if (loadingEl) {
       loadingEl.style.display = 'flex'
     }
-
-    // 向后端请求启动拓扑对应的容器
+    
+    // 创建预设拓扑图（半透明状态）
+    await createCompanyTopology(true)
+    
+    // 向后端请求启动预设的 docker-compose 文件
     const resp = await fetch('/api/topology', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(topologyData)
+      body: JSON.stringify({
+        action: 'start',
+        template: 'company-topology' // 指定使用哪个预设模板
+      })
     })
-
+    
     const data = await resp.json()
     console.log('后端返回的容器信息', data)
-
+    
     // 隐藏加载动画
     if (loadingEl) {
       loadingEl.style.display = 'none'
     }
-
-    // 如果没有设备，使用预设拓扑
-    if (Object.keys(topology.devices).length === 0) {
-      await createPresetNetwork()
-    } else {
-      // 更新设备状态和信息
-      updateDevicesWithContainerInfo(data)
-    }
+    
+    // 更新设备状态（变为实色）
+    updateDevicesWithContainerInfo(data)
   } catch (e) {
     console.error('生成场景失败', e)
     // 隐藏加载动画
@@ -297,28 +264,42 @@ async function generateScenario() {
   }
 }
 
+// 销毁场景
+async function destroyScenario() {
+  if (!topology) return
+  try {
+    await fetch('/api/topology', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'stop'}) })
+  } catch (e) {
+    console.error('销毁场景失败', e)
+  }
+  // 清空画布
+  topology.clear()
+  topologyStore.devices = {}
+  topologyStore.connections = []
+}
+
 // 根据容器信息更新设备
 function updateDevicesWithContainerInfo(containerInfo) {
   if (!containerInfo || !containerInfo.running_services) return
-
+  
   // 遍历所有设备，更新状态
   for (const [id, device] of Object.entries(topology.devices)) {
     const deviceName = device.deviceData.name
-
+    
     // 查找对应的容器信息
     const containerData = containerInfo.running_services.find(
       service => service.name === deviceName || service.name.includes(deviceName)
     )
-
+    
     if (containerData) {
       // 更新设备数据
       device.deviceData.status = 'running'
       device.deviceData.containerId = containerData.id
       device.deviceData.containerIp = containerData.ip || device.deviceData.ip
-
+      
       // 更新设备标签，显示IP
       topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`)
-
+      
       // 可以添加视觉指示器表示设备正在运行
       device.set({ opacity: 1 })
     } else {
@@ -327,23 +308,9 @@ function updateDevicesWithContainerInfo(containerInfo) {
       device.set({ opacity: 0.6 })
     }
   }
-
+  
   // 刷新画布
   topology.canvas.requestRenderAll()
-}
-
-// 销毁场景
-async function destroyScenario() {
-  if (!topology) return
-  try {
-    await fetch('/api/topology', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stop' }) })
-  } catch (e) {
-    console.error('销毁场景失败', e)
-  }
-  // 清空画布
-  topology.clear()
-  topologyStore.devices = {}
-  topologyStore.connections = []
 }
 
 // 预设网络拓扑
@@ -377,6 +344,224 @@ async function createPresetNetwork() {
     ;[webSrv, dnsSrv, mailSrv, cloud].forEach(dev => topology.addConnection(externalFW, dev))
 }
 
+// 根据 docker-compose 文件创建公司拓扑图
+async function createCompanyTopology(isTransparent = false) {
+  // 防止重复生成
+  topology.clear()
+  
+  // 设置透明度
+  const opacity = isTransparent ? 0.6 : 1
+  
+  // 创建防火墙设备
+  const internalFW = await topology.createDevice('firewall', { 
+    left: 400, 
+    top: 300, 
+    deviceData: { 
+      name: 'cnt-fw', 
+      ip: '192.168.200.254',
+      description: '内部防火墙'
+    }
+  })
+  internalFW.set({ opacity })
+  
+  const externalFW = await topology.createDevice('firewall', { 
+    left: 650, 
+    top: 300, 
+    deviceData: { 
+      name: 'cnt-dmz-fw', 
+      ip: '199.203.100.2',
+      description: '外部防火墙'
+    }
+  })
+  externalFW.set({ opacity })
+  
+  // 连接两个防火墙
+  topology.addConnection(internalFW, externalFW)
+  
+  // 创建服务器段设备
+  const sqlServer = await topology.createDevice('db', { 
+    left: 200, 
+    top: 150, 
+    deviceData: { 
+      name: 'cnt-sql', 
+      ip: '192.168.200.23',
+      description: 'SQL 数据库服务器'
+    }
+  })
+  sqlServer.set({ opacity })
+  
+  const fileServer = await topology.createDevice('file', { 
+    left: 200, 
+    top: 250, 
+    deviceData: { 
+      name: 'cnt-files', 
+      ip: '192.168.200.6',
+      description: '文件服务器'
+    }
+  })
+  fileServer.set({ opacity })
+  
+  // 创建 SIEM 段设备
+  const syslogServer = await topology.createDevice('siem', { 
+    left: 200, 
+    top: 350, 
+    deviceData: { 
+      name: 'cnt-syslog', 
+      ip: '192.168.66.20',
+      description: '系统日志服务器'
+    }
+  })
+  syslogServer.set({ opacity })
+  
+  // 创建用户段设备
+  const ubuntu1 = await topology.createDevice('ubuntu', { 
+    left: 200, 
+    top: 450, 
+    deviceData: { 
+      name: 'ws-ubuntu-cnt1', 
+      ip: '192.168.100.9',
+      description: 'Ubuntu 工作站 1'
+    }
+  })
+  ubuntu1.set({ opacity })
+  
+  const ubuntu2 = await topology.createDevice('ubuntu', { 
+    left: 200, 
+    top: 550, 
+    deviceData: { 
+      name: 'ws-ubuntu-cnt2', 
+      ip: '192.168.100.34',
+      description: 'Ubuntu 工作站 2'
+    }
+  })
+  ubuntu2.set({ opacity })
+  
+  // 创建 VPN 设备
+  const vpnServer = await topology.createDevice('vpn', { 
+    left: 400, 
+    top: 150, 
+    deviceData: { 
+      name: 'vpn', 
+      ip: '192.168.110.5',
+      description: 'VPN 服务器'
+    }
+  })
+  vpnServer.set({ opacity })
+  
+  // 创建数据库段设备
+  const dbServer = await topology.createDevice('db', { 
+    left: 400, 
+    top: 450, 
+    deviceData: { 
+      name: 'cnt-db', 
+      ip: '192.168.214.10',
+      description: 'PostgreSQL 数据库服务器'
+    }
+  })
+  dbServer.set({ opacity })
+  
+  // 连接内部设备到内部防火墙
+  ;[sqlServer, fileServer, syslogServer, ubuntu1, ubuntu2, vpnServer, dbServer].forEach(dev => {
+    topology.addConnection(internalFW, dev)
+  })
+  
+  // 创建 DMZ 段设备
+  const webServer = await topology.createDevice('web', { 
+    left: 850, 
+    top: 150, 
+    deviceData: { 
+      name: 'cnt-dmz-wp1', 
+      ip: '172.16.100.10',
+      description: 'WordPress 服务器'
+    }
+  })
+  webServer.set({ opacity })
+  
+  const apacheServer = await topology.createDevice('web', { 
+    left: 850, 
+    top: 250, 
+    deviceData: { 
+      name: 'cnt-dmz-apache1', 
+      ip: '172.16.100.11',
+      description: 'Apache 服务器'
+    }
+  })
+  apacheServer.set({ opacity })
+  
+  const dnsServer = await topology.createDevice('dns', { 
+    left: 850, 
+    top: 350, 
+    deviceData: { 
+      name: 'cnt-dmz-dns', 
+      ip: '172.16.100.53',
+      description: 'DNS 服务器'
+    }
+  })
+  dnsServer.set({ opacity })
+  
+  const mailServer = await topology.createDevice('mail', { 
+    left: 850, 
+    top: 450, 
+    deviceData: { 
+      name: 'cnt-dmz-mailrelay', 
+      ip: '172.16.100.25',
+      description: '邮件中继服务器'
+    }
+  })
+  mailServer.set({ opacity })
+  
+  // 创建互联网
+  const internet = await topology.createDevice('cloud', { 
+    left: 850, 
+    top: 550, 
+    deviceData: { 
+      name: 'Internet', 
+      ip: '199.203.100.1',
+      description: '互联网'
+    }
+  })
+  internet.set({ opacity })
+  
+  // 创建攻击者
+  const attacker = await topology.createDevice('pc', { 
+    left: 1000, 
+    top: 350, 
+    deviceData: { 
+      name: 'attacker', 
+      ip: '199.203.100.10',
+      description: '攻击者'
+    }
+  })
+  attacker.set({ opacity })
+  
+  const attackNode = await topology.createDevice('pc', { 
+    left: 1000, 
+    top: 450, 
+    deviceData: { 
+      name: 'attack-node', 
+      ip: '199.203.100.11',
+      description: '攻击节点'
+    }
+  })
+  attackNode.set({ opacity })
+  
+  // 连接 DMZ 设备到外部防火墙
+  ;[webServer, apacheServer, dnsServer, mailServer].forEach(dev => {
+    topology.addConnection(externalFW, dev)
+  })
+  
+  // 连接互联网和攻击者
+  topology.addConnection(externalFW, internet)
+  topology.addConnection(internet, attacker)
+  topology.addConnection(internet, attackNode)
+  
+  return {
+    internalFW, externalFW, sqlServer, fileServer, syslogServer, ubuntu1, ubuntu2,
+    vpnServer, dbServer, webServer, apacheServer, dnsServer, mailServer, internet,
+    attacker, attackNode
+  }
+}
+
 // 获取设备图标
 function getDeviceIcon(type) {
   const iconMap = {
@@ -386,17 +571,17 @@ function getDeviceIcon(type) {
     'server': '/图标/应用服务器.svg',
     'pc': '/图标/PC.svg',
     'ids': '/图标/入侵检测系统(IDS).svg'
-    , 'file': '/图标/文件服务器.svg'
-    , 'siem': '/图标/系统日志.svg'
-    , 'vpn': '/图标/VPN网关.svg'
-    , 'db': '/图标/数据库服务器.svg'
-    , 'ubuntu': '/图标/PC.svg'
-    , 'web': '/图标/Web服务器.svg'
-    , 'dns': '/图标/DNS服务器.svg'
-    , 'mail': '/图标/邮件服务器.svg'
-    , 'cloud': '/图标/云环境.svg'
+    ,'file': '/图标/文件服务器.svg'
+    ,'siem': '/图标/系统日志.svg'
+    ,'vpn': '/图标/VPN网关.svg'
+    ,'db': '/图标/数据库服务器.svg'
+    ,'ubuntu': '/图标/PC.svg'
+    ,'web': '/图标/Web服务器.svg'
+    ,'dns': '/图标/DNS服务器.svg'
+    ,'mail': '/图标/邮件服务器.svg'
+    ,'cloud': '/图标/云环境.svg'
   }
-
+  
   return iconMap[type] || ''
 }
 
@@ -1002,8 +1187,6 @@ class NetworkTopology {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
-</style>
+</style> 
