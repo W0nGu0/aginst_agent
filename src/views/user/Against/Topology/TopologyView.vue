@@ -447,8 +447,12 @@ function updateDevicesWithContainerInfo(containerInfo) {
       device.deviceData.containerId = runningContainer.id;
       device.deviceData.containerIp = runningContainer.ip || device.deviceData.ip;
 
-      // 更新设备标签，显示IP
-      topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
+      // 更新设备标签，对于防火墙只显示名称，其他设备显示IP
+      if (device.deviceType === 'firewall') {
+        topology._updateLabel(device, device.deviceData.name);
+      } else {
+        topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
+      }
 
       // 设置为不透明，表示正在运行
       device.set({ opacity: 1 });
@@ -500,8 +504,10 @@ function forceUpdateDevicesVisualState() {
         filters: []
       });
 
-      // 确保标签显示IP
-      if (device.deviceData.containerIp) {
+      // 确保标签显示IP（对于防火墙只显示名称）
+      if (device.deviceType === 'firewall') {
+        topology._updateLabel(device, device.deviceData.name);
+      } else if (device.deviceData.containerIp) {
         topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
       }
     } else if (status === 'failed') {
@@ -571,8 +577,12 @@ async function createCompanyTopology(isTransparent = false) {
   })
   externalFW.set({ opacity })
 
-  // 连接两个防火墙
-  topology.addConnection(internalFW, externalFW)
+  // 连接两个防火墙，并添加网络信息
+  topology.addConnection(internalFW, externalFW, 'ethernet', {
+    subnet: '192.168.254.0/29',
+    firewallIP: '192.168.254.3',
+    deviceIP: '192.168.254.2'
+  })
 
   // 创建服务器段设备
   const sqlServer = await topology.createDevice('db', {
@@ -656,10 +666,48 @@ async function createCompanyTopology(isTransparent = false) {
   })
   pgdbServer.set({ opacity })
 
-    // 连接内部设备到内部防火墙
-    ;[sqlServer, fileServer, syslogServer, workstation1, workstation2, vpnServer, pgdbServer].forEach(dev => {
-      topology.addConnection(internalFW, dev)
-    })
+  // 连接内部设备到内部防火墙，并添加网络信息
+  topology.addConnection(internalFW, sqlServer, 'ethernet', {
+    subnet: '192.168.200.0/24',
+    firewallIP: '192.168.200.254',
+    deviceIP: '192.168.200.23'
+  });
+
+  topology.addConnection(internalFW, fileServer, 'ethernet', {
+    subnet: '192.168.200.0/24',
+    firewallIP: '192.168.200.254',
+    deviceIP: '192.168.200.6'
+  });
+
+  topology.addConnection(internalFW, syslogServer, 'ethernet', {
+    subnet: '192.168.66.0/24',
+    firewallIP: '192.168.66.254',
+    deviceIP: '192.168.66.20'
+  });
+
+  topology.addConnection(internalFW, workstation1, 'ethernet', {
+    subnet: '192.168.100.0/24',
+    firewallIP: '192.168.100.254',
+    deviceIP: '192.168.100.9'
+  });
+
+  topology.addConnection(internalFW, workstation2, 'ethernet', {
+    subnet: '192.168.100.0/24',
+    firewallIP: '192.168.100.254',
+    deviceIP: '192.168.100.34'
+  });
+
+  topology.addConnection(internalFW, vpnServer, 'ethernet', {
+    subnet: '192.168.110.0/24',
+    firewallIP: '192.168.110.254',
+    deviceIP: '192.168.110.5'
+  });
+
+  topology.addConnection(internalFW, pgdbServer, 'ethernet', {
+    subnet: '192.168.214.0/24',
+    firewallIP: '192.168.214.254',
+    deviceIP: '192.168.214.10'
+  });
 
   // 创建 DMZ 段设备
   const wpServer = await topology.createDevice('web', {
@@ -729,14 +777,43 @@ async function createCompanyTopology(isTransparent = false) {
   })
   attackNode.set({ opacity })
 
-    // 连接 DMZ 设备到外部防火墙
-    ;[wpServer, apacheServer, dnsServer, mailServer].forEach(dev => {
-      topology.addConnection(externalFW, dev)
-    })
+  // 连接 DMZ 设备到外部防火墙，并添加网络信息
+  topology.addConnection(externalFW, wpServer, 'ethernet', {
+    subnet: '172.16.100.0/24',
+    firewallIP: '172.16.100.254',
+    deviceIP: '172.16.100.10'
+  });
 
-  // 直接将攻击者和攻击节点连接到外部防火墙
-  topology.addConnection(externalFW, attacker)
-  topology.addConnection(externalFW, attackNode)
+  topology.addConnection(externalFW, apacheServer, 'ethernet', {
+    subnet: '172.16.100.0/24',
+    firewallIP: '172.16.100.254',
+    deviceIP: '172.16.100.11'
+  });
+
+  topology.addConnection(externalFW, dnsServer, 'ethernet', {
+    subnet: '172.16.100.0/24',
+    firewallIP: '172.16.100.254',
+    deviceIP: '172.16.100.53'
+  });
+
+  topology.addConnection(externalFW, mailServer, 'ethernet', {
+    subnet: '172.16.100.0/24',
+    firewallIP: '172.16.100.254',
+    deviceIP: '172.16.100.25'
+  });
+
+  // 直接将攻击者和攻击节点连接到外部防火墙，并添加网络信息
+  topology.addConnection(externalFW, attacker, 'ethernet', {
+    subnet: '199.203.100.0/24',
+    firewallIP: '199.203.100.2',
+    deviceIP: '199.203.100.10'
+  });
+
+  topology.addConnection(externalFW, attackNode, 'ethernet', {
+    subnet: '199.203.100.0/24',
+    firewallIP: '199.203.100.2',
+    deviceIP: '199.203.100.11'
+  });
 
   return {
     internalFW, externalFW, sqlServer, fileServer, syslogServer, workstation1, workstation2,
@@ -1013,7 +1090,7 @@ class NetworkTopology {
   }
 
   // 添加连接
-  addConnection(source, target, type = 'ethernet') {
+  addConnection(source, target, type = 'ethernet', networkInfo = null) {
     if (!source || !target || source === target) {
       return null;
     }
@@ -1050,10 +1127,96 @@ class NetworkTopology {
     // 添加移动事件
     this._setupConnectionEvents(line, source, target);
 
+    // 自动确定网络信息（如果未提供）
+    if (!networkInfo && (source.deviceType === 'firewall' || target.deviceType === 'firewall')) {
+      // 确定哪个是防火墙
+      const firewall = source.deviceType === 'firewall' ? source : target;
+      const device = source.deviceType === 'firewall' ? target : source;
+
+      // 根据设备IP确定网段
+      const deviceIP = device.deviceData.ip;
+      if (deviceIP) {
+        const ipParts = deviceIP.split('.');
+        if (ipParts.length === 4) {
+          const subnet = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.0/24`;
+
+          // 确定防火墙在该网段的IP
+          let firewallIP = '';
+
+          // 根据网段确定防火墙IP
+          if (deviceIP.startsWith('192.168.200.')) {
+            firewallIP = '192.168.200.254'; // 服务器段
+          } else if (deviceIP.startsWith('192.168.100.')) {
+            firewallIP = '192.168.100.254'; // 用户段
+          } else if (deviceIP.startsWith('192.168.66.')) {
+            firewallIP = '192.168.66.254'; // SIEM段
+          } else if (deviceIP.startsWith('192.168.110.')) {
+            firewallIP = '192.168.110.254'; // VPN段
+          } else if (deviceIP.startsWith('192.168.214.')) {
+            firewallIP = '192.168.214.254'; // 数据库段
+          } else if (deviceIP.startsWith('172.16.100.')) {
+            firewallIP = '172.16.100.254'; // DMZ段
+          } else if (deviceIP.startsWith('199.203.100.')) {
+            firewallIP = '199.203.100.2'; // 互联网段
+          }
+
+          if (firewallIP) {
+            networkInfo = {
+              subnet: subnet,
+              firewallIP: firewallIP,
+              deviceIP: deviceIP
+            };
+          }
+        }
+      }
+    }
+
+    // 如果有网络信息，添加网络标签
+    if (networkInfo) {
+      this._addNetworkLabels(line, source, target, networkInfo);
+    }
+
     // 触发连接创建事件
     this._triggerEvent('connectionCreated', { connection: line, source, target });
 
     return line;
+  }
+
+  // 添加网络标签到连接线
+  _addNetworkLabels(line, source, target, networkInfo) {
+    // 计算连接线的中点
+    const midX = (source.left + target.left) / 2;
+    const midY = (source.top + target.top) / 2;
+
+    // 确定哪个是防火墙
+    const isSourceFirewall = source.deviceType === 'firewall';
+    const firewall = isSourceFirewall ? source : target;
+    const device = isSourceFirewall ? target : source;
+
+    // 只有当一端是防火墙时才添加IP标签
+    if (firewall.deviceType === 'firewall') {
+      // 创建防火墙IP标签（显示在线的中间）
+      if (networkInfo.firewallIP) {
+        // 计算连接线的角度
+        const angle = Math.atan2(target.top - source.top, target.left - source.left) * 180 / Math.PI;
+
+        const firewallIPLabel = new fabric.Text(networkInfo.firewallIP, {
+          left: midX,
+          top: midY - 15,
+          fontSize: 11,
+          fill: '#ffcc00',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          padding: 3,
+          originX: 'center',
+          originY: 'center',
+          angle: angle > 90 || angle < -90 ? angle + 180 : angle // 根据连接线角度调整标签角度
+        });
+
+        this.canvas.add(firewallIPLabel);
+        line.firewallIPLabel = firewallIPLabel;
+        firewallIPLabel.moveTo(this.canvas.getObjects().indexOf(line) + 1);
+      }
+    }
   }
 
   // 删除选中对象
@@ -1157,6 +1320,13 @@ class NetworkTopology {
 
   // 更新标签
   _updateLabel(device, text) {
+    // 对于防火墙设备，只显示名称，不显示IP
+    if (device.deviceType === 'firewall') {
+      // 确保只显示名称部分（不包含IP）
+      const firewallName = device.deviceData.name;
+      text = firewallName;
+    }
+
     if (device.label) {
       device.label.set({
         text: text
@@ -1177,15 +1347,81 @@ class NetworkTopology {
   _updateConnection(connection) {
     if (!connection || !connection.source || !connection.target) return;
 
+    const source = connection.source;
+    const target = connection.target;
+
     connection.set({
-      x1: connection.source.left,
-      y1: connection.source.top,
-      x2: connection.target.left,
-      y2: connection.target.top
+      x1: source.left,
+      y1: source.top,
+      x2: target.left,
+      y2: target.top
     });
 
     connection.setCoords();
+
+    // 更新网络标签位置
+    this._updateNetworkLabels(connection, source, target);
+
     this.canvas.requestRenderAll();
+  }
+
+  // 更新网络标签位置
+  _updateNetworkLabels(connection, source, target) {
+    // 计算连接线的中点
+    const midX = (source.left + target.left) / 2;
+    const midY = (source.top + target.top) / 2;
+
+    // 计算连接线的角度
+    const angle = Math.atan2(target.top - source.top, target.left - source.left) * 180 / Math.PI;
+
+    // 更新子网标签
+    if (connection.subnetLabel) {
+      connection.subnetLabel.set({
+        left: midX,
+        top: midY - 15,
+        angle: angle > 90 || angle < -90 ? angle + 180 : angle
+      });
+      connection.subnetLabel.setCoords();
+    }
+
+    // 确定哪个是防火墙
+    const isSourceFirewall = source.deviceType === 'firewall';
+
+    // 计算标签位置（在连接线的1/4和3/4处）
+    const firewallLabelX = isSourceFirewall ?
+      source.left + (target.left - source.left) * 0.25 :
+      target.left + (source.left - target.left) * 0.25;
+
+    const firewallLabelY = isSourceFirewall ?
+      source.top + (target.top - source.top) * 0.25 :
+      target.top + (source.top - target.top) * 0.25;
+
+    const deviceLabelX = isSourceFirewall ?
+      source.left + (target.left - source.left) * 0.75 :
+      target.left + (source.left - target.left) * 0.75;
+
+    const deviceLabelY = isSourceFirewall ?
+      source.top + (target.top - source.top) * 0.75 :
+      target.top + (source.top - target.top) * 0.75;
+
+    // 更新防火墙IP标签 - 始终显示在连接线的中间
+    if (connection.firewallIPLabel) {
+      connection.firewallIPLabel.set({
+        left: midX,
+        top: midY - 15,
+        angle: angle > 90 || angle < -90 ? angle + 180 : angle // 根据连接线角度调整标签角度
+      });
+      connection.firewallIPLabel.setCoords();
+    }
+
+    // 更新设备IP标签
+    if (connection.deviceIPLabel) {
+      connection.deviceIPLabel.set({
+        left: deviceLabelX,
+        top: deviceLabelY - 15
+      });
+      connection.deviceIPLabel.setCoords();
+    }
   }
 
   // 设置事件
@@ -1254,7 +1490,15 @@ class NetworkTopology {
       if (obj.type === 'device' && obj.label) {
         obj.label.set({
           left: obj.left,
-          top: obj.top + obj.height / 2 + 10
+          top: obj.top + obj.height / 2 + 20  // 增加距离，避免与图标重叠
+        });
+        obj.label.setCoords(); // 确保标签坐标更新
+
+        // 更新与该设备相关的所有连接线及其标签
+        this.connections.forEach(conn => {
+          if (conn.source === obj || conn.target === obj) {
+            this._updateConnection(conn);
+          }
         });
       }
     });
