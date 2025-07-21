@@ -21,8 +21,8 @@ ATTACK_SERVICE_URL = os.getenv("ATTACK_SERVICE_URL", "http://127.0.0.1:8001/mcp/
 # 受害者主机的基础URL，指向Docker容器的IP地址和端口
 # 由于我们现在使用Docker容器而不是本地进程，所以只能使用这些URL
 VICTIM_HOST_URLS = {
-    "alice": "http://192.168.100.9:5001",  # ws-ubuntu-cnt1
-    "bob": "http://192.168.100.34:5002",   # ws-ubuntu-cnt2
+    "alice": "http://localhost:5001",      # ws-ubuntu-cnt1 (宿主机端口映射)
+    "bob": "http://localhost:5002",        # ws-ubuntu-cnt2 (宿主机端口映射)
     "default": "http://localhost:5001"     # 默认使用alice容器
 }
 

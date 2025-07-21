@@ -248,16 +248,41 @@ def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> str:
         except json.JSONDecodeError:
             return f"错误：phishing_email_json 不是有效的JSON格式: {phishing_email_json}"
         
-        # 构建发送给受害者的载荷
+        # 从URL中获取元数据，以便更准确地匹配目标信息
+        try:
+            metadata_url = victim_url.rstrip('/') + '/metadata'
+            metadata_response = httpx.get(metadata_url, timeout=10)
+            metadata = metadata_response.json()
+            
+            # 提取目标信息
+            target_department = metadata.get("department", "研发部")
+            target_role = metadata.get("role", "软件工程师")
+            target_name = metadata.get("username", "")
+            target_email = metadata.get("email", "")
+            company_name = metadata.get("company_name", "ACME_CORP")
+            
+            print(f"成功获取目标元数据: {metadata}")
+        except Exception as e:
+            print(f"获取元数据失败，使用默认值: {e}")
+            target_department = "研发部"
+            target_role = "软件工程师"
+            target_name = email_data.get("recipient", "").split("@")[0] if "@" in email_data.get("recipient", "") else ""
+            target_email = email_data.get("recipient", "")
+            company_name = email_data.get("company", "ACME_CORP")
+        
+        # 构建发送给受害者的载荷，确保包含所有匹配字段
         victim_payload = {
-            "company": email_data.get("sender", "").split("<")[0].strip() or email_data.get("company", "Unknown Company"),
+            "company": company_name,
             "malicious_link": email_data.get("malicious_link", "http://evil-corp-phishing.com/login"),
             "email_body": email_data.get("body", ""),
-            "target_name": email_data.get("recipient", "").split("<")[0].strip() or email_data.get("target_name", ""),
+            "target_name": target_name,
             "subject": email_data.get("subject", "重要通知"),
-            "department": email_data.get("department", "研发部"),  # 默认使用"研发部"
-            "role": email_data.get("role", "软件工程师")  # 默认使用"软件工程师"
+            "department": target_department,
+            "role": target_role,
+            "email": target_email
         }
+        
+        print(f"构建的钓鱼邮件载荷: {victim_payload}")
         
         # 确保URL是完整的
         if not victim_url.endswith('/receive_email'):
