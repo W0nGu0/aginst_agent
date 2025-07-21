@@ -72,6 +72,7 @@ import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
 import EnhancedAttackVisualization from './core/EnhancedAttackVisualization'
+import GSAPAttackVisualization from './core/GSAPAttackVisualization'
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
 import PhishingService from './services/PhishingService'
@@ -156,8 +157,8 @@ function initializeTopology() {
   topology.initialize().then(() => {
     console.log('拓扑图初始化完成')
 
-    // 初始化攻击可视化
-    attackVisualization = new EnhancedAttackVisualization(topology)
+    // 初始化攻击可视化，使用GSAP版本
+    attackVisualization = new GSAPAttackVisualization(topology)
 
     // 监听事件
     topology.on('objectSelected', (data) => {
@@ -209,6 +210,11 @@ async function handleAttack(attackData) {
       // 记录详细日志
       logDebug('攻击智能体', '向中央智能体发送攻击指令...')
       
+      // 在拓扑图上显示思考动画
+      if (attackVisualization.createThinkingAnimation) {
+        attackVisualization.createThinkingAnimation(attackData.attacker, 3)
+      }
+      
       try {
         // 调用攻击智能体服务，执行自动攻击
         const result = await AttackAgentService.executeAutoAttack(attackData)
@@ -240,18 +246,90 @@ async function handleAttack(attackData) {
                 // 根据内容判断日志级别
                 if (line.includes('成功') || line.includes('获取到')) {
                   logSuccess('攻击智能体', line)
+                  
+                  // 如果是成功的攻击，显示成功动画
+                  if (i === outputLines.length - 1 && attackVisualization.createSuccessAnimation) {
+                    // 查找目标节点
+                    const target = Object.values(topology.devices).find(d => 
+                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+                    )
+                    if (target) {
+                      attackVisualization.createSuccessAnimation(target, 3)
+                      updateNodeStatus(target, 'compromised')
+                    }
+                  }
                 } else if (line.includes('失败') || line.includes('错误')) {
                   logError('攻击智能体', line)
+                  
+                  // 如果是失败的攻击，显示失败动画
+                  if (i === outputLines.length - 1 && attackVisualization.createFailureAnimation) {
+                    // 查找目标节点
+                    const target = Object.values(topology.devices).find(d => 
+                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+                    )
+                    if (target) {
+                      attackVisualization.createFailureAnimation(target, 3)
+                    }
+                  }
                 } else if (line.includes('警告') || line.includes('注意')) {
                   logWarning('攻击智能体', line)
                 } else {
                   logInfo('攻击智能体', line)
+                  
+                  // 根据内容显示不同的动画
+                  if (line.includes('扫描') && attackVisualization.createScanningAnimation) {
+                    // 查找目标节点
+                    const target = Object.values(topology.devices).find(d => 
+                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+                    )
+                    if (target) {
+                      attackVisualization.createScanningAnimation(attackData.attacker, target, 3)
+                    }
+                  } else if (line.includes('邮件') && attackVisualization.createWritingAnimation) {
+                    attackVisualization.createWritingAnimation(attackData.attacker, 3)
+                  } else if (line.includes('发送') && attackVisualization.createSendEmailAnimation) {
+                    // 查找目标节点
+                    const target = Object.values(topology.devices).find(d => 
+                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+                    )
+                    if (target) {
+                      attackVisualization.createSendEmailAnimation(attackData.attacker, target, 3)
+                    }
+                  }
                 }
                 
                 // 如果是关键步骤，添加到关键事件
                 if (line.includes('成功') || line.includes('失败') || 
                     line.includes('开始') || line.includes('完成')) {
                   addAttackEvent(line)
+                }
+              }
+            }
+          } else if (result.details && result.details.result && result.details.result.final_output) {
+            // 处理嵌套的结果
+            const finalOutput = result.details.result.final_output
+            logInfo('攻击智能体', finalOutput)
+            addAttackEvent(`攻击结果: ${finalOutput.substring(0, 100)}${finalOutput.length > 100 ? '...' : ''}`)
+            
+            // 根据结果判断是否成功
+            const isSuccess = finalOutput.includes('成功') && !finalOutput.includes('失败')
+            
+            // 查找目标节点
+            const target = Object.values(topology.devices).find(d => 
+              d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+            )
+            
+            if (target) {
+              if (isSuccess) {
+                // 显示成功动画
+                if (attackVisualization.createSuccessAnimation) {
+                  attackVisualization.createSuccessAnimation(target, 3)
+                }
+                updateNodeStatus(target, 'compromised')
+              } else {
+                // 显示失败动画
+                if (attackVisualization.createFailureAnimation) {
+                  attackVisualization.createFailureAnimation(target, 3)
                 }
               }
             }
@@ -377,79 +455,86 @@ function visualizeAttackPath(attacker, target = null) {
   // 清除之前的攻击路径
   attackVisualization.clearAttackPaths()
   
-  // 创建攻击路径
-  const path = []
-  
-  // 添加攻击者
-  path.push({
-    x: attacker.left,
-    y: attacker.top
-  })
-  
-  // 如果攻击者和目标之间有防火墙，添加防火墙作为中间点
-  const firewall = Object.values(topology.devices).find(d => 
-    d.deviceType === 'firewall'
-  )
-  
-  if (firewall) {
+  // 使用GSAP创建攻击动画序列
+  if (attackVisualization.createAttackSequence) {
+    // 使用GSAP版本的攻击可视化
+    attackVisualization.createAttackSequence(attacker, target, 'phishing')
+  } else {
+    // 使用简单版本的攻击可视化
+    // 创建攻击路径
+    const path = []
+    
+    // 添加攻击者
     path.push({
-      x: firewall.left,
-      y: firewall.top
+      x: attacker.left,
+      y: attacker.top
     })
-  }
-  
-  // 添加目标
-  path.push({
-    x: target.left,
-    y: target.top
-  })
-  
-  // 绘制攻击路径
-  attackVisualization.drawAttackPath(path, '#ff0000', 2)
-  
-  // 高亮目标节点
-  updateNodeStatus(target, 'targeted')
-  
-  // 如果是数据库服务器，可能还有第二阶段攻击
-  if (target.deviceType === 'web' || target.deviceData.name.includes('Web')) {
-    // 寻找数据库服务器作为第二阶段目标
-    const secondTarget = Object.values(topology.devices).find(d => 
-      d.deviceData.name.includes('数据库') || d.deviceType === 'db'
+    
+    // 如果攻击者和目标之间有防火墙，添加防火墙作为中间点
+    const firewall = Object.values(topology.devices).find(d => 
+      d.deviceType === 'firewall'
     )
     
-    if (secondTarget) {
-      // 创建第二阶段攻击路径
-      const secondPath = []
-      
-      // 添加第一个目标（现在是攻击者）
-      secondPath.push({
-        x: target.left,
-        y: target.top
+    if (firewall) {
+      path.push({
+        x: firewall.left,
+        y: firewall.top
       })
-      
-      // 如果有内部防火墙，添加防火墙作为中间点
-      const internalFirewall = Object.values(topology.devices).find(d => 
-        d.deviceType === 'firewall' && d !== firewall
+    }
+    
+    // 添加目标
+    path.push({
+      x: target.left,
+      y: target.top
+    })
+    
+    // 绘制攻击路径
+    attackVisualization.drawAttackPath(path, '#ff0000', 2)
+    
+    // 高亮目标节点
+    updateNodeStatus(target, 'targeted')
+    
+    // 如果是数据库服务器，可能还有第二阶段攻击
+    if (target.deviceType === 'web' || target.deviceData.name.includes('Web')) {
+      // 寻找数据库服务器作为第二阶段目标
+      const secondTarget = Object.values(topology.devices).find(d => 
+        d.deviceData.name.includes('数据库') || d.deviceType === 'db'
       )
       
-      if (internalFirewall) {
+      if (secondTarget) {
+        // 创建第二阶段攻击路径
+        const secondPath = []
+        
+        // 添加第一个目标（现在是攻击者）
         secondPath.push({
-          x: internalFirewall.left,
-          y: internalFirewall.top
+          x: target.left,
+          y: target.top
         })
+        
+        // 如果有内部防火墙，添加防火墙作为中间点
+        const internalFirewall = Object.values(topology.devices).find(d => 
+          d.deviceType === 'firewall' && d !== firewall
+        )
+        
+        if (internalFirewall) {
+          secondPath.push({
+            x: internalFirewall.left,
+            y: internalFirewall.top
+          })
+        }
+        
+        // 添加第二个目标
+        secondPath.push({
+          x: secondTarget.left,
+          y: secondTarget.top
+        })
+        
+        // 延迟绘制第二阶段攻击路径
+        setTimeout(() => {
+          attackVisualization.drawAttackPath(secondPath, '#ff9900', 2)
+          updateNodeStatus(secondTarget, 'targeted')
+        }, 5000)
       }
-      
-      // 添加第二个目标
-      secondPath.push({
-        x: secondTarget.left,
-        y: secondTarget.top
-      })
-      
-      // 延迟绘制第二阶段攻击路径
-      setTimeout(() => {
-        attackVisualization.drawAttackPath(secondPath, '#ff9900', 2)
-        updateNodeStatus(secondTarget, 'targeted')
-      }, 5000)
     }
   }
 }

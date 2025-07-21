@@ -205,24 +205,47 @@ class AttackRequest(BaseModel):
 @api_router.post("/attack/execute_full_attack")
 async def execute_full_attack(req: AttackRequest):
     """
-    接收来自前端的攻击请求，并转发给攻击智能体
+    接收来自前端的攻击请求，并转发给中控智能体
     """
     logger.info(f"Received attack request for target: {req.target_host}")
     
     try:
-        # 攻击智能体的URL
-        attack_agent_url = "http://localhost:8004/execute_full_attack"
+        # 中控智能体的URL
+        central_agent_url = "http://localhost:8006/process_command"
         
         # 记录请求开始
-        logger.info(f"Forwarding attack request to attack agent at {attack_agent_url}")
+        logger.info(f"Forwarding attack request to central agent at {central_agent_url}")
         
-        # 使用httpx发送请求到攻击智能体
+        # 构造发送给中控智能体的请求
+        central_agent_payload = {
+            "command": "attack",
+            "target_host": req.target_host
+        }
+        
+        # 添加攻击类型（如果有）
+        if hasattr(req, 'attack_type'):
+            central_agent_payload["attack_type"] = req.attack_type
+        
+        logger.info(f"Payload to central agent: {central_agent_payload}")
+        
+        # 使用httpx发送请求到中控智能体
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                attack_agent_url,
-                json={"target_host": req.target_host},
-                timeout=30.0  # 设置较长的超时时间，因为攻击过程可能需要时间
-            )
+            try:
+                response = await client.post(
+                    central_agent_url,
+                    json=central_agent_payload,
+                    timeout=60.0  # 设置较长的超时时间，因为攻击过程可能需要时间
+                )
+            except httpx.RequestError as e:
+                logger.error(f"Request error to central agent: {str(e)}")
+                # 如果中控智能体不可用，直接调用攻击智能体
+                logger.warning("Central agent unavailable, trying to call attack agent directly")
+                attack_agent_url = "http://localhost:8004/execute_full_attack"
+                response = await client.post(
+                    attack_agent_url,
+                    json={"target_host": req.target_host},
+                    timeout=60.0
+                )
             
             # 检查响应状态
             response.raise_for_status()
@@ -231,9 +254,9 @@ async def execute_full_attack(req: AttackRequest):
             result = response.json()
             
             # 记录成功响应
-            logger.info(f"Attack agent responded successfully: {result}")
+            logger.info(f"Central agent responded successfully: {result}")
             
-            # 返回攻击智能体的响应
+            # 返回中控智能体的响应
             return result
             
     except httpx.HTTPStatusError as e:

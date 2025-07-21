@@ -24,10 +24,13 @@ class AttackAgentService {
       
       // 构建请求数据
       const requestData = {
-        target_host: "http://127.0.0.1:8005" // 目标主机URL，实际环境中应该从配置或参数中获取
+        target_host: "http://127.0.0.1:8005", // 目标主机URL
+        attack_type: "auto" // 攻击类型，让中控智能体决定具体使用哪种攻击
       }
       
-      // 发送请求到攻击智能体
+      console.log('发送攻击请求到中控智能体:', requestData)
+      
+      // 发送请求到中控智能体
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {

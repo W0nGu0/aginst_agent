@@ -137,15 +137,11 @@ async def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> s
             "company": email_data.get("sender", "").split("<")[0].strip() or email_data.get("company", "Unknown Company"),
             "malicious_link": email_data.get("malicious_link", "http://evil-corp-phishing.com/login"),
             "email_body": email_data.get("body", ""),
-            "target_name": email_data.get("recipient", "").split("<")[0].strip(),
-            "subject": email_data.get("subject", "重要通知")
+            "target_name": email_data.get("recipient", "").split("<")[0].strip() or email_data.get("target_name", ""),
+            "subject": email_data.get("subject", "重要通知"),
+            "department": email_data.get("department", "研发部"),  # 默认使用"研发部"
+            "role": email_data.get("role", "软件工程师")  # 默认使用"软件工程师"
         }
-        
-        # 如果有部门和角色信息，也添加到载荷中
-        if "department" in email_data:
-            victim_payload["department"] = email_data["department"]
-        if "role" in email_data:
-            victim_payload["role"] = email_data["role"]
             
         async with httpx.AsyncClient() as client:
             # 确保URL是完整的

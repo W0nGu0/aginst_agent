@@ -42,28 +42,38 @@ async def get_metadata():
     暴露一些可供侦察的元数据，模拟一个配置不当或信息泄露的端点。
     从环境变量中获取更多信息。
     """
-    # 从环境变量中获取信息，如果不存在则使用默认值
+    # 从环境变量中获取信息，这些环境变量在docker-compose中配置
+    # 如果环境变量不存在，则使用默认值
     company = os.getenv("COMPANY", VICTIM_CONFIG["company_name"])
     username = os.getenv("USERNAME", VICTIM_CONFIG["username"])
-    department = os.getenv("DEPARTMENT", "未知部门")
-    role = os.getenv("ROLE", "未知职位")
+    department = os.getenv("DEPARTMENT", "研发部")
+    role = os.getenv("ROLE", "软件工程师")
     email = os.getenv("EMAIL", f"{username}@{company.lower().replace(' ', '')}.com")
+    position = os.getenv("POSITION", "工程师")
     os_info = os.getenv("OS", "Ubuntu 20.04 LTS")
     kernel = os.getenv("KERNEL", "5.4.0-42-generic")
-    host_type = os.getenv("HOST_TYPE", "未知主机类型")
+    host_type = os.getenv("HOST_TYPE", "工作站")
     
-    return {
+    # 打印环境变量，便于调试
+    logger.info(f"获取到的环境变量: COMPANY={company}, USERNAME={username}, DEPARTMENT={department}, ROLE={role}")
+    
+    # 构建返回的元数据
+    metadata = {
         "company_name": company,
         "username": username,
         "department": department,
         "role": role,
         "email": email,
+        "position": position,
         "system_info": os_info,
         "kernel": kernel,
         "host_type": host_type,
         "server": "Apache/2.4.41 (Ubuntu)",
         "open_ports": [22, 80, 443]
     }
+    
+    logger.info(f"返回元数据: {metadata}")
+    return metadata
 
 @app.post("/receive_email")
 async def receive_email(email: PhishingEmail):
@@ -110,8 +120,9 @@ async def receive_email(email: PhishingEmail):
     # 计算成功率
     success_rate = match_score / max_score
     
+    # 提高匹配度要求，更符合真实场景
     # 根据匹配分数决定是否点击恶意链接
-    if success_rate >= 0.5:  # 如果匹配度超过50%，则点击链接
+    if success_rate >= 0.75:  # 如果匹配度超过75%，则点击链接
         logger.warning(
             f"钓鱼攻击成功！匹配分数: {match_score}/{max_score} ({success_rate*100:.0f}%). "
             f"模拟用户点击恶意链接: {email.malicious_link}"
