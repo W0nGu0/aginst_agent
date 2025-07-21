@@ -4,6 +4,7 @@ import subprocess
 import os
 import json
 import logging
+import httpx
 from typing import List, Dict, Optional, Any
 
 # 设置日志
@@ -196,6 +197,104 @@ api_router = APIRouter(prefix="/api")
 async def manage_topology_api(req: TopologyAction):
     """Proxy endpoint matching the frontend expectation (POST /api/topology)."""
     return await manage_topology(req)
+
+# 添加攻击智能体相关的API
+class AttackRequest(BaseModel):
+    target_host: str = Field(description="攻击目标的主机地址，例如 http://127.0.0.1:8005")
+
+@api_router.post("/attack/execute_full_attack")
+async def execute_full_attack(req: AttackRequest):
+    """
+    接收来自前端的攻击请求，并转发给攻击智能体
+    """
+    logger.info(f"Received attack request for target: {req.target_host}")
+    
+    try:
+        # 攻击智能体的URL
+        attack_agent_url = "http://localhost:8004/execute_full_attack"
+        
+        # 记录请求开始
+        logger.info(f"Forwarding attack request to attack agent at {attack_agent_url}")
+        
+        # 使用httpx发送请求到攻击智能体
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                attack_agent_url,
+                json={"target_host": req.target_host},
+                timeout=30.0  # 设置较长的超时时间，因为攻击过程可能需要时间
+            )
+            
+            # 检查响应状态
+            response.raise_for_status()
+            
+            # 获取响应数据
+            result = response.json()
+            
+            # 记录成功响应
+            logger.info(f"Attack agent responded successfully: {result}")
+            
+            # 返回攻击智能体的响应
+            return result
+            
+    except httpx.HTTPStatusError as e:
+        error_msg = f"HTTP error occurred when contacting attack agent: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"Request error occurred when contacting attack agent: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+    except Exception as e:
+        error_msg = f"Unexpected error when executing attack: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@api_router.post("/attack/execute_random_social_attack")
+async def execute_random_social_attack(req: dict):
+    """
+    接收来自前端的社会工程学攻击请求，并转发给攻击智能体
+    """
+    logger.info(f"Received social engineering attack request: {req}")
+    
+    try:
+        # 攻击智能体的URL
+        attack_agent_url = "http://localhost:8004/execute_random_social_attack"
+        
+        # 记录请求开始
+        logger.info(f"Forwarding social engineering attack request to attack agent at {attack_agent_url}")
+        
+        # 使用httpx发送请求到攻击智能体
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                attack_agent_url,
+                json=req,
+                timeout=30.0
+            )
+            
+            # 检查响应状态
+            response.raise_for_status()
+            
+            # 获取响应数据
+            result = response.json()
+            
+            # 记录成功响应
+            logger.info(f"Attack agent responded successfully: {result}")
+            
+            # 返回攻击智能体的响应
+            return result
+            
+    except httpx.HTTPStatusError as e:
+        error_msg = f"HTTP error occurred when contacting attack agent: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"Request error occurred when contacting attack agent: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+    except Exception as e:
+        error_msg = f"Unexpected error when executing social engineering attack: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 # Register router
 app.include_router(api_router)

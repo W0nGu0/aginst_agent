@@ -18,10 +18,7 @@
           </div>
         </div>
         <div class="dialog-footer">
-          <button 
-            class="btn btn-danger"
-            @click="launchAttack"
-          >
+          <button class="btn btn-danger" @click="launchAttack">
             <i class="fas fa-skull"></i> 发起攻击
           </button>
           <button class="btn btn-secondary" @click="closeDialog">取消</button>
@@ -80,15 +77,15 @@ export default {
     // 开始拖动
     startDrag(event) {
       if (event.target.classList.contains('close-btn')) return;
-      
+
       this.isDragging = true;
       const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
-      
+
       this.dragOffset = {
         x: event.clientX - dialogRect.left,
         y: event.clientY - dialogRect.top
       };
-      
+
       // 设置初始位置
       if (this.position.x === 0 && this.position.y === 0) {
         this.position = {
@@ -96,63 +93,63 @@ export default {
           y: dialogRect.top
         };
       }
-      
+
       // 添加拖动中的样式
       this.$refs.dialogContent.style.transition = 'none';
       this.$refs.dialogContent.style.cursor = 'grabbing';
     },
-    
+
     // 拖动中
     onMouseMove(event) {
       if (!this.isDragging) return;
-      
+
       // 计算新位置
       this.position = {
         x: event.clientX - this.dragOffset.x,
         y: event.clientY - this.dragOffset.y
       };
-      
+
       // 应用新位置
       this.applyPosition();
     },
-    
+
     // 结束拖动
     onMouseUp() {
       if (!this.isDragging) return;
-      
+
       this.isDragging = false;
-      
+
       // 恢复样式
       if (this.$refs.dialogContent) {
         this.$refs.dialogContent.style.transition = '';
         this.$refs.dialogContent.style.cursor = '';
       }
     },
-    
+
     // 应用位置
     applyPosition() {
       if (!this.$refs.dialogContent) return;
-      
+
       // 获取窗口尺寸
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
-      
+
       // 确保对话框不会超出窗口边界
       let x = this.position.x;
       let y = this.position.y;
-      
+
       // 限制左右边界
       if (x < 0) x = 0;
       if (x + dialogRect.width > windowWidth) x = windowWidth - dialogRect.width;
-      
+
       // 限制上下边界
       if (y < 0) y = 0;
       if (y + dialogRect.height > windowHeight) y = windowHeight - dialogRect.height;
-      
+
       // 更新位置
       this.position = { x, y };
-      
+
       // 应用样式
       this.$refs.dialogContent.style.position = 'fixed';
       this.$refs.dialogContent.style.left = `${x}px`;
@@ -160,7 +157,7 @@ export default {
       this.$refs.dialogContent.style.margin = '0';
       this.$refs.dialogContent.style.transform = 'none';
     },
-    
+
     // 发起攻击
     launchAttack() {
       // 发送自动攻击指令
@@ -170,10 +167,10 @@ export default {
         attackType: 'auto', // 自动攻击类型
         attackName: '自动攻击'
       });
-      
+
       this.closeDialog();
     },
-    
+
     closeDialog() {
       this.$emit('close');
     },

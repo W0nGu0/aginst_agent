@@ -42,7 +42,7 @@
 
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
-            <EventMonitor ref="eventMonitor" />
+            <EventMonitor ref="eventMonitorRef" />
           </div>
         </div>
       </div>
@@ -75,6 +75,7 @@ import EnhancedAttackVisualization from './core/EnhancedAttackVisualization'
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
 import PhishingService from './services/PhishingService'
+import AttackAgentService from './services/AttackAgentService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
@@ -115,6 +116,7 @@ const selectedHost = ref(null)
 const selectedPhishingTarget = ref(null)
 const currentAttackType = ref('phishing')
 const attackTargets = ref([])
+const eventMonitorRef = ref(null)
 
 // 计算属性
 const selectedDevice = computed(() => {
@@ -205,81 +207,110 @@ async function handleAttack(attackData) {
       addAttackEvent(`攻击智能体启动：开始自动分析网络拓扑并规划攻击路径`)
       
       // 记录详细日志
-      logDebug('攻击智能体', '正在扫描网络拓扑结构...')
-      await simulateDelay(1000)
+      logDebug('攻击智能体', '向中央智能体发送攻击指令...')
       
-      logDebug('攻击智能体', '识别到潜在目标：内部网络服务器、数据库服务器')
-      await simulateDelay(800)
-      
-      logDebug('攻击智能体', '分析防火墙规则和网络隔离策略...')
-      await simulateDelay(1200)
-      
-      logDebug('攻击智能体', '确定最佳攻击路径：外部防火墙 → Web服务器 → 内部防火墙 → 数据库服务器')
-      await simulateDelay(500)
-      
-      // 选择第一个目标（例如Web服务器）
-      const firstTarget = Object.values(topology.devices).find(d => 
-        d.deviceData.name.includes('Web') || d.deviceType === 'web'
-      )
-      
-      if (!firstTarget) {
-        logWarning('攻击智能体', '未找到合适的初始目标，尝试选择其他目标')
-        // 选择任意一个非攻击者的设备作为目标
-        const anyTarget = Object.values(topology.devices).find(d => 
-          d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-        )
+      try {
+        // 调用攻击智能体服务，执行自动攻击
+        const result = await AttackAgentService.executeAutoAttack(attackData)
         
-        if (!anyTarget) {
-          throw new Error('无法找到任何攻击目标')
-        }
-        
-        // 执行钓鱼攻击
-        await executePhishingAttack(attackData.attacker, anyTarget)
-      } else {
-        // 执行第一阶段攻击：钓鱼攻击Web服务器管理员
-        await executePhishingAttack(attackData.attacker, firstTarget)
-        
-        // 等待一段时间后执行第二阶段攻击
-        await simulateDelay(3000)
-        
-        // 寻找数据库服务器作为第二阶段目标
-        const secondTarget = Object.values(topology.devices).find(d => 
-          d.deviceData.name.includes('数据库') || d.deviceType === 'db'
-        )
-        
-        if (secondTarget) {
-          // 执行第二阶段攻击：利用Web服务器漏洞攻击数据库
-          logInfo('攻击智能体', `开始第二阶段攻击：从已攻陷的Web服务器横向移动到数据库服务器`)
+        if (result.success) {
+          logSuccess('中央智能体', '成功向攻击智能体下达攻击指令')
+          logInfo('攻击智能体', '开始执行自动攻击流程')
           
           // 添加到关键事件
-          addAttackEvent(`开始横向移动：从Web服务器向数据库服务器发起攻击`)
+          addAttackEvent(`中央智能体成功向攻击智能体下达攻击指令`)
           
-          // 使用标准可视化
-          await attackVisualization.visualizeAttack({
-            attacker: firstTarget,
-            target: secondTarget,
-            attackType: 'exploit',
-            attackName: '横向移动攻击'
-          })
+          // 记录详细日志
+          logDebug('攻击智能体', '正在扫描网络拓扑结构...')
           
-          // 模拟攻击结果
-          await simulateDelay(2000)
+          // 在拓扑图上可视化攻击路径
+          visualizeAttackPath(attackData.attacker)
           
-          // 记录攻击结果
-          const success = Math.random() > 0.3 // 70%的成功率
-          
-          if (success) {
-            logSuccess('攻击智能体', `成功攻陷数据库服务器`)
-            addAttackEvent(`横向移动成功：数据库服务器已被攻陷`)
+          // 解析攻击智能体返回的结果
+          if (result.details && result.details.final_output) {
+            // 记录攻击智能体的输出
+            const outputLines = result.details.final_output.split('\n')
+            
+            // 延迟输出每一行，模拟攻击过程
+            for (let i = 0; i < outputLines.length; i++) {
+              const line = outputLines[i].trim()
+              if (line) {
+                await simulateDelay(800)
+                
+                // 根据内容判断日志级别
+                if (line.includes('成功') || line.includes('获取到')) {
+                  logSuccess('攻击智能体', line)
+                } else if (line.includes('失败') || line.includes('错误')) {
+                  logError('攻击智能体', line)
+                } else if (line.includes('警告') || line.includes('注意')) {
+                  logWarning('攻击智能体', line)
+                } else {
+                  logInfo('攻击智能体', line)
+                }
+                
+                // 如果是关键步骤，添加到关键事件
+                if (line.includes('成功') || line.includes('失败') || 
+                    line.includes('开始') || line.includes('完成')) {
+                  addAttackEvent(line)
+                }
+              }
+            }
           } else {
-            logError('攻击智能体', `攻击数据库服务器失败：内部防火墙阻止了连接`)
-            addAttackEvent(`横向移动失败：内部防火墙阻止了从Web服务器到数据库服务器的连接`)
+            // 如果没有详细输出，记录一个通用消息
+            logInfo('攻击智能体', '攻击流程执行完成，但未返回详细输出')
           }
+        } else {
+          logError('中央智能体', `向攻击智能体下达指令失败: ${result.message}`)
+          addEvent({
+            type: 'failure',
+            message: `攻击指令下达失败: ${result.message}`
+          })
         }
+      } catch (error) {
+        logError('中央智能体', `与攻击智能体通信失败: ${error.message}`)
+        addEvent({
+          type: 'failure',
+          message: `与攻击智能体通信失败: ${error.message}`
+        })
+        
+        // 如果与后端通信失败，使用前端模拟攻击流程
+        logWarning('系统', '切换到前端模拟攻击流程')
+        await simulateFrontendAttack(attackData)
       }
     } else if (attackData.attackType === 'phishing' || attackData.attackType === 'social_engineering') {
       // 钓鱼攻击或社会工程学攻击
-      await executePhishingAttack(attackData.attacker, attackData.target, attackData.attackType)
+      try {
+        // 调用攻击智能体服务，执行社会工程学攻击
+        const result = await AttackAgentService.executeSocialEngineeringAttack(attackData)
+        
+        if (result.success) {
+          // 记录成功消息
+          logSuccess('攻击智能体', `成功执行社会工程学攻击: ${result.details.tactic}`)
+          
+          // 添加到关键事件
+          addAttackEvent(`社会工程学攻击成功: ${result.details.tactic}`)
+          
+          // 显示钓鱼攻击可视化
+          selectedPhishingTarget.value = attackData.target
+          currentAttackType.value = attackData.attackType
+          showPhishingAttackVisualization.value = true
+          
+          // 在拓扑图上可视化攻击路径
+          visualizeAttackPath(attackData.attacker, attackData.target)
+        } else {
+          logError('攻击智能体', `社会工程学攻击失败: ${result.message}`)
+          addEvent({
+            type: 'failure',
+            message: `社会工程学攻击失败: ${result.message}`
+          })
+        }
+      } catch (error) {
+        logError('攻击智能体', `社会工程学攻击执行失败: ${error.message}`)
+        
+        // 如果与后端通信失败，使用前端模拟攻击流程
+        logWarning('系统', '切换到前端模拟钓鱼攻击')
+        await executePhishingAttack(attackData.attacker, attackData.target, attackData.attackType)
+      }
     } else {
       // 其他类型的攻击
       // 记录日志
@@ -288,8 +319,8 @@ async function handleAttack(attackData) {
       // 添加到关键事件
       addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
 
-      // 使用标准可视化
-      await attackVisualization.visualizeAttack(attackData)
+      // 在拓扑图上可视化攻击路径
+      visualizeAttackPath(attackData.attacker, attackData.target)
 
       // 使用攻击服务执行攻击
       const result = await AttackService.simulateAttack(attackData)
@@ -305,6 +336,9 @@ async function handleAttack(attackData) {
       if (result.success) {
         logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
         addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
+        
+        // 更新目标节点状态为已攻陷
+        updateNodeStatus(attackData.target, 'compromised')
       } else {
         logError('攻击', `攻击失败: ${result.error || '未知错误'}`)
         addEvent({
@@ -316,11 +350,223 @@ async function handleAttack(attackData) {
   } catch (error) {
     console.error('攻击失败:', error)
     logError('攻击', `攻击过程中发生错误: ${error.message}`)
-  } finally {
-    // 清除攻击可视化
-    setTimeout(() => {
-      attackVisualization.clearAttackPaths()
-    }, 3000)
+  }
+}
+
+// 在拓扑图上可视化攻击路径
+function visualizeAttackPath(attacker, target = null) {
+  if (!topology || !attackVisualization) return
+  
+  // 如果没有指定目标，则寻找可能的目标
+  if (!target) {
+    // 查找Web服务器作为第一个目标
+    target = Object.values(topology.devices).find(d => 
+      d.deviceData.name.includes('Web') || d.deviceType === 'web'
+    )
+    
+    // 如果没有Web服务器，选择任意一个非攻击者的设备
+    if (!target) {
+      target = Object.values(topology.devices).find(d => 
+        d !== attacker && d.deviceData.name !== '攻击节点'
+      )
+    }
+    
+    if (!target) return // 如果没有找到目标，直接返回
+  }
+  
+  // 清除之前的攻击路径
+  attackVisualization.clearAttackPaths()
+  
+  // 创建攻击路径
+  const path = []
+  
+  // 添加攻击者
+  path.push({
+    x: attacker.left,
+    y: attacker.top
+  })
+  
+  // 如果攻击者和目标之间有防火墙，添加防火墙作为中间点
+  const firewall = Object.values(topology.devices).find(d => 
+    d.deviceType === 'firewall'
+  )
+  
+  if (firewall) {
+    path.push({
+      x: firewall.left,
+      y: firewall.top
+    })
+  }
+  
+  // 添加目标
+  path.push({
+    x: target.left,
+    y: target.top
+  })
+  
+  // 绘制攻击路径
+  attackVisualization.drawAttackPath(path, '#ff0000', 2)
+  
+  // 高亮目标节点
+  updateNodeStatus(target, 'targeted')
+  
+  // 如果是数据库服务器，可能还有第二阶段攻击
+  if (target.deviceType === 'web' || target.deviceData.name.includes('Web')) {
+    // 寻找数据库服务器作为第二阶段目标
+    const secondTarget = Object.values(topology.devices).find(d => 
+      d.deviceData.name.includes('数据库') || d.deviceType === 'db'
+    )
+    
+    if (secondTarget) {
+      // 创建第二阶段攻击路径
+      const secondPath = []
+      
+      // 添加第一个目标（现在是攻击者）
+      secondPath.push({
+        x: target.left,
+        y: target.top
+      })
+      
+      // 如果有内部防火墙，添加防火墙作为中间点
+      const internalFirewall = Object.values(topology.devices).find(d => 
+        d.deviceType === 'firewall' && d !== firewall
+      )
+      
+      if (internalFirewall) {
+        secondPath.push({
+          x: internalFirewall.left,
+          y: internalFirewall.top
+        })
+      }
+      
+      // 添加第二个目标
+      secondPath.push({
+        x: secondTarget.left,
+        y: secondTarget.top
+      })
+      
+      // 延迟绘制第二阶段攻击路径
+      setTimeout(() => {
+        attackVisualization.drawAttackPath(secondPath, '#ff9900', 2)
+        updateNodeStatus(secondTarget, 'targeted')
+      }, 5000)
+    }
+  }
+}
+
+// 更新节点状态
+function updateNodeStatus(node, status) {
+  if (!node) return
+  
+  // 根据状态设置节点样式
+  switch (status) {
+    case 'targeted':
+      // 目标被瞄准
+      node.set({
+        stroke: '#ff0000',
+        strokeWidth: 2
+      })
+      break
+    case 'compromised':
+      // 目标已被攻陷
+      node.set({
+        stroke: '#ff0000',
+        strokeWidth: 3,
+        strokeDashArray: [5, 5]
+      })
+      break
+    case 'normal':
+    default:
+      // 恢复正常状态
+      node.set({
+        stroke: '#ffffff',
+        strokeWidth: 1,
+        strokeDashArray: null
+      })
+      break
+  }
+  
+  // 更新画布
+  topology.canvas.requestRenderAll()
+}
+
+// 前端模拟攻击流程（当后端通信失败时使用）
+async function simulateFrontendAttack(attackData) {
+  logInfo('系统', '使用前端模拟攻击流程')
+  
+  // 记录详细日志
+  logDebug('攻击智能体', '正在扫描网络拓扑结构...')
+  await simulateDelay(1000)
+  
+  logDebug('攻击智能体', '识别到潜在目标：内部网络服务器、数据库服务器')
+  await simulateDelay(800)
+  
+  logDebug('攻击智能体', '分析防火墙规则和网络隔离策略...')
+  await simulateDelay(1200)
+  
+  logDebug('攻击智能体', '确定最佳攻击路径：外部防火墙 → Web服务器 → 内部防火墙 → 数据库服务器')
+  await simulateDelay(500)
+  
+  // 在拓扑图上可视化攻击路径
+  visualizeAttackPath(attackData.attacker)
+  
+  // 选择第一个目标（例如Web服务器）
+  const firstTarget = Object.values(topology.devices).find(d => 
+    d.deviceData.name.includes('Web') || d.deviceType === 'web'
+  )
+  
+  if (!firstTarget) {
+    logWarning('攻击智能体', '未找到合适的初始目标，尝试选择其他目标')
+    // 选择任意一个非攻击者的设备作为目标
+    const anyTarget = Object.values(topology.devices).find(d => 
+      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+    )
+    
+    if (!anyTarget) {
+      throw new Error('无法找到任何攻击目标')
+    }
+    
+    // 执行钓鱼攻击
+    await executePhishingAttack(attackData.attacker, anyTarget)
+  } else {
+    // 执行第一阶段攻击：钓鱼攻击Web服务器管理员
+    await executePhishingAttack(attackData.attacker, firstTarget)
+    
+    // 更新节点状态为已攻陷
+    updateNodeStatus(firstTarget, 'compromised')
+    
+    // 等待一段时间后执行第二阶段攻击
+    await simulateDelay(3000)
+    
+    // 寻找数据库服务器作为第二阶段目标
+    const secondTarget = Object.values(topology.devices).find(d => 
+      d.deviceData.name.includes('数据库') || d.deviceType === 'db'
+    )
+    
+    if (secondTarget) {
+      // 执行第二阶段攻击：利用Web服务器漏洞攻击数据库
+      logInfo('攻击智能体', `开始第二阶段攻击：从已攻陷的Web服务器横向移动到数据库服务器`)
+      
+      // 添加到关键事件
+      addAttackEvent(`开始横向移动：从Web服务器向数据库服务器发起攻击`)
+      
+      // 模拟攻击结果
+      await simulateDelay(2000)
+      
+      // 记录攻击结果
+      const success = Math.random() > 0.3 // 70%的成功率
+      
+      if (success) {
+        logSuccess('攻击智能体', `成功攻陷数据库服务器`)
+        addAttackEvent(`横向移动成功：数据库服务器已被攻陷`)
+        
+        // 更新节点状态为已攻陷
+        updateNodeStatus(secondTarget, 'compromised')
+      } else {
+        logError('攻击智能体', `攻击数据库服务器失败：内部防火墙阻止了连接`)
+        addAttackEvent(`横向移动失败：内部防火墙阻止了从Web服务器到数据库服务器的连接`)
+      }
+    }
   }
 }
 
@@ -344,6 +590,9 @@ async function executePhishingAttack(attacker, target, attackType = 'phishing') 
   currentAttackType.value = attackType
   showPhishingAttackVisualization.value = true
 
+  // 在拓扑图上可视化攻击路径
+  visualizeAttackPath(attacker, target)
+
   // 使用钓鱼服务执行攻击
   const result = await PhishingService.simulatePhishingAttack({
     attacker,
@@ -364,6 +613,9 @@ async function executePhishingAttack(attacker, target, attackType = 'phishing') 
     await simulateDelay(800)
     
     logDebug('钓鱼攻击', `成功登录目标系统，获取控制权限`)
+    
+    // 更新节点状态为已攻陷
+    updateNodeStatus(target, 'compromised')
   } else {
     logError('钓鱼攻击', `对 ${target.deviceData.name} 的钓鱼攻击失败`)
     addAttackEvent(`钓鱼攻击失败：${target.deviceData.name} 识别出了钓鱼邮件`)
@@ -576,13 +828,25 @@ function logMessage(level, source, message) {
   }
 
   // 添加到系统日志
-  const eventMonitorRef = document.querySelector('.event-monitor')
-  if (eventMonitorRef && eventMonitorRef.__vue__) {
-    eventMonitorRef.__vue__.addLog({
+  const eventMonitor = document.querySelector('.event-monitor')
+  if (eventMonitor && eventMonitor.__vue__) {
+    eventMonitor.__vue__.addLog({
       level: level,
       source: source,
-      message: message
+      message: message,
+      timestamp: new Date().toLocaleTimeString()
     })
+  } else if (eventMonitorRef.value) {
+    // 使用ref引用
+    eventMonitorRef.value.addLog({
+      level: level,
+      source: source,
+      message: message,
+      timestamp: new Date().toLocaleTimeString()
+    })
+  } else {
+    // 如果无法找到组件，则使用控制台记录
+    console.log(`[${level.toUpperCase()}] [${source}] ${message}`)
   }
 
   // 如果是重要事件，也添加到关键事件
@@ -598,9 +862,18 @@ function logMessage(level, source, message) {
 
 // 添加关键事件
 function addEvent(event) {
-  const eventMonitorRef = document.querySelector('.event-monitor')
-  if (eventMonitorRef && eventMonitorRef.__vue__) {
-    eventMonitorRef.__vue__.addEvent(event)
+  if (eventMonitorRef.value) {
+    // 使用ref引用
+    eventMonitorRef.value.addEvent(event)
+  } else {
+    // 尝试使用DOM查询作为备选方案
+    const eventMonitor = document.querySelector('.event-monitor')
+    if (eventMonitor && eventMonitor.__vue__) {
+      eventMonitor.__vue__.addEvent(event)
+    } else {
+      // 如果无法找到组件，则使用控制台记录
+      console.log(`[EVENT] ${event.type}: ${event.message}`)
+    }
   }
 }
 

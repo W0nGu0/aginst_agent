@@ -91,6 +91,165 @@ class EnhancedAttackVisualization {
     // 重新渲染画布
     this.canvas.requestRenderAll();
   }
+  
+  /**
+   * 绘制攻击路径
+   * @param {Array} points - 路径上的点数组，每个点包含 x 和 y 坐标
+   * @param {string} color - 路径颜色
+   * @param {number} width - 路径宽度
+   */
+  drawAttackPath(points, color = '#ff0000', width = 2) {
+    if (!points || points.length < 2) return;
+    
+    // 创建路径点数组
+    const pathPoints = [];
+    
+    // 添加所有点
+    for (let i = 0; i < points.length; i++) {
+      pathPoints.push(points[i].x);
+      pathPoints.push(points[i].y);
+    }
+    
+    // 创建路径线
+    const line = new fabric.Polyline(pathPoints, {
+      stroke: color,
+      strokeWidth: width,
+      strokeDashArray: [5, 5],
+      fill: 'transparent',
+      selectable: false,
+      evented: false,
+      hoverCursor: 'default'
+    });
+    
+    // 添加到画布
+    this.canvas.add(line);
+    
+    // 将线发送到设备后面
+    line.sendToBack();
+    
+    // 保存路径引用
+    this.attackPaths.push(line);
+    
+    // 重新渲染画布
+    this.canvas.requestRenderAll();
+    
+    // 创建沿路径移动的粒子
+    this._createPathParticles(points, color);
+    
+    return line;
+  }
+  
+  /**
+   * 创建沿路径移动的粒子
+   * @private
+   * @param {Array} points - 路径上的点数组
+   * @param {string} color - 粒子颜色
+   */
+  _createPathParticles(points, color) {
+    // 创建5个粒子
+    for (let i = 0; i < 5; i++) {
+      // 创建粒子
+      const particle = new fabric.Circle({
+        left: points[0].x,
+        top: points[0].y,
+        radius: 4,
+        fill: color,
+        stroke: 'rgba(255, 255, 255, 0.5)',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false,
+        hoverCursor: 'default',
+        originX: 'center',
+        originY: 'center'
+      });
+      
+      // 添加到画布
+      this.canvas.add(particle);
+      
+      // 保存粒子引用
+      this.particles.push(particle);
+      
+      // 设置动画
+      const duration = 2000;
+      const delay = i * 400;
+      
+      // 延迟开始动画
+      setTimeout(() => {
+        this._animateParticleAlongPath(particle, points, duration);
+      }, delay);
+    }
+  }
+  
+  /**
+   * 沿路径移动粒子
+   * @private
+   * @param {Object} particle - 粒子对象
+   * @param {Array} points - 路径上的点数组
+   * @param {number} duration - 动画持续时间
+   */
+  _animateParticleAlongPath(particle, points, duration) {
+    // 计算路径总长度
+    let totalLength = 0;
+    const segments = [];
+    
+    for (let i = 0; i < points.length - 1; i++) {
+      const dx = points[i + 1].x - points[i].x;
+      const dy = points[i + 1].y - points[i].y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      totalLength += length;
+      segments.push({
+        start: points[i],
+        end: points[i + 1],
+        length: length
+      });
+    }
+    
+    // 设置动画
+    let startTime = Date.now();
+    
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      
+      if (elapsed >= duration) {
+        // 动画完成，重新开始
+        startTime = now;
+        particle.left = points[0].x;
+        particle.top = points[0].y;
+        this.canvas.requestRenderAll();
+        requestAnimationFrame(animate);
+        return;
+      }
+      
+      // 计算当前位置
+      const progress = elapsed / duration;
+      const distance = totalLength * progress;
+      
+      // 找到当前所在的线段
+      let currentDistance = 0;
+      let currentSegment = segments[0];
+      
+      for (const segment of segments) {
+        if (currentDistance + segment.length >= distance) {
+          currentSegment = segment;
+          break;
+        }
+        currentDistance += segment.length;
+      }
+      
+      // 计算在当前线段上的位置
+      const segmentProgress = (distance - currentDistance) / currentSegment.length;
+      
+      particle.left = currentSegment.start.x + (currentSegment.end.x - currentSegment.start.x) * segmentProgress;
+      particle.top = currentSegment.start.y + (currentSegment.end.y - currentSegment.start.y) * segmentProgress;
+      
+      this.canvas.requestRenderAll();
+      requestAnimationFrame(animate);
+    };
+    
+    requestAnimationFrame(animate);
+  }
 
   /**
    * 查找从攻击者到目标的路径
