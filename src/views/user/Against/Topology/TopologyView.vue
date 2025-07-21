@@ -39,19 +39,40 @@
             </div>
           </div>
           <canvas id="network-topology" width="800" height="500"></canvas>
+
+          <!-- 事件监控器 -->
+          <div class="event-monitor-container">
+            <EventMonitor ref="eventMonitor" />
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- 攻击者对话框 -->
+    <AttackerDialog :show="showAttackerDialog" :attacker="selectedAttacker" :targets="attackTargets"
+      @close="showAttackerDialog = false" @attack="handleAttack" />
+
+    <!-- 防火墙对话框 -->
+    <FirewallDialog :show="showFirewallDialog" :firewall="selectedFirewall" @close="showFirewallDialog = false"
+      @save="handleFirewallSave" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useTopologyStore } from '../../../../stores/topology'
-import { fabric } from 'fabric'
+import NetworkTopology from './core/NetworkTopology'
+import TopologyGenerator from './core/TopologyGenerator'
+import AttackVisualization from './core/AttackVisualization'
+import TopologyService from './services/TopologyService'
+import AttackService from './services/AttackService'
+import AttackerDialog from './components/AttackerDialog.vue'
+import FirewallDialog from './components/FirewallDialog.vue'
+import EventMonitor from './components/EventMonitor.vue'
 
 const topologyStore = useTopologyStore()
 let topology = null
+let attackVisualization = null
 let fabricLoaded = true // 直接设置为 true，因为我们已经通过 import 导入了 fabric
 
 // 设备类型及其颜色
@@ -71,6 +92,13 @@ const deviceTypes = {
   'proxy': '#ff5722',       // 代理服务器
   'load': '#673AB7'         // 负载均衡器
 }
+
+// 对话框状态
+const showAttackerDialog = ref(false)
+const showFirewallDialog = ref(false)
+const selectedAttacker = ref(null)
+const selectedFirewall = ref(null)
+const attackTargets = ref([])
 
 // 计算属性
 const selectedDevice = computed(() => {
@@ -109,9 +137,18 @@ function initializeTopology() {
 
   topology.initialize().then(() => {
     console.log('拓扑图初始化完成')
+
+    // 初始化攻击可视化
+    attackVisualization = new AttackVisualization(topology)
+
     // 监听事件
     topology.on('objectSelected', (data) => {
       topologyStore.setSelectedObject(data.object)
+
+      // 处理设备点击事件
+      if (data.object.type === 'device') {
+        handleDeviceClick(data.object)
+      }
     })
 
     // 初始化canvas
@@ -119,6 +156,75 @@ function initializeTopology() {
   }).catch(err => {
     console.error('拓扑图初始化失败:', err)
   })
+}
+
+// 处理设备点击事件
+function handleDeviceClick(device) {
+  // 如果是攻击者，显示攻击对话框
+  if (device.deviceData.name === '攻击者') {
+    selectedAttacker.value = device
+    // 获取所有可能的攻击目标（除了攻击者自己）
+    attackTargets.value = Object.values(topology.devices).filter(d =>
+      d !== device && d.deviceData.name !== '攻击节点'
+    )
+    showAttackerDialog.value = true
+  }
+
+  // 如果是防火墙，显示防火墙对话框
+  if (device.deviceType === 'firewall') {
+    selectedFirewall.value = device
+    showFirewallDialog.value = true
+  }
+}
+
+// 处理攻击事件
+async function handleAttack(attackData) {
+  try {
+    // 记录日志
+    logInfo('攻击', `${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+    // 添加到关键事件
+    addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+    // 可视化攻击路径
+    await attackVisualization.visualizeAttack(attackData)
+
+    // 模拟攻击（实际应用中应该调用后端API）
+    const result = await AttackService.simulateAttack(attackData)
+
+    // 记录攻击日志
+    if (result.logs) {
+      result.logs.forEach(log => {
+        logMessage(log.level, '攻击', log.message)
+      })
+    }
+
+    // 显示攻击结果
+    if (result.success) {
+      logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
+      addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
+    } else {
+      logError('攻击', `攻击失败: ${result.error || '未知错误'}`)
+      addEvent({
+        type: 'failure',
+        message: `攻击失败: ${attackData.target.deviceData.name} 未被攻陷`
+      })
+    }
+  } catch (error) {
+    console.error('攻击失败:', error)
+    logError('攻击', `攻击过程中发生错误: ${error.message}`)
+  } finally {
+    // 清除攻击可视化
+    setTimeout(() => {
+      attackVisualization.clearAttackPaths()
+    }, 3000)
+  }
+}
+
+// 处理防火墙保存事件
+function handleFirewallSave(firewallData) {
+  logInfo('防火墙', `${selectedFirewall.value.deviceData.name} 配置已更新`)
+  console.log('防火墙配置已更新:', firewallData)
 }
 
 // 设置模式
@@ -211,6 +317,7 @@ function saveTopology() {
 
   // TODO: 实现保存功能
   console.log('保存拓扑图')
+  logInfo('系统', '拓扑图已保存')
 }
 
 // 生成场景 (调用后端并渲染拓扑)
@@ -227,91 +334,44 @@ async function generateScenario() {
     }
 
     // 创建预设拓扑图（半透明状态）
-    await createCompanyTopology(true)
+    await TopologyGenerator.createCompanyTopology(topology, true)
+
+    logInfo('系统', '开始生成场景...')
 
     try {
-      // 设置超时控制
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120秒超时，容器启动可能需要较长时间
-
-      console.log('开始发送请求到后端...');
-
       // 向后端请求启动预设的 docker-compose 文件
-      const resp = await fetch('/api/topology', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'start',
-          template: 'company-topology' // 指定使用哪个预设模板
-        }),
-        signal: controller.signal
-      });
+      const containerInfo = await TopologyService.startTopology('company-topology')
 
-      clearTimeout(timeoutId); // 清除超时
-
-      console.log('请求已发送，状态码:', resp.status);
-
-      if (!resp.ok) {
-        const errorText = await resp.text();
-        console.error('请求失败:', resp.status, resp.statusText, errorText);
-        throw new Error(`请求失败: ${resp.status} ${resp.statusText}`);
-      }
-
-      const data = await resp.json();
-      console.log('后端返回的容器信息', data);
-
-      // 更新设备状态（变为实色）
-      updateDevicesWithContainerInfo(data);
+      // 更新设备状态
+      TopologyGenerator.updateDevicesWithContainerInfo(topology, containerInfo)
 
       // 强制更新所有设备的视觉状态
-      forceUpdateDevicesVisualState();
+      TopologyGenerator.forceUpdateDevicesVisualState(topology)
 
       // 显示成功消息
-      console.log('场景生成成功');
-    } catch (fetchError) {
-      console.error('请求错误:', fetchError);
+      logSuccess('系统', '场景生成成功')
+    } catch (error) {
+      console.error('生成场景失败', error)
+      logError('系统', `生成场景失败: ${error.message}`)
 
       // 如果是超时错误，尝试获取当前容器状态
-      if (fetchError.name === 'AbortError') {
-        console.log('请求超时，尝试获取当前容器状态...');
-        try {
-          const statusResp = await fetch('/api/topology', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'status',
-              template: 'company-topology'
-            })
-          });
-
-          if (statusResp.ok) {
-            const statusData = await statusResp.json();
-            console.log('获取到容器状态:', statusData);
-            updateDevicesWithContainerInfo(statusData);
-          }
-        } catch (statusError) {
-          console.error('获取容器状态失败:', statusError);
-        }
+      if (error.name === 'AbortError') {
+        logWarning('系统', '请求超时，尝试获取当前容器状态...')
       }
-
-      alert(`生成场景失败: ${fetchError.message}`);
     } finally {
       // 隐藏加载动画
       if (loadingEl) {
-        loadingEl.style.display = 'none';
+        loadingEl.style.display = 'none'
       }
     }
   } catch (e) {
-    console.error('生成场景失败', e);
-    alert(`生成场景失败: ${e.message}`);
+    console.error('生成场景失败', e)
+    logError('系统', `生成场景失败: ${e.message}`)
 
     // 隐藏加载动画
-    const loadingEl = document.getElementById('topology-loading');
+    const loadingEl = document.getElementById('topology-loading')
     if (loadingEl) {
-      loadingEl.style.display = 'none';
+      loadingEl.style.display = 'none'
     }
   }
 }
@@ -327,499 +387,98 @@ async function destroyScenario() {
   }
 
   try {
-    // 设置超时控制
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+    logInfo('系统', '开始销毁场景...')
 
     // 发送请求销毁容器
-    const response = await fetch('/api/topology', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'stop' }),
-      signal: controller.signal
-    });
+    await TopologyService.stopTopology()
 
-    clearTimeout(timeoutId); // 清除超时
-
-    if (!response.ok) {
-      throw new Error(`销毁场景失败: ${response.status} ${response.statusText}`);
-    }
-
-    console.log('场景销毁成功');
+    logSuccess('系统', '场景销毁成功')
   } catch (e) {
-    console.error('销毁场景失败', e);
-    alert(`销毁场景失败: ${e.message}`);
+    console.error('销毁场景失败', e)
+    logError('系统', `销毁场景失败: ${e.message}`)
   } finally {
     // 无论成功失败，都清空画布
-    topology.clear();
-    topologyStore.devices = {};
-    topologyStore.connections = [];
+    topology.clear()
+    topologyStore.devices = {}
+    topologyStore.connections = []
 
     // 隐藏加载动画
     if (loadingEl) {
-      loadingEl.style.display = 'none';
+      loadingEl.style.display = 'none'
     }
   }
 }
 
-// 根据容器信息更新设备
-function updateDevicesWithContainerInfo(containerInfo) {
-  if (!containerInfo) return;
-
-  console.log('更新设备信息:', containerInfo);
-
-  // 手动添加缺失的容器（已退出的容器）
-  const missingContainers = [
-    { name: 'vpn', status: 'exited', error: 'Container exited with code 1' },
-    { name: 'cnt-dmz-fw', status: 'exited', error: 'Container exited with code 1' },
-    { name: 'cnt-fw', status: 'exited', error: 'Container exited with code 1' },
-    { name: 'cnt-dmz-dns', status: 'exited', error: 'Container exited with code 1' }
-  ];
-
-  // 将缺失的容器添加到failed_services中
-  if (!containerInfo.failed_services) {
-    containerInfo.failed_services = [];
+// 日志记录函数
+function logMessage(level, source, message) {
+  if (!message) {
+    message = source
+    source = '系统'
   }
 
-  missingContainers.forEach(container => {
-    if (!containerInfo.failed_services.find(s => s.name === container.name)) {
-      containerInfo.failed_services.push(container);
-    }
-  });
-
-  // 遍历所有设备，更新状态
-  for (const [id, device] of Object.entries(topology.devices)) {
-    const deviceName = device.deviceData.name;
-
-    // 设备名称到容器名称的映射
-    const deviceToContainerMap = {
-      '内部防火墙': 'cnt-fw',
-      '外部防火墙': 'cnt-dmz-fw',
-      '数据库': 'cnt-sql',
-      'PostgreSQL': 'cnt-db',
-      '文件服务器': 'cnt-files',
-      '服务器': 'cnt-syslog',
-      'PC-1': 'ws-ubuntu-cnt1',
-      'PC-2': 'ws-ubuntu-cnt2',
-      'VPN网关': 'vpn',
-      'WordPress网站': 'cnt-dmz-wp1',
-      'Apache_web服务器': 'cnt-dmz-apache1',
-      'DNS服务器': 'cnt-dmz-dns',
-      '邮件服务器': 'cnt-dmz-mailrelay',
-      '互联网': 'internet',
-      '攻击者': 'attacker',
-      '攻击节点': 'attack-node'
-    };
-
-    console.log(`处理设备: ${deviceName}`);
-
-    // 打印所有运行中的容器名称，方便调试
-    if (containerInfo.running_services) {
-      console.log('运行中的容器:', containerInfo.running_services.map(s => s.name).join(', '));
-    }
-
-    // 打印所有失败的容器名称，方便调试
-    if (containerInfo.failed_services) {
-      console.log('失败的容器:', containerInfo.failed_services.map(s => s.name).join(', '));
-    }
-
-
-    // 获取映射的容器名称
-    const containerName = deviceToContainerMap[deviceName] || deviceName;
-    console.log(`设备名称: ${deviceName}, 映射到容器: ${containerName}`);
-
-    // 查找对应的容器信息 - 先尝试精确匹配，再尝试部分匹配
-    const runningContainer = containerInfo.running_services?.find(
-      service => service.name === containerName
-    ) || containerInfo.running_services?.find(
-      service => containerName.includes(service.name) || service.name.includes(containerName)
-    );
-
-    const failedContainer = containerInfo.failed_services?.find(
-      service => service.name === containerName
-    ) || containerInfo.failed_services?.find(
-      service => containerName.includes(service.name) || service.name.includes(containerName)
-    );
-
-    if (runningContainer) {
-      // 更新运行中的设备
-      device.deviceData.status = 'running';
-      device.deviceData.containerId = runningContainer.id;
-      device.deviceData.containerIp = runningContainer.ip || device.deviceData.ip;
-
-      // 更新设备标签，对于防火墙只显示名称，其他设备显示IP
-      if (device.deviceType === 'firewall') {
-        topology._updateLabel(device, device.deviceData.name);
-      } else {
-        topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
-      }
-
-      // 设置为不透明，表示正在运行
-      device.set({ opacity: 1 });
-    } else if (failedContainer) {
-      // 更新失败的设备
-      device.deviceData.status = 'failed';
-      device.deviceData.error = failedContainer.error;
-
-      // 更新设备标签，显示错误
-      topology._updateLabel(device, `${device.deviceData.name}\n[失败]`);
-
-      // 设置为半透明红色，表示失败
-      device.set({
-        opacity: 0.7,
-        filters: [new fabric.Image.filters.BlendColor({
-          color: '#FF0000',
-          mode: 'tint',
-          alpha: 0.3
-        })]
-      });
-    } else {
-      // 设备未运行
-      device.deviceData.status = 'stopped';
-      device.set({ opacity: 0.6 });
-    }
+  // 添加到系统日志
+  const eventMonitorRef = document.querySelector('.event-monitor')
+  if (eventMonitorRef && eventMonitorRef.__vue__) {
+    eventMonitorRef.__vue__.addLog({
+      level: level,
+      source: source,
+      message: message
+    })
   }
 
-  // 刷新画布
-  topology.canvas.requestRenderAll();
+  // 如果是重要事件，也添加到关键事件
+  if (level === 'error' || level === 'warning' || level === 'success') {
+    addEvent({
+      type: level === 'error' ? 'failure' :
+        level === 'warning' ? 'warning' :
+          level === 'success' ? 'success' : 'system',
+      message: `[${source}] ${message}`
+    })
+  }
 }
 
-// 强制更新所有设备的视觉状态
-function forceUpdateDevicesVisualState() {
-  if (!topology) return;
-
-  console.log('强制更新所有设备的视觉状态');
-
-  // 遍历所有设备，根据状态更新视觉效果
-  for (const [id, device] of Object.entries(topology.devices)) {
-    const status = device.deviceData.status || 'stopped';
-
-    console.log(`设备 ${device.deviceData.name} 状态: ${status}`);
-
-    if (status === 'running') {
-      // 运行中的设备 - 完全不透明
-      device.set({
-        opacity: 1,
-        // 移除任何滤镜
-        filters: []
-      });
-
-      // 确保标签显示IP（对于防火墙只显示名称）
-      if (device.deviceType === 'firewall') {
-        topology._updateLabel(device, device.deviceData.name);
-      } else if (device.deviceData.containerIp) {
-        topology._updateLabel(device, `${device.deviceData.name}\n${device.deviceData.containerIp}`);
-      }
-    } else if (status === 'failed') {
-      // 失败的设备 - 半透明红色
-      device.set({
-        opacity: 0.7,
-        filters: [new fabric.Image.filters.BlendColor({
-          color: '#FF0000',
-          mode: 'tint',
-          alpha: 0.3
-        })]
-      });
-
-      // 确保标签显示失败
-      topology._updateLabel(device, `${device.deviceData.name}\n[失败]`);
-    } else {
-      // 未运行的设备 - 半透明
-      device.set({
-        opacity: 0.6,
-        // 移除任何滤镜
-        filters: []
-      });
-
-      // 恢复原始标签
-      topology._updateLabel(device, device.deviceData.name);
-    }
-
-    // 应用滤镜
-    if (device.applyFilters) {
-      device.applyFilters();
-    }
+// 添加关键事件
+function addEvent(event) {
+  const eventMonitorRef = document.querySelector('.event-monitor')
+  if (eventMonitorRef && eventMonitorRef.__vue__) {
+    eventMonitorRef.__vue__.addEvent(event)
   }
-
-  // 刷新画布
-  topology.canvas.requestRenderAll();
 }
 
-
-// 根据 docker-compose 文件创建公司拓扑图
-async function createCompanyTopology(isTransparent = false) {
-  // 防止重复生成
-  topology.clear()
-
-  // 设置透明度
-  const opacity = isTransparent ? 0.6 : 1
-
-  // 创建防火墙设备
-  const internalFW = await topology.createDevice('firewall', {
-    left: 400,
-    top: 300,
-    deviceData: {
-      name: '内部防火墙',
-      ip: '192.168.200.254',
-      description: '内部网络防火墙'
-    }
+// 添加攻击事件
+function addAttackEvent(message) {
+  addEvent({
+    type: 'attack',
+    message: message
   })
-  internalFW.set({ opacity })
+}
 
-  const externalFW = await topology.createDevice('firewall', {
-    left: 650,
-    top: 300,
-    deviceData: {
-      name: '外部防火墙',
-      ip: '199.203.100.2',
-      description: 'DMZ区域防火墙'
-    }
+// 添加防御事件
+function addDefenseEvent(message) {
+  addEvent({
+    type: 'defense',
+    message: message
   })
-  externalFW.set({ opacity })
+}
 
-  // 连接两个防火墙，并添加网络信息
-  topology.addConnection(internalFW, externalFW, 'ethernet', {
-    subnet: '192.168.254.0/29',
-    firewallIP: '192.168.254.3',
-    deviceIP: '192.168.254.2'
-  })
+function logInfo(source, message) {
+  logMessage('info', source, message)
+}
 
-  // 创建服务器段设备
-  const sqlServer = await topology.createDevice('db', {
-    left: 200,
-    top: 50,
-    deviceData: {
-      name: '数据库',
-      ip: '192.168.200.23',
-      description: 'MySQL数据库服务器'
-    }
-  })
-  sqlServer.set({ opacity })
+function logWarning(source, message) {
+  logMessage('warning', source, message)
+}
 
-  const fileServer = await topology.createDevice('file', {
-    left: 200,
-    top: 175,
-    deviceData: {
-      name: '文件服务器',
-      ip: '192.168.200.6',
-      description: '企业文件存储服务器'
-    }
-  })
-  fileServer.set({ opacity })
+function logError(source, message) {
+  logMessage('error', source, message)
+}
 
-  // 创建服务器
-  const syslogServer = await topology.createDevice('server', {
-    left: 200,
-    top: 300,
-    deviceData: {
-      name: '服务器',
-      ip: '192.168.66.20',
-      description: '服务器'
-    }
-  })
-  syslogServer.set({ opacity })
+function logSuccess(source, message) {
+  logMessage('success', source, message)
+}
 
-  // 创建用户段设备
-  const workstation1 = await topology.createDevice('pc', {
-    left: 200,
-    top: 425,
-    deviceData: {
-      name: 'PC-1',
-      ip: '192.168.100.9',
-      description: '开发人员工作站'
-    }
-  })
-  workstation1.set({ opacity })
-
-  const workstation2 = await topology.createDevice('pc', {
-    left: 200,
-    top: 550,
-    deviceData: {
-      name: 'PC-2',
-      ip: '192.168.100.34',
-      description: 'QA测试工作站'
-    }
-  })
-  workstation2.set({ opacity })
-
-  // 创建 VPN 设备
-  const vpnServer = await topology.createDevice('vpn', {
-    left: 400,
-    top: 150,
-    deviceData: {
-      name: 'VPN网关',
-      ip: '192.168.110.5',
-      description: '远程访问VPN服务器'
-    }
-  })
-  vpnServer.set({ opacity })
-
-  // 创建数据库段设备
-  const pgdbServer = await topology.createDevice('db', {
-    left: 400,
-    top: 450,
-    deviceData: {
-      name: 'PostgreSQL',
-      ip: '192.168.214.10',
-      description: 'PostgreSQL数据库服务器'
-    }
-  })
-  pgdbServer.set({ opacity })
-
-  // 连接内部设备到内部防火墙，并添加网络信息
-  topology.addConnection(internalFW, sqlServer, 'ethernet', {
-    subnet: '192.168.200.0/24',
-    firewallIP: '192.168.200.254',
-    deviceIP: '192.168.200.23'
-  });
-
-  topology.addConnection(internalFW, fileServer, 'ethernet', {
-    subnet: '192.168.200.0/24',
-    firewallIP: '192.168.200.254',
-    deviceIP: '192.168.200.6'
-  });
-
-  topology.addConnection(internalFW, syslogServer, 'ethernet', {
-    subnet: '192.168.66.0/24',
-    firewallIP: '192.168.66.254',
-    deviceIP: '192.168.66.20'
-  });
-
-  topology.addConnection(internalFW, workstation1, 'ethernet', {
-    subnet: '192.168.100.0/24',
-    firewallIP: '192.168.100.254',
-    deviceIP: '192.168.100.9'
-  });
-
-  topology.addConnection(internalFW, workstation2, 'ethernet', {
-    subnet: '192.168.100.0/24',
-    firewallIP: '192.168.100.254',
-    deviceIP: '192.168.100.34'
-  });
-
-  topology.addConnection(internalFW, vpnServer, 'ethernet', {
-    subnet: '192.168.110.0/24',
-    firewallIP: '192.168.110.254',
-    deviceIP: '192.168.110.5'
-  });
-
-  topology.addConnection(internalFW, pgdbServer, 'ethernet', {
-    subnet: '192.168.214.0/24',
-    firewallIP: '192.168.214.254',
-    deviceIP: '192.168.214.10'
-  });
-
-  // 创建 DMZ 段设备
-  const wpServer = await topology.createDevice('web', {
-    left: 600,
-    top: 150,
-    deviceData: {
-      name: 'WordPress网站',
-      ip: '172.16.100.10',
-      description: '企业WordPress网站'
-    }
-  })
-  wpServer.set({ opacity })
-
-  const apacheServer = await topology.createDevice('web', {
-    left: 750,
-    top: 150,
-    deviceData: {
-      name: 'Apache_web服务器',
-      ip: '172.16.100.11',
-      description: 'Apache Web服务器'
-    }
-  })
-  apacheServer.set({ opacity })
-
-  const dnsServer = await topology.createDevice('dns', {
-    left: 600,
-    top: 450,
-    deviceData: {
-      name: 'DNS服务器',
-      ip: '172.16.100.53',
-      description: '域名解析服务器'
-    }
-  })
-  dnsServer.set({ opacity })
-
-  const mailServer = await topology.createDevice('mail', {
-    left: 750,
-    top: 450,
-    deviceData: {
-      name: '邮件服务器',
-      ip: '172.16.100.25',
-      description: '企业邮件中继服务器'
-    }
-  })
-  mailServer.set({ opacity })
-
-  // 创建攻击者
-  const attacker = await topology.createDevice('pc', {
-    left: 1000,
-    top: 250,
-    deviceData: {
-      name: '攻击者',
-      ip: '199.203.100.10',
-      description: '外部攻击者'
-    }
-  })
-  attacker.set({ opacity })
-
-  const attackNode = await topology.createDevice('pc', {
-    left: 1000,
-    top: 350,
-    deviceData: {
-      name: '攻击节点',
-      ip: '199.203.100.11',
-      description: '攻击跳板机'
-    }
-  })
-  attackNode.set({ opacity })
-
-  // 连接 DMZ 设备到外部防火墙，并添加网络信息
-  topology.addConnection(externalFW, wpServer, 'ethernet', {
-    subnet: '172.16.100.0/24',
-    firewallIP: '172.16.100.254',
-    deviceIP: '172.16.100.10'
-  });
-
-  topology.addConnection(externalFW, apacheServer, 'ethernet', {
-    subnet: '172.16.100.0/24',
-    firewallIP: '172.16.100.254',
-    deviceIP: '172.16.100.11'
-  });
-
-  topology.addConnection(externalFW, dnsServer, 'ethernet', {
-    subnet: '172.16.100.0/24',
-    firewallIP: '172.16.100.254',
-    deviceIP: '172.16.100.53'
-  });
-
-  topology.addConnection(externalFW, mailServer, 'ethernet', {
-    subnet: '172.16.100.0/24',
-    firewallIP: '172.16.100.254',
-    deviceIP: '172.16.100.25'
-  });
-
-  // 直接将攻击者和攻击节点连接到外部防火墙，并添加网络信息
-  topology.addConnection(externalFW, attacker, 'ethernet', {
-    subnet: '199.203.100.0/24',
-    firewallIP: '199.203.100.2',
-    deviceIP: '199.203.100.10'
-  });
-
-  topology.addConnection(externalFW, attackNode, 'ethernet', {
-    subnet: '199.203.100.0/24',
-    firewallIP: '199.203.100.2',
-    deviceIP: '199.203.100.11'
-  });
-
-  return {
-    internalFW, externalFW, sqlServer, fileServer, syslogServer, workstation1, workstation2,
-    vpnServer, pgdbServer, wpServer, apacheServer, dnsServer, mailServer,
-    attacker, attackNode
-  }
+function logDebug(source, message) {
+  logMessage('debug', source, message)
 }
 
 // 获取设备图标
@@ -865,777 +524,68 @@ function getDeviceTypeName(type) {
 
   return typeMap[type] || type
 }
-
-// 网络拓扑图类
-class NetworkTopology {
-  constructor(options = {}) {
-    this.options = Object.assign({
-      canvasId: 'network-topology',
-      width: 1280,
-      height: 720,
-      backgroundColor: 'rgba(30, 30, 47, 0.5)'
-    }, options);
-
-    // 状态
-    this.mode = 'select'; // 'select', 'connect', 'pan'
-    this.devices = {};
-    this.connections = [];
-    this.selectedObject = null;
-    this.connecting = null; // 用于连接模式
-
-    // 设备颜色
-    this.deviceColors = topologyStore.deviceColors;
-
-    // 连接类型
-    this.connectionTypes = topologyStore.connectionTypes;
-
-    // 事件监听器
-    this.eventListeners = {};
-  }
-
-  // 初始化拓扑图
-  initialize() {
-    return new Promise((resolve, reject) => {
-      try {
-        // 调试 - 检查canvas元素是否存在
-        const canvasEl = document.getElementById(this.options.canvasId);
-        if (!canvasEl) {
-          throw new Error(`找不到ID为${this.options.canvasId}的canvas元素`);
-        }
-
-        // 创建Canvas
-        this.canvas = new fabric.Canvas(this.options.canvasId, {
-          backgroundColor: this.options.backgroundColor,
-          selection: true,
-          width: this.options.width,
-          height: this.options.height
-        });
-
-        this.resizeCanvas(this.options.width, this.options.height);
-
-        // 设置事件
-        this._setupEvents();
-
-        // 隐藏加载动画
-        const loadingEl = document.getElementById('topology-loading');
-        if (loadingEl) {
-          loadingEl.style.display = 'none';
-        }
-
-        // 触发初始化完成事件
-        this._triggerEvent('initialized');
-        resolve(this);
-
-      } catch (error) {
-        console.error('拓扑图初始化失败:', error);
-        reject(error);
-      }
-    });
-  }
-
-  // 调整画布尺寸
-  resizeCanvas(w, h) {
-    if (!this.canvas) return;
-    this.canvas.setWidth(w);
-    this.canvas.setHeight(h);
-    this.canvas.requestRenderAll();
-  }
-
-  // 设置模式
-  setMode(mode) {
-    if (['select', 'connect', 'pan'].includes(mode)) {
-      this.mode = mode;
-
-      // 重置连接状态
-      if (mode !== 'connect') {
-        this.connecting = null;
-      }
-
-      // 设置画布交互状态
-      if (mode === 'pan') {
-        this.canvas.selection = false;
-        this.canvas.forEachObject(function (obj) {
-          obj.selectable = false;
-        });
-      } else {
-        this.canvas.selection = true;
-        this.canvas.forEachObject(function (obj) {
-          obj.selectable = true;
-        });
-      }
-
-      // 触发模式改变事件
-      this._triggerEvent('modeChange', { mode });
-      return true;
-    }
-    return false;
-  }
-
-  // 创建设备（使用图标）
-  createDevice(type, options = {}) {
-    return new Promise((resolve) => {
-      const deviceType = type || 'server';
-      const defaults = {
-        left: 100 + Math.random() * 400,
-        top: 100 + Math.random() * 200,
-        size: 64,
-        name: this._getDefaultName(deviceType),
-        ip: this._generateRandomIP()
-      };
-
-      const deviceOptions = Object.assign({}, defaults, options);
-
-      const iconPath = getDeviceIcon(deviceType);
-
-      const finalizeDevice = (fabricObj) => {
-        fabricObj.set({
-          left: deviceOptions.left,
-          top: deviceOptions.top,
-          width: deviceOptions.size,
-          height: deviceOptions.size,
-          type: 'device',
-          deviceType: deviceType,
-          deviceData: {
-            name: deviceOptions.deviceData?.name || deviceOptions.name,
-            ip: deviceOptions.deviceData?.ip || deviceOptions.ip,
-            mac: deviceOptions.deviceData?.mac || this._generateRandomMAC(),
-            description: deviceOptions.deviceData?.description || ''
-          }
-        });
-
-        // 居中锚点
-        fabricObj.set({ originX: 'center', originY: 'center' });
-
-        // 添加到Canvas
-        this.canvas.add(fabricObj);
-
-        // 添加标签
-        this._addLabel(fabricObj, fabricObj.deviceData.name);
-
-        // 创建ID
-        const deviceId = `device_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        this.devices[deviceId] = fabricObj;
-        fabricObj.id = deviceId;
-
-        topologyStore.addDevice(fabricObj, deviceId);
-
-        // 触发事件
-        this._triggerEvent('deviceCreated', { device: fabricObj, id: deviceId });
-
-        resolve(fabricObj);
-      };
-
-      if (iconPath) {
-        fabric.Image.fromURL(iconPath, (img) => {
-          // 调整尺寸
-          const scale = (deviceOptions.size * 0.6) / Math.max(img.width, img.height);
-          img.scale(scale);
-
-          // 创建背景矩形
-          const rect = new fabric.Rect({
-            width: deviceOptions.size,
-            height: deviceOptions.size,
-            fill: '#FFFFFF',  // 统一使用白色背景
-            rx: 12,
-            ry: 12,
-            stroke: '#E2E8F0',
-            strokeWidth: 1,
-            originX: 'center',
-            originY: 'center'
-          });
-
-          // 计算图标在背景中的居中位置
-          const imgWidth = img.getScaledWidth();
-          const imgHeight = img.getScaledHeight();
-
-          // 设置图标位置为居中
-          img.set({
-            originX: 'center',
-            originY: 'center',
-            left: 0,
-            top: 0
-          });
-
-          // 创建图标组合
-          const group = new fabric.Group([rect, img], {
-            originX: 'center',
-            originY: 'center'
-          });
-
-          finalizeDevice(group);
-        }, { crossOrigin: 'anonymous' });
-      } else {
-        // 无图标时使用矩形
-        const rect = new fabric.Rect({
-          width: deviceOptions.size,
-          height: deviceOptions.size,
-          fill: '#EFF6FF',
-          rx: 12,
-          ry: 12,
-          stroke: '#E2E8F0',
-          strokeWidth: 1
-        });
-        finalizeDevice(rect);
-      }
-    });
-  }
-
-  // 清空拓扑
-  clear() {
-    if (this.canvas) {
-      this.canvas.clear();
-    }
-    this.devices = {};
-    this.connections = [];
-  }
-
-  // 添加连接
-  addConnection(source, target, type = 'ethernet', networkInfo = null) {
-    if (!source || !target || source === target) {
-      return null;
-    }
-
-    const connType = this.connectionTypes[type] || this.connectionTypes.ethernet;
-
-    // 创建连接线
-    const line = new fabric.Line([
-      source.left,
-      source.top,
-      target.left,
-      target.top
-    ], {
-      stroke: connType.color,
-      strokeWidth: connType.width,
-      strokeDashArray: connType.dash,
-      selectable: true,
-      type: 'connection',
-      connectionType: type,
-      source: source,
-      target: target
-    });
-
-    // 添加到Canvas
-    this.canvas.add(line);
-    line.sendToBack();
-
-    // 添加到连接数组
-    this.connections.push(line);
-
-    // 添加到状态管理
-    topologyStore.addConnection(line);
-
-    // 添加移动事件
-    this._setupConnectionEvents(line, source, target);
-
-    // 自动确定网络信息（如果未提供）
-    if (!networkInfo && (source.deviceType === 'firewall' || target.deviceType === 'firewall')) {
-      // 确定哪个是防火墙
-      const firewall = source.deviceType === 'firewall' ? source : target;
-      const device = source.deviceType === 'firewall' ? target : source;
-
-      // 根据设备IP确定网段
-      const deviceIP = device.deviceData.ip;
-      if (deviceIP) {
-        const ipParts = deviceIP.split('.');
-        if (ipParts.length === 4) {
-          const subnet = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.0/24`;
-
-          // 确定防火墙在该网段的IP
-          let firewallIP = '';
-
-          // 根据网段确定防火墙IP
-          if (deviceIP.startsWith('192.168.200.')) {
-            firewallIP = '192.168.200.254'; // 服务器段
-          } else if (deviceIP.startsWith('192.168.100.')) {
-            firewallIP = '192.168.100.254'; // 用户段
-          } else if (deviceIP.startsWith('192.168.66.')) {
-            firewallIP = '192.168.66.254'; // SIEM段
-          } else if (deviceIP.startsWith('192.168.110.')) {
-            firewallIP = '192.168.110.254'; // VPN段
-          } else if (deviceIP.startsWith('192.168.214.')) {
-            firewallIP = '192.168.214.254'; // 数据库段
-          } else if (deviceIP.startsWith('172.16.100.')) {
-            firewallIP = '172.16.100.254'; // DMZ段
-          } else if (deviceIP.startsWith('199.203.100.')) {
-            firewallIP = '199.203.100.2'; // 互联网段
-          }
-
-          if (firewallIP) {
-            networkInfo = {
-              subnet: subnet,
-              firewallIP: firewallIP,
-              deviceIP: deviceIP
-            };
-          }
-        }
-      }
-    }
-
-    // 如果有网络信息，添加网络标签
-    if (networkInfo) {
-      this._addNetworkLabels(line, source, target, networkInfo);
-    }
-
-    // 触发连接创建事件
-    this._triggerEvent('connectionCreated', { connection: line, source, target });
-
-    return line;
-  }
-
-  // 添加网络标签到连接线
-  _addNetworkLabels(line, source, target, networkInfo) {
-    // 计算连接线的中点
-    const midX = (source.left + target.left) / 2;
-    const midY = (source.top + target.top) / 2;
-
-    // 确定哪个是防火墙
-    const isSourceFirewall = source.deviceType === 'firewall';
-    const firewall = isSourceFirewall ? source : target;
-    const device = isSourceFirewall ? target : source;
-
-    // 只有当一端是防火墙时才添加IP标签
-    if (firewall.deviceType === 'firewall') {
-      // 创建防火墙IP标签（显示在线的中间）
-      if (networkInfo.firewallIP) {
-        // 计算连接线的角度
-        const angle = Math.atan2(target.top - source.top, target.left - source.left) * 180 / Math.PI;
-
-        const firewallIPLabel = new fabric.Text(networkInfo.firewallIP, {
-          left: midX,
-          top: midY - 15,
-          fontSize: 11,
-          fill: '#ffcc00',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          padding: 3,
-          originX: 'center',
-          originY: 'center',
-          angle: angle > 90 || angle < -90 ? angle + 180 : angle // 根据连接线角度调整标签角度
-        });
-
-        this.canvas.add(firewallIPLabel);
-        line.firewallIPLabel = firewallIPLabel;
-        firewallIPLabel.moveTo(this.canvas.getObjects().indexOf(line) + 1);
-      }
-    }
-  }
-
-  // 删除选中对象
-  deleteSelected() {
-    const obj = this.canvas.getActiveObject();
-    if (!obj) return false;
-
-    // 如果是设备，同时删除标签和相关连接
-    if (obj.type === 'device') {
-      // 删除标签
-      if (obj.label) {
-        this.canvas.remove(obj.label);
-      }
-
-      // 删除相关连接
-      const connectionsToRemove = this.connections.filter(
-        conn => conn.source === obj || conn.target === obj
-      );
-
-      connectionsToRemove.forEach(conn => {
-        this.canvas.remove(conn);
-        this.connections = this.connections.filter(c => c !== conn);
-        topologyStore.removeConnection(conn);
-      });
-
-      // 从设备集合中移除
-      for (let id in this.devices) {
-        if (this.devices[id] === obj) {
-          delete this.devices[id];
-          topologyStore.removeDevice(id);
-          break;
-        }
-      }
-    }
-
-    // 如果是连接
-    if (obj.type === 'connection') {
-      this.connections = this.connections.filter(conn => conn !== obj);
-      topologyStore.removeConnection(obj);
-    }
-
-    // 从Canvas中移除
-    this.canvas.remove(obj);
-
-    // 清空选择
-    topologyStore.setSelectedObject(null);
-
-    // 刷新Canvas
-    this.canvas.requestRenderAll();
-
-    return true;
-  }
-
-  // 缩放控制
-  zoomIn() {
-    const zoom = this.canvas.getZoom();
-    this.canvas.setZoom(zoom * 1.1);
-  }
-
-  zoomOut() {
-    const zoom = this.canvas.getZoom();
-    this.canvas.setZoom(zoom * 0.9);
-  }
-
-  resetView() {
-    this.canvas.setZoom(1);
-    this.canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-  }
-
-  // 注册事件监听
-  on(eventName, callback) {
-    if (!this.eventListeners[eventName]) {
-      this.eventListeners[eventName] = [];
-    }
-    this.eventListeners[eventName].push(callback);
-  }
-
-  // 添加标签
-  _addLabel(device, text) {
-    // 如果已有标签，先删除
-    if (device.label) {
-      this.canvas.remove(device.label);
-    }
-
-    const label = new fabric.Text(text, {
-      left: device.left,
-      top: device.top + device.height / 2 + 20, // 将标签位置向下移动，从+10改为+20
-      fontSize: 14,
-      fill: '#ffffff',
-      textAlign: 'center',
-      originX: 'center',
-      originY: 'center'
-    });
-
-    this.canvas.add(label);
-    label.associatedDevice = device;
-    device.label = label;
-
-    return label;
-  }
-
-  // 更新标签
-  _updateLabel(device, text) {
-    // 对于防火墙设备，只显示名称，不显示IP
-    if (device.deviceType === 'firewall') {
-      // 确保只显示名称部分（不包含IP）
-      const firewallName = device.deviceData.name;
-      text = firewallName;
-    }
-
-    if (device.label) {
-      device.label.set({
-        text: text
-      });
-    } else {
-      this._addLabel(device, text);
-    }
-  }
-
-  // 设置连接事件
-  _setupConnectionEvents(connection, source, target) {
-    // 在设备移动时更新连接
-    source.on('moving', () => this._updateConnection(connection));
-    target.on('moving', () => this._updateConnection(connection));
-  }
-
-  // 更新连接
-  _updateConnection(connection) {
-    if (!connection || !connection.source || !connection.target) return;
-
-    const source = connection.source;
-    const target = connection.target;
-
-    connection.set({
-      x1: source.left,
-      y1: source.top,
-      x2: target.left,
-      y2: target.top
-    });
-
-    connection.setCoords();
-
-    // 更新网络标签位置
-    this._updateNetworkLabels(connection, source, target);
-
-    this.canvas.requestRenderAll();
-  }
-
-  // 更新网络标签位置
-  _updateNetworkLabels(connection, source, target) {
-    // 计算连接线的中点
-    const midX = (source.left + target.left) / 2;
-    const midY = (source.top + target.top) / 2;
-
-    // 计算连接线的角度
-    const angle = Math.atan2(target.top - source.top, target.left - source.left) * 180 / Math.PI;
-
-    // 更新子网标签
-    if (connection.subnetLabel) {
-      connection.subnetLabel.set({
-        left: midX,
-        top: midY - 15,
-        angle: angle > 90 || angle < -90 ? angle + 180 : angle
-      });
-      connection.subnetLabel.setCoords();
-    }
-
-    // 确定哪个是防火墙
-    const isSourceFirewall = source.deviceType === 'firewall';
-
-    // 计算标签位置（在连接线的1/4和3/4处）
-    const firewallLabelX = isSourceFirewall ?
-      source.left + (target.left - source.left) * 0.25 :
-      target.left + (source.left - target.left) * 0.25;
-
-    const firewallLabelY = isSourceFirewall ?
-      source.top + (target.top - source.top) * 0.25 :
-      target.top + (source.top - target.top) * 0.25;
-
-    const deviceLabelX = isSourceFirewall ?
-      source.left + (target.left - source.left) * 0.75 :
-      target.left + (source.left - target.left) * 0.75;
-
-    const deviceLabelY = isSourceFirewall ?
-      source.top + (target.top - source.top) * 0.75 :
-      target.top + (source.top - target.top) * 0.75;
-
-    // 更新防火墙IP标签 - 始终显示在连接线的中间
-    if (connection.firewallIPLabel) {
-      connection.firewallIPLabel.set({
-        left: midX,
-        top: midY - 15,
-        angle: angle > 90 || angle < -90 ? angle + 180 : angle // 根据连接线角度调整标签角度
-      });
-      connection.firewallIPLabel.setCoords();
-    }
-
-    // 更新设备IP标签
-    if (connection.deviceIPLabel) {
-      connection.deviceIPLabel.set({
-        left: deviceLabelX,
-        top: deviceLabelY - 15
-      });
-      connection.deviceIPLabel.setCoords();
-    }
-  }
-
-  // 设置事件
-  _setupEvents() {
-    if (!this.canvas) return;
-
-    // 对象选择事件
-    this.canvas.on('selection:created', (e) => {
-      this.selectedObject = e.selected[0];
-      this._triggerEvent('objectSelected', { object: this.selectedObject });
-    });
-
-    this.canvas.on('selection:updated', (e) => {
-      this.selectedObject = e.selected[0];
-      this._triggerEvent('objectSelected', { object: this.selectedObject });
-    });
-
-    this.canvas.on('selection:cleared', () => {
-      this.selectedObject = null;
-      this._triggerEvent('objectSelected', { object: null });
-    });
-
-    // 对象点击事件 - 用于连接模式
-    this.canvas.on('mouse:down', (e) => {
-      if (this.mode !== 'connect' || !e.target || e.target.type !== 'device') return;
-
-      if (!this.connecting) {
-        // 开始连接
-        this.connecting = e.target;
-      } else if (this.connecting !== e.target) {
-        // 完成连接
-        this.addConnection(this.connecting, e.target);
-        this.connecting = null;
-      }
-    });
-
-    // 平移模式
-    this.canvas.on('mouse:down', (e) => {
-      if (this.mode !== 'pan') return;
-
-      this.isPanning = true;
-      this.lastPosX = e.e.clientX;
-      this.lastPosY = e.e.clientY;
-    });
-
-    this.canvas.on('mouse:move', (e) => {
-      if (!this.isPanning) return;
-
-      const vpt = this.canvas.viewportTransform;
-      vpt[4] += e.e.clientX - this.lastPosX;
-      vpt[5] += e.e.clientY - this.lastPosY;
-      this.canvas.requestRenderAll();
-      this.lastPosX = e.e.clientX;
-      this.lastPosY = e.e.clientY;
-    });
-
-    this.canvas.on('mouse:up', () => {
-      this.isPanning = false;
-    });
-
-    // 标签移动事件
-    this.canvas.on('object:moving', (e) => {
-      const obj = e.target;
-
-      // 如果是设备，同时移动标签
-      if (obj.type === 'device' && obj.label) {
-        obj.label.set({
-          left: obj.left,
-          top: obj.top + obj.height / 2 + 20  // 增加距离，避免与图标重叠
-        });
-        obj.label.setCoords(); // 确保标签坐标更新
-
-        // 更新与该设备相关的所有连接线及其标签
-        this.connections.forEach(conn => {
-          if (conn.source === obj || conn.target === obj) {
-            this._updateConnection(conn);
-          }
-        });
-      }
-    });
-  }
-
-  // 触发事件
-  _triggerEvent(eventName, data = {}) {
-    if (!this.eventListeners[eventName]) return;
-
-    this.eventListeners[eventName].forEach(callback => {
-      try {
-        callback(data);
-      } catch (error) {
-        console.error(`事件监听器错误 (${eventName}):`, error);
-      }
-    });
-  }
-
-  // 获取默认设备名称
-  _getDefaultName(deviceType) {
-    const nameMap = {
-      'router': '路由器',
-      'firewall': '防火墙',
-      'switch': '交换机',
-      'server': '服务器',
-      'pc': 'PC',
-      'db': '数据库',
-      'web': 'Web服务器',
-      'app': '应用服务器',
-      'file': '文件服务器',
-      'mail': '邮件服务器',
-      'vpn': 'VPN网关',
-      'dns': 'DNS服务器',
-      'proxy': '代理服务器',
-      'load': '负载均衡'
-    };
-
-    return `${nameMap[deviceType] || '设备'}-${Math.floor(Math.random() * 100 + 1)}`;
-  }
-
-  // 生成随机IP
-  _generateRandomIP() {
-    return `192.168.${Math.floor(Math.random() * 254 + 1)}.${Math.floor(Math.random() * 254 + 1)}`;
-  }
-
-  // 生成随机MAC
-  _generateRandomMAC() {
-    const hexDigits = "0123456789ABCDEF";
-    let mac = "";
-    for (let i = 0; i < 6; i++) {
-      mac += hexDigits.charAt(Math.round(Math.random() * 15));
-      mac += hexDigits.charAt(Math.round(Math.random() * 15));
-      if (i != 5) mac += ":";
-    }
-    return mac;
-  }
-}
 </script>
 
 <style scoped>
+.topology-view {
+  height: 100%;
+}
+
 .device-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 8px;
 }
 
 .device-item {
-  padding: 10px;
-  background-color: #2a2a45;
-  border: 1px solid #36365a;
-  border-radius: 4px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .device-item:hover {
-  background-color: #36365a;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .device-icon {
-  width: 36px;
-  height: 36px;
-  margin: 0 auto 5px;
-  border-radius: 5px;
-  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: white;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .device-name {
   font-size: 12px;
-  color: #e4e6eb;
-}
-
-.form-control {
-  width: 100%;
-  padding: 8px;
-  background-color: #1a1a30;
-  border: 1px solid #36365a;
-  border-radius: 4px;
-  color: #e4e6eb;
-  font-size: 14px;
-  box-sizing: border-box;
-  margin-bottom: 10px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #a8aabc;
+  text-align: center;
 }
 
 .topology-container {
   width: 100%;
-  height: 720px;
-  background-color: #1a1a30;
-  border: 1px solid #36365a;
-  position: relative;
-  border-radius: 5px;
+  height: 600px;
+  background-color: #1e1e2f;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.btn.active {
-  @apply bg-primary text-white;
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(74, 158, 255, 0.3);
+  border: 4px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  border-top-color: var(--primary);
+  border-top-color: #ffffff;
   animation: spin 1s ease-in-out infinite;
 }
 
@@ -1643,5 +593,16 @@ class NetworkTopology {
   to {
     transform: rotate(360deg);
   }
+}
+
+.event-monitor-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 300px;
+  /* 设置为大约五分之一的宽度 */
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 </style>
