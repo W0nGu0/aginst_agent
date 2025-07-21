@@ -1,61 +1,28 @@
 <template>
   <div class="attacker-dialog">
     <div v-if="show" class="dialog-overlay" @click="closeDialog">
-      <div class="dialog-content" @click.stop>
-        <div class="dialog-header">
+      <div class="dialog-content" ref="dialogContent" @click.stop>
+        <div class="dialog-header" @mousedown="startDrag">
           <h3>攻击控制面板</h3>
           <button class="close-btn" @click="closeDialog">&times;</button>
         </div>
         <div class="dialog-body">
-          <div class="target-selection">
-            <h4>选择攻击目标</h4>
-            <div class="target-list">
-              <div 
-                v-for="target in availableTargets" 
-                :key="target.id"
-                class="target-item"
-                :class="{ 'selected': selectedTarget === target.id }"
-                @click="selectTarget(target.id)"
-              >
-                <div class="target-icon">
-                  <img :src="getDeviceIcon(target.type)" alt="">
-                </div>
-                <div class="target-info">
-                  <div class="target-name">{{ target.name }}</div>
-                  <div class="target-ip">{{ target.ip }}</div>
-                </div>
-              </div>
+          <div class="attack-info-section">
+            <div class="attack-info-icon">
+              <i class="fas fa-robot"></i>
             </div>
-          </div>
-          
-          <div class="attack-selection">
-            <h4>选择攻击方式</h4>
-            <div class="attack-list">
-              <div 
-                v-for="attack in availableAttacks" 
-                :key="attack.id"
-                class="attack-item"
-                :class="{ 'selected': selectedAttack === attack.id, 'disabled': !attack.available }"
-                @click="selectAttack(attack.id)"
-              >
-                <div class="attack-icon">
-                  <i :class="attack.icon"></i>
-                </div>
-                <div class="attack-info">
-                  <div class="attack-name">{{ attack.name }}</div>
-                  <div class="attack-desc">{{ attack.description }}</div>
-                </div>
-              </div>
+            <div class="attack-info-text">
+              <p>点击下方按钮启动自动攻击</p>
+              <p class="attack-info-detail">系统将自动分析网络拓扑并执行最优攻击路径</p>
             </div>
           </div>
         </div>
         <div class="dialog-footer">
           <button 
-            class="btn btn-danger" 
-            :disabled="!canAttack"
+            class="btn btn-danger"
             @click="launchAttack"
           >
-            发起攻击
+            <i class="fas fa-skull"></i> 发起攻击
           </button>
           <button class="btn btn-secondary" @click="closeDialog">取消</button>
         </div>
@@ -83,38 +50,10 @@ export default {
   },
   data() {
     return {
-      selectedTarget: null,
-      selectedAttack: null,
-      availableAttacks: [
-        {
-          id: 'port_scan',
-          name: '端口扫描',
-          description: '扫描目标主机开放的端口',
-          icon: 'fas fa-search',
-          available: true
-        },
-        {
-          id: 'brute_force',
-          name: '暴力破解',
-          description: '尝试暴力破解目标主机的登录凭证',
-          icon: 'fas fa-key',
-          available: true
-        },
-        {
-          id: 'exploit',
-          name: '漏洞利用',
-          description: '利用已知漏洞攻击目标主机',
-          icon: 'fas fa-bug',
-          available: true
-        },
-        {
-          id: 'ddos',
-          name: 'DDoS攻击',
-          description: '对目标主机发起分布式拒绝服务攻击',
-          icon: 'fas fa-bomb',
-          available: true
-        }
-      ]
+      // 拖动相关状态
+      isDragging: false,
+      dragOffset: { x: 0, y: 0 },
+      position: { x: 0, y: 0 }
     };
   },
   computed: {
@@ -125,40 +64,118 @@ export default {
         ip: target.deviceData.ip,
         type: target.deviceType
       }));
-    },
-    canAttack() {
-      return this.selectedTarget && this.selectedAttack;
     }
   },
+  mounted() {
+    // 添加全局鼠标事件监听
+    document.addEventListener('mousemove', this.onMouseMove);
+    document.addEventListener('mouseup', this.onMouseUp);
+  },
+  beforeUnmount() {
+    // 移除全局鼠标事件监听
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
+  },
   methods: {
-    selectTarget(targetId) {
-      this.selectedTarget = targetId;
+    // 开始拖动
+    startDrag(event) {
+      if (event.target.classList.contains('close-btn')) return;
+      
+      this.isDragging = true;
+      const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
+      
+      this.dragOffset = {
+        x: event.clientX - dialogRect.left,
+        y: event.clientY - dialogRect.top
+      };
+      
+      // 设置初始位置
+      if (this.position.x === 0 && this.position.y === 0) {
+        this.position = {
+          x: dialogRect.left,
+          y: dialogRect.top
+        };
+      }
+      
+      // 添加拖动中的样式
+      this.$refs.dialogContent.style.transition = 'none';
+      this.$refs.dialogContent.style.cursor = 'grabbing';
     },
-    selectAttack(attackId) {
-      const attack = this.availableAttacks.find(a => a.id === attackId);
-      if (attack && attack.available) {
-        this.selectedAttack = attackId;
+    
+    // 拖动中
+    onMouseMove(event) {
+      if (!this.isDragging) return;
+      
+      // 计算新位置
+      this.position = {
+        x: event.clientX - this.dragOffset.x,
+        y: event.clientY - this.dragOffset.y
+      };
+      
+      // 应用新位置
+      this.applyPosition();
+    },
+    
+    // 结束拖动
+    onMouseUp() {
+      if (!this.isDragging) return;
+      
+      this.isDragging = false;
+      
+      // 恢复样式
+      if (this.$refs.dialogContent) {
+        this.$refs.dialogContent.style.transition = '';
+        this.$refs.dialogContent.style.cursor = '';
       }
     },
+    
+    // 应用位置
+    applyPosition() {
+      if (!this.$refs.dialogContent) return;
+      
+      // 获取窗口尺寸
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
+      
+      // 确保对话框不会超出窗口边界
+      let x = this.position.x;
+      let y = this.position.y;
+      
+      // 限制左右边界
+      if (x < 0) x = 0;
+      if (x + dialogRect.width > windowWidth) x = windowWidth - dialogRect.width;
+      
+      // 限制上下边界
+      if (y < 0) y = 0;
+      if (y + dialogRect.height > windowHeight) y = windowHeight - dialogRect.height;
+      
+      // 更新位置
+      this.position = { x, y };
+      
+      // 应用样式
+      this.$refs.dialogContent.style.position = 'fixed';
+      this.$refs.dialogContent.style.left = `${x}px`;
+      this.$refs.dialogContent.style.top = `${y}px`;
+      this.$refs.dialogContent.style.margin = '0';
+      this.$refs.dialogContent.style.transform = 'none';
+    },
+    
+    // 发起攻击
     launchAttack() {
-      if (!this.canAttack) return;
-      
-      const target = this.targets.find(t => t.id === this.selectedTarget);
-      const attack = this.availableAttacks.find(a => a.id === this.selectedAttack);
-      
+      // 发送自动攻击指令
       this.$emit('attack', {
         attacker: this.attacker,
-        target: target,
-        attackType: this.selectedAttack,
-        attackName: attack.name
+        target: null, // 自动选择目标
+        attackType: 'auto', // 自动攻击类型
+        attackName: '自动攻击'
       });
       
       this.closeDialog();
     },
+    
     closeDialog() {
       this.$emit('close');
-      this.selectedTarget = null;
-      this.selectedAttack = null;
     },
     getDeviceIcon(type) {
       const iconMap = {
@@ -247,75 +264,40 @@ export default {
   gap: 8px;
 }
 
-.target-selection,
-.attack-selection {
+.attack-info-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  background-color: #27293d;
+  border-radius: 8px;
+}
+
+.attack-info-icon {
+  font-size: 48px;
+  color: #f5365c;
   margin-bottom: 16px;
 }
 
-.target-list,
-.attack-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.target-item,
-.attack-item {
-  display: flex;
-  align-items: center;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #27293d;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.target-item:hover,
-.attack-item:hover {
-  background-color: #2c2c40;
-}
-
-.target-item.selected,
-.attack-item.selected {
-  background-color: #1d8cf8;
-}
-
-.attack-item.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.target-icon,
-.attack-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 8px;
-}
-
-.target-icon img {
-  max-width: 100%;
-  max-height: 100%;
-}
-
-.target-info,
-.attack-info {
-  flex-grow: 1;
-}
-
-.target-name,
-.attack-name {
-  font-weight: bold;
+.attack-info-text p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
   color: #ffffff;
 }
 
-.target-ip,
-.attack-desc {
-  font-size: 12px;
+.attack-info-detail {
+  font-size: 14px;
   color: #a9a9a9;
+}
+
+.dialog-header {
+  cursor: grab;
+}
+
+.dialog-header:active {
+  cursor: grabbing;
 }
 
 .btn {

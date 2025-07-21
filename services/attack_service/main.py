@@ -70,17 +70,104 @@ def fetch_url_content(url: str) -> str:
         return f"An unexpected error occurred while fetching the URL: {str(e)}"
 
 @mcp.tool
-def craft_phishing_email(target_name: str, company: str, malicious_link: str) -> str:
-    """生成一封针对特定目标的钓鱼邮件"""
-    templates = [
+def craft_phishing_email(target_name: str, company: str, malicious_link: str, department: str = None, role: str = None, email: str = None) -> str:
+    """
+    生成一封针对特定目标的钓鱼邮件，根据目标的部门和角色定制内容
+    
+    Args:
+        target_name: 目标人物姓名
+        company: 目标公司名称
+        malicious_link: 恶意链接
+        department: 目标部门（可选）
+        role: 目标职位（可选）
+        email: 目标邮箱（可选）
+    
+    Returns:
+        生成的钓鱼邮件内容
+    """
+    # 基本模板
+    basic_templates = [
         ("薪资信息更新通知", "您好 {name}，\n\n您的{company}薪资信息需要更新。点击此处立即更新：\n{link}\n\n谢谢，\n{company}人力资源部"),
         ("账号异常登录活动", "亲爱的{name}，\n\n我们检测到您的{company}账号有异常登录活动。请点击以下链接验证您的身份：\n{link}\n\n此致,\n{company}安全团队"),
         ("年度安全审计确认", "{name}您好，\n\n作为年度安全审计的一部分，我们需要您确认您的凭据。请点击以下安全链接：\n{link}\n\n祝好，\n{company}IT技术支持")
     ]
     
-    subject, body = random.choice(templates)
-    email_body = body.format(name=target_name, company=company, link=malicious_link)
-    return f"已为{target_name}创建了一封钓鱼邮件，内容如下：\n\n---\n\n**主题**: {subject}\n\n**正文**:\n{email_body}\n\n---"
+    # 根据部门定制的模板
+    department_templates = {
+        "研发部": [
+            ("代码审查邀请", "Hi {name}，\n\n您被邀请参与一个新项目的代码审查。请通过以下链接访问代码库：\n{link}\n\n感谢您的参与，\n{company}技术团队"),
+            ("新开发工具许可证", "{name}，\n\n我们已为{department}购买了新的开发工具许可证。请点击以下链接激活您的账号：\n{link}\n\n祝编码愉快，\n{company}IT部门")
+        ],
+        "IT运维": [
+            ("服务器异常警报", "紧急：{name}，\n\n我们检测到服务器异常。请立即查看监控报告：\n{link}\n\n请尽快处理，\n{company}监控系统"),
+            ("系统更新通知", "管理员{name}，\n\n需要您批准系统更新。请登录管理控制台：\n{link}\n\n谢谢，\n{company}系统管理")
+        ],
+        "数据库管理": [
+            ("数据库性能报告", "DBA {name}，\n\n请查看最新的数据库性能分析报告：\n{link}\n\n如有问题请及时处理，\n{company}监控团队"),
+            ("数据库安全审计", "{name}，\n\n我们需要您确认最近的数据库安全审计结果。请点击查看详情：\n{link}\n\n谢谢，\n{company}安全团队")
+        ],
+        "网络安全": [
+            ("安全漏洞通报", "{name}，\n\n我们发现了一个紧急安全漏洞。请查看详细报告并采取行动：\n{link}\n\n此致，\n{company}安全响应团队"),
+            ("安全工具更新", "安全专家{name}，\n\n您使用的安全工具需要更新。请点击以下链接进行更新：\n{link}\n\n谢谢，\n{company}IT支持")
+        ],
+        "市场部": [
+            ("营销活动数据", "{name}，\n\n最新的营销活动数据已经可以查看。请点击以下链接访问报告：\n{link}\n\n祝好，\n{company}数据分析团队"),
+            ("品牌资产更新", "亲爱的{name}，\n\n我们更新了公司的品牌资产。请通过以下链接下载最新版本：\n{link}\n\n谢谢，\n{company}品牌团队")
+        ]
+    }
+    
+    # 根据角色定制的模板
+    role_templates = {
+        "管理员": [
+            ("管理员权限确认", "{name}管理员，\n\n请确认您的管理员权限。点击以下链接验证：\n{link}\n\n谢谢，\n{company}系统管理"),
+            ("管理控制台更新", "尊敬的{name}，\n\n管理控制台已更新。请使用以下链接登录新版本：\n{link}\n\n此致，\n{company}IT部门")
+        ],
+        "工程师": [
+            ("技术文档更新", "{name}工程师，\n\n我们更新了技术文档。请通过以下链接访问：\n{link}\n\n祝工作顺利，\n{company}文档团队"),
+            ("代码库访问", "Hi {name}，\n\n您已被授予新项目代码库的访问权限。请点击以下链接设置访问凭证：\n{link}\n\n谢谢，\n{company}开发团队")
+        ],
+        "开发": [
+            ("API文档更新", "开发者{name}，\n\n我们更新了API文档。请查看最新版本：\n{link}\n\n祝编码愉快，\n{company}API团队"),
+            ("开发环境配置", "{name}，\n\n请更新您的开发环境配置。详情请点击：\n{link}\n\n谢谢，\n{company}DevOps团队")
+        ]
+    }
+    
+    # 选择合适的模板
+    selected_templates = basic_templates
+    
+    # 如果有部门信息，尝试使用部门特定模板
+    if department and department in department_templates:
+        selected_templates = department_templates[department]
+    # 如果有角色信息，尝试使用角色特定模板
+    elif role:
+        for role_key in role_templates:
+            if role_key.lower() in role.lower():
+                selected_templates = role_templates[role_key]
+                break
+    
+    # 随机选择一个模板
+    subject, body = random.choice(selected_templates)
+    
+    # 格式化邮件内容
+    email_body = body.format(
+        name=target_name,
+        company=company,
+        department=department or "您的部门",
+        role=role or "您的职位",
+        link=malicious_link
+    )
+    
+    # 构建更丰富的响应
+    response = {
+        "subject": subject,
+        "body": email_body,
+        "sender": f"{company} IT部门 <it@{company.lower().replace(' ', '')}.com>",
+        "recipient": email or f"{target_name}@{company.lower().replace(' ', '')}.com",
+        "malicious_link": malicious_link
+    }
+    
+    # 返回格式化的响应
+    return json.dumps(response)
 
 @mcp.tool
 def lookup_email_breach(domain: str) -> str:

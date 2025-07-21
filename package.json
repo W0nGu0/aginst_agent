@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "chart.js": "^4.5.0",
+    "d3": "^7.9.0",
     "daisyui": "^4.5.0",
     "fabric": "^5.5.2",
+    "gsap": "^3.13.0",
     "pinia": "^2.1.7",
     "tailwindcss": "^3.4.0",
     "vue": "^3.5.17",

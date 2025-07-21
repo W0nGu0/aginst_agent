@@ -34,6 +34,7 @@ class PhishingEmail(BaseModel):
     target_name: str = None # 目标用户名
     department: str = None # 目标部门
     role: str = None # 目标职位
+    subject: str = None # 邮件主题
 
 @app.get("/metadata")
 async def get_metadata():
@@ -78,6 +79,7 @@ async def receive_email(email: PhishingEmail):
     
     # 记录接收到的钓鱼邮件
     logger.info(f"收到钓鱼邮件，目标公司: {email.company}")
+    logger.info(f"主题: {email.subject or '无主题'}")
     logger.info(f"目标用户: {email.target_name}, 部门: {email.department}, 职位: {email.role}")
     logger.info(f"邮件内容:\n{email.email_body}")
     

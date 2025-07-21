@@ -17,12 +17,7 @@
           <button class="btn btn-xs" @click="clearEvents">清空</button>
         </div>
         <div class="event-list" ref="eventList">
-          <div 
-            v-for="(event, index) in events" 
-            :key="index"
-            class="event-item"
-            :class="event.type"
-          >
+          <div v-for="(event, index) in events" :key="index" class="event-item" :class="event.type">
             <div class="event-time">{{ event.timestamp }}</div>
             <div class="event-icon">
               <i :class="getEventIcon(event.type)"></i>
@@ -34,7 +29,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 系统日志 -->
       <div class="event-section">
         <div class="section-header">
@@ -42,12 +37,7 @@
           <button class="btn btn-xs" @click="clearLogs">清空</button>
         </div>
         <div class="log-list" ref="logList">
-          <div 
-            v-for="(log, index) in logs" 
-            :key="index"
-            class="log-item"
-            :class="getLogLevelClass(log.level)"
-          >
+          <div v-for="(log, index) in logs" :key="index" class="log-item" :class="getLogLevelClass(log.level)">
             <div class="log-time">{{ log.timestamp }}</div>
             <div class="log-level">{{ log.level }}</div>
             <div class="log-source">{{ log.source }}</div>
@@ -109,9 +99,9 @@ export default {
       if (!event.timestamp) {
         event.timestamp = new Date().toLocaleTimeString();
       }
-      
+
       this.events.push(event);
-      
+
       // 限制事件数量，避免内存占用过多
       if (this.events.length > 50) {
         this.events.shift();
@@ -122,12 +112,30 @@ export default {
       if (!log.timestamp) {
         log.timestamp = new Date().toLocaleTimeString();
       }
-      
+
+      // 添加详细信息
+      if (!log.details) {
+        log.details = '';
+      }
+
+      // 添加日志ID
+      log.id = Date.now() + Math.floor(Math.random() * 1000);
+
       this.logs.push(log);
-      
+
       // 限制日志数量，避免内存占用过多
-      if (this.logs.length > 100) {
+      if (this.logs.length > 200) {
         this.logs.shift();
+      }
+
+      // 如果是重要日志，也添加到关键事件
+      if (log.level === 'error' || log.level === 'warning' || log.level === 'success') {
+        this.addEvent({
+          type: log.level === 'error' ? 'failure' :
+            log.level === 'warning' ? 'warning' :
+              log.level === 'success' ? 'success' : 'system',
+          message: `[${log.source}] ${log.message}`
+        });
       }
     },
     scrollToBottom(refName) {
@@ -240,7 +248,8 @@ export default {
   color: #a9a9a9;
 }
 
-.event-list, .log-list {
+.event-list,
+.log-list {
   flex-grow: 1;
   overflow-y: auto;
   padding: 4px;
@@ -388,7 +397,8 @@ export default {
   color: #1e1e2f;
 }
 
-.no-events, .no-logs {
+.no-events,
+.no-logs {
   color: #a9a9a9;
   text-align: center;
   padding: 8px;

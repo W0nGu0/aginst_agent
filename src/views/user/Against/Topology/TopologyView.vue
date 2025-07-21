@@ -55,6 +55,14 @@
     <!-- 防火墙对话框 -->
     <FirewallDialog :show="showFirewallDialog" :firewall="selectedFirewall" @close="showFirewallDialog = false"
       @save="handleFirewallSave" />
+
+    <!-- 主机信息对话框 -->
+    <HostInfoDialog :show="showHostInfoDialog" :host="selectedHost" @close="showHostInfoDialog = false" />
+
+    <!-- 钓鱼攻击可视化 -->
+    <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
+      :target="selectedPhishingTarget" :attackType="currentAttackType"
+      @close="showPhishingAttackVisualization = false" />
   </div>
 </template>
 
@@ -63,11 +71,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
-import AttackVisualization from './core/AttackVisualization'
+import EnhancedAttackVisualization from './core/EnhancedAttackVisualization'
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
+import PhishingService from './services/PhishingService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
+import HostInfoDialog from './components/HostInfoDialog.vue'
+import SimplePhishingVisualization from './components/SimplePhishingVisualization.vue'
 import EventMonitor from './components/EventMonitor.vue'
 
 const topologyStore = useTopologyStore()
@@ -96,8 +107,13 @@ const deviceTypes = {
 // 对话框状态
 const showAttackerDialog = ref(false)
 const showFirewallDialog = ref(false)
+const showHostInfoDialog = ref(false)
+const showPhishingAttackVisualization = ref(false)
 const selectedAttacker = ref(null)
 const selectedFirewall = ref(null)
+const selectedHost = ref(null)
+const selectedPhishingTarget = ref(null)
+const currentAttackType = ref('phishing')
 const attackTargets = ref([])
 
 // 计算属性
@@ -139,7 +155,7 @@ function initializeTopology() {
     console.log('拓扑图初始化完成')
 
     // 初始化攻击可视化
-    attackVisualization = new AttackVisualization(topology)
+    attackVisualization = new EnhancedAttackVisualization(topology)
 
     // 监听事件
     topology.on('objectSelected', (data) => {
@@ -180,35 +196,122 @@ function handleDeviceClick(device) {
 // 处理攻击事件
 async function handleAttack(attackData) {
   try {
-    // 记录日志
-    logInfo('攻击', `${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
-
-    // 添加到关键事件
-    addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
-
-    // 可视化攻击路径
-    await attackVisualization.visualizeAttack(attackData)
-
-    // 模拟攻击（实际应用中应该调用后端API）
-    const result = await AttackService.simulateAttack(attackData)
-
-    // 记录攻击日志
-    if (result.logs) {
-      result.logs.forEach(log => {
-        logMessage(log.level, '攻击', log.message)
-      })
-    }
-
-    // 显示攻击结果
-    if (result.success) {
-      logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
-      addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
+    // 检查是否为自动攻击模式
+    if (attackData.attackType === 'auto') {
+      // 记录自动攻击开始
+      logInfo('攻击智能体', `${attackData.attacker.deviceData.name} 开始自动分析网络拓扑并规划攻击路径`)
+      
+      // 添加到关键事件
+      addAttackEvent(`攻击智能体启动：开始自动分析网络拓扑并规划攻击路径`)
+      
+      // 记录详细日志
+      logDebug('攻击智能体', '正在扫描网络拓扑结构...')
+      await simulateDelay(1000)
+      
+      logDebug('攻击智能体', '识别到潜在目标：内部网络服务器、数据库服务器')
+      await simulateDelay(800)
+      
+      logDebug('攻击智能体', '分析防火墙规则和网络隔离策略...')
+      await simulateDelay(1200)
+      
+      logDebug('攻击智能体', '确定最佳攻击路径：外部防火墙 → Web服务器 → 内部防火墙 → 数据库服务器')
+      await simulateDelay(500)
+      
+      // 选择第一个目标（例如Web服务器）
+      const firstTarget = Object.values(topology.devices).find(d => 
+        d.deviceData.name.includes('Web') || d.deviceType === 'web'
+      )
+      
+      if (!firstTarget) {
+        logWarning('攻击智能体', '未找到合适的初始目标，尝试选择其他目标')
+        // 选择任意一个非攻击者的设备作为目标
+        const anyTarget = Object.values(topology.devices).find(d => 
+          d !== attackData.attacker && d.deviceData.name !== '攻击节点'
+        )
+        
+        if (!anyTarget) {
+          throw new Error('无法找到任何攻击目标')
+        }
+        
+        // 执行钓鱼攻击
+        await executePhishingAttack(attackData.attacker, anyTarget)
+      } else {
+        // 执行第一阶段攻击：钓鱼攻击Web服务器管理员
+        await executePhishingAttack(attackData.attacker, firstTarget)
+        
+        // 等待一段时间后执行第二阶段攻击
+        await simulateDelay(3000)
+        
+        // 寻找数据库服务器作为第二阶段目标
+        const secondTarget = Object.values(topology.devices).find(d => 
+          d.deviceData.name.includes('数据库') || d.deviceType === 'db'
+        )
+        
+        if (secondTarget) {
+          // 执行第二阶段攻击：利用Web服务器漏洞攻击数据库
+          logInfo('攻击智能体', `开始第二阶段攻击：从已攻陷的Web服务器横向移动到数据库服务器`)
+          
+          // 添加到关键事件
+          addAttackEvent(`开始横向移动：从Web服务器向数据库服务器发起攻击`)
+          
+          // 使用标准可视化
+          await attackVisualization.visualizeAttack({
+            attacker: firstTarget,
+            target: secondTarget,
+            attackType: 'exploit',
+            attackName: '横向移动攻击'
+          })
+          
+          // 模拟攻击结果
+          await simulateDelay(2000)
+          
+          // 记录攻击结果
+          const success = Math.random() > 0.3 // 70%的成功率
+          
+          if (success) {
+            logSuccess('攻击智能体', `成功攻陷数据库服务器`)
+            addAttackEvent(`横向移动成功：数据库服务器已被攻陷`)
+          } else {
+            logError('攻击智能体', `攻击数据库服务器失败：内部防火墙阻止了连接`)
+            addAttackEvent(`横向移动失败：内部防火墙阻止了从Web服务器到数据库服务器的连接`)
+          }
+        }
+      }
+    } else if (attackData.attackType === 'phishing' || attackData.attackType === 'social_engineering') {
+      // 钓鱼攻击或社会工程学攻击
+      await executePhishingAttack(attackData.attacker, attackData.target, attackData.attackType)
     } else {
-      logError('攻击', `攻击失败: ${result.error || '未知错误'}`)
-      addEvent({
-        type: 'failure',
-        message: `攻击失败: ${attackData.target.deviceData.name} 未被攻陷`
-      })
+      // 其他类型的攻击
+      // 记录日志
+      logInfo('攻击', `${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+      // 添加到关键事件
+      addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+      // 使用标准可视化
+      await attackVisualization.visualizeAttack(attackData)
+
+      // 使用攻击服务执行攻击
+      const result = await AttackService.simulateAttack(attackData)
+
+      // 记录攻击日志
+      if (result.logs) {
+        result.logs.forEach(log => {
+          logMessage(log.level, '攻击', log.message)
+        })
+      }
+
+      // 显示攻击结果
+      if (result.success) {
+        logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
+        addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
+      } else {
+        logError('攻击', `攻击失败: ${result.error || '未知错误'}`)
+        addEvent({
+          type: 'failure',
+          message: `攻击失败: ${attackData.target.deviceData.name} 未被攻陷`
+        })
+      }
     }
   } catch (error) {
     console.error('攻击失败:', error)
@@ -219,6 +322,62 @@ async function handleAttack(attackData) {
       attackVisualization.clearAttackPaths()
     }, 3000)
   }
+}
+
+// 执行钓鱼攻击
+async function executePhishingAttack(attacker, target, attackType = 'phishing') {
+  // 记录日志
+  logInfo('攻击', `${attacker.deviceData.name} 开始对 ${target.deviceData.name} 发起钓鱼攻击`)
+  
+  // 添加详细日志
+  logDebug('钓鱼攻击', `正在收集目标 ${target.deviceData.name} 的信息...`)
+  await simulateDelay(800)
+  
+  logDebug('钓鱼攻击', `生成针对目标的定制化钓鱼邮件...`)
+  await simulateDelay(1000)
+  
+  // 添加到关键事件
+  addAttackEvent(`${attacker.deviceData.name} 向 ${target.deviceData.name} 发送钓鱼邮件`)
+
+  // 显示钓鱼攻击可视化
+  selectedPhishingTarget.value = target
+  currentAttackType.value = attackType
+  showPhishingAttackVisualization.value = true
+
+  // 使用钓鱼服务执行攻击
+  const result = await PhishingService.simulatePhishingAttack({
+    attacker,
+    target,
+    attackType
+  })
+
+  // 记录攻击结果
+  if (result.success) {
+    logSuccess('钓鱼攻击', `成功对 ${target.deviceData.name} 发起钓鱼攻击`)
+    addAttackEvent(`钓鱼攻击成功：${target.deviceData.name} 的凭据已被窃取`)
+    
+    // 添加详细日志
+    logDebug('钓鱼攻击', `获取到目标凭据：${target.deviceData.name}的管理员账号`)
+    await simulateDelay(500)
+    
+    logDebug('钓鱼攻击', `尝试使用获取的凭据登录目标系统...`)
+    await simulateDelay(800)
+    
+    logDebug('钓鱼攻击', `成功登录目标系统，获取控制权限`)
+  } else {
+    logError('钓鱼攻击', `对 ${target.deviceData.name} 的钓鱼攻击失败`)
+    addAttackEvent(`钓鱼攻击失败：${target.deviceData.name} 识别出了钓鱼邮件`)
+    
+    // 添加详细日志
+    logDebug('钓鱼攻击', `目标未点击钓鱼链接，攻击失败`)
+  }
+  
+  return result
+}
+
+// 模拟延迟
+function simulateDelay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // 处理防火墙保存事件
