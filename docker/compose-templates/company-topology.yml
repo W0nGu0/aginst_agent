@@ -19,6 +19,14 @@ services:
   cnt-files:
     build: ../images/cnt-files
     container_name: cnt-files
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=fileadmin
+      - PASSWORD=file@admin123
+      - DEPARTMENT=IT运维
+      - ROLE=文件服务器管理员
+      - HOST_TYPE=CNT-FILES
+      - EMAIL=fileadmin@acmecorp.com
     networks:
       server_segment:
         ipv4_address: 192.168.200.6
@@ -28,6 +36,14 @@ services:
   cnt-syslog:
     build: ../images/cnt-syslog
     container_name: cnt-syslog
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=syslogadmin
+      - PASSWORD=syslog@admin123
+      - DEPARTMENT=安全运维
+      - ROLE=日志管理员
+      - HOST_TYPE=CNT-SYSLOG
+      - EMAIL=syslog@acmecorp.com
     networks:
       siem_segment:
         ipv4_address: 192.168.66.20
@@ -42,6 +58,11 @@ services:
       - USERNAME=alice
       - PASSWORD=alice123
       - ROLE=developer
+      - DEPARTMENT=研发部
+      - EMAIL=alice@acmecorp.com
+      - POSITION=高级软件工程师
+      - OS=Ubuntu 20.04 LTS
+      - KERNEL=5.4.0-42-generic
       - HOST_TYPE=WS-UBUNTU
     networks:
       user_segment:
@@ -57,6 +78,11 @@ services:
       - USERNAME=bob
       - PASSWORD=bob123
       - ROLE=qa
+      - DEPARTMENT=测试部
+      - EMAIL=bob@acmecorp.com
+      - POSITION=测试工程师
+      - OS=Ubuntu 20.04 LTS
+      - KERNEL=5.4.0-42-generic
       - HOST_TYPE=WS-UBUNTU
     networks:
       user_segment:
@@ -85,6 +111,14 @@ services:
   cnt-dmz-wp1:
     build: ../images/cnt-dmz-wp1
     container_name: cnt-dmz-wp1
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=wpadmin
+      - PASSWORD=wp@admin123
+      - DEPARTMENT=市场部
+      - ROLE=网站管理员
+      - HOST_TYPE=CNT-DMZ-WP
+      - EMAIL=wpadmin@acmecorp.com
     networks:
       mdz_segment:
         ipv4_address: 172.16.100.10
@@ -94,6 +128,14 @@ services:
   cnt-dmz-apache1:
     build: ../images/cnt-dmz-apache
     container_name: cnt-dmz-apache1
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=apacheadmin
+      - PASSWORD=apache@admin123
+      - DEPARTMENT=IT运维
+      - ROLE=Web服务器管理员
+      - HOST_TYPE=CNT-DMZ-APACHE
+      - EMAIL=apacheadmin@acmecorp.com
     networks:
       mdz_segment:
         ipv4_address: 172.16.100.11
@@ -104,6 +146,14 @@ services:
     build: ../images/cnt-dmz-dns
     container_name: cnt-dmz-dns
     privileged: true # 添加特权模式，解决权限问题
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=dnsadmin
+      - PASSWORD=dns@admin123
+      - DEPARTMENT=网络运维
+      - ROLE=DNS服务器管理员
+      - HOST_TYPE=CNT-DMZ-DNS
+      - EMAIL=dnsadmin@acmecorp.com
     volumes:
       - /tmp/dns/run:/run/named # 创建目录用于存储会话密钥
       - /tmp/dns/share:/usr/share/dns # 挂载根提示文件目录
@@ -120,6 +170,14 @@ services:
   cnt-dmz-mailrelay:
     build: ../images/cnt-dmz-mailrelay
     container_name: cnt-dmz-mailrelay
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=mailadmin
+      - PASSWORD=mail@admin123
+      - DEPARTMENT=IT运维
+      - ROLE=邮件服务器管理员
+      - HOST_TYPE=CNT-DMZ-MAIL
+      - EMAIL=mailadmin@acmecorp.com
     networks:
       mdz_segment:
         ipv4_address: 172.16.100.25
@@ -132,8 +190,14 @@ services:
     environment:
       - POSTGRES_PASSWORD=dbpass
       - COMPANY=ACME_CORP
-      - ROLE=database
+      - USERNAME=dbadmin
+      - PASSWORD=db@admin123
+      - DEPARTMENT=数据库管理
+      - ROLE=数据库管理员
       - HOST_TYPE=CNT-DB
+      - EMAIL=dbadmin@acmecorp.com
+      - OS=CentOS 8
+      - KERNEL=4.18.0-240
     networks:
       db_segment:
         ipv4_address: 192.168.214.10
@@ -144,6 +208,16 @@ services:
     build: ../images/vpn
     container_name: vpn
     privileged: true # 添加特权模式，解决权限问题
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=vpnadmin
+      - PASSWORD=vpn@admin123
+      - DEPARTMENT=网络安全
+      - ROLE=VPN管理员
+      - HOST_TYPE=VPN-SERVER
+      - EMAIL=vpnadmin@acmecorp.com
+      - OS=Ubuntu 20.04 LTS
+      - KERNEL=5.4.0-42-generic
     cap_add:
       - NET_ADMIN # 添加网络管理权限
     devices:
@@ -164,6 +238,16 @@ services:
     build: ../images/fw
     container_name: cnt-fw
     privileged: true # 添加特权模式，允许修改系统参数
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=fwadmin
+      - PASSWORD=fw@admin123
+      - DEPARTMENT=网络安全
+      - ROLE=防火墙管理员
+      - HOST_TYPE=CNT-FW
+      - EMAIL=fwadmin@acmecorp.com
+      - OS=CentOS 8
+      - KERNEL=4.18.0-240
     networks:
       server_segment:
         ipv4_address: 192.168.200.254
@@ -182,6 +266,16 @@ services:
     build: ../images/fw
     container_name: cnt-dmz-fw
     privileged: true # 添加特权模式，允许修改系统参数
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=dmzfwadmin
+      - PASSWORD=dmzfw@admin123
+      - DEPARTMENT=网络安全
+      - ROLE=DMZ防火墙管理员
+      - HOST_TYPE=CNT-DMZ-FW
+      - EMAIL=dmzfwadmin@acmecorp.com
+      - OS=CentOS 8
+      - KERNEL=4.18.0-240
     networks:
       fw_link:
         ipv4_address: 192.168.254.2
