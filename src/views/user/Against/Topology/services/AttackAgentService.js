@@ -23,8 +23,25 @@ class AttackAgentService {
       const apiUrl = `/api/attack/execute_full_attack`
       
       // 构建请求数据
+      // 根据攻击目标选择不同的主机URL
+      let targetHost = "http://127.0.0.1:8005"; // 默认本地测试URL
+      
+      // 如果有目标设备，根据设备名称或IP选择不同的主机
+      if (attackData.target) {
+        const targetName = attackData.target.deviceData?.name || "";
+        const targetIp = attackData.target.deviceData?.ip || "";
+        
+        if (targetName.includes("PC-1") || targetIp.includes("192.168.100.9")) {
+          targetHost = "http://192.168.100.9:5001"; // alice
+        } else if (targetName.includes("PC-2") || targetIp.includes("192.168.100.34")) {
+          targetHost = "http://192.168.100.34:5002"; // bob
+        }
+      }
+      
+      console.log(`选择目标主机: ${targetHost}`);
+      
       const requestData = {
-        target_host: "http://127.0.0.1:8005", // 目标主机URL
+        target_host: targetHost,
         attack_type: "auto" // 攻击类型，让中控智能体决定具体使用哪种攻击
       }
       

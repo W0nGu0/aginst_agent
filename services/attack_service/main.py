@@ -232,6 +232,50 @@ import base64
 from datetime import datetime
 
 @mcp.tool
+def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> str:
+    """
+    将最终制作好的钓鱼邮件载荷，通过API发送给受害者。
+    这是攻击流程的最后一步。
+    
+    参数:
+    - victim_url: 受害者URL
+    - phishing_email_json: 由craft_phishing_email工具生成的JSON格式钓鱼邮件内容
+    """
+    try:
+        # 解析钓鱼邮件JSON
+        try:
+            email_data = json.loads(phishing_email_json)
+        except json.JSONDecodeError:
+            return f"错误：phishing_email_json 不是有效的JSON格式: {phishing_email_json}"
+        
+        # 构建发送给受害者的载荷
+        victim_payload = {
+            "company": email_data.get("sender", "").split("<")[0].strip() or email_data.get("company", "Unknown Company"),
+            "malicious_link": email_data.get("malicious_link", "http://evil-corp-phishing.com/login"),
+            "email_body": email_data.get("body", ""),
+            "target_name": email_data.get("recipient", "").split("<")[0].strip() or email_data.get("target_name", ""),
+            "subject": email_data.get("subject", "重要通知"),
+            "department": email_data.get("department", "研发部"),  # 默认使用"研发部"
+            "role": email_data.get("role", "软件工程师")  # 默认使用"软件工程师"
+        }
+        
+        # 确保URL是完整的
+        if not victim_url.endswith('/receive_email'):
+            victim_url = victim_url.rstrip('/') + '/receive_email'
+        
+        # 发送请求到受害者主机
+        with httpx.Client(timeout=20) as client:
+            response = client.post(victim_url, json=victim_payload)
+            response.raise_for_status()
+            return f"成功将钓鱼邮件发送至 {victim_url}。\n\n邮件主题: {victim_payload['subject']}\n收件人: {victim_payload['target_name']}\n\n受害者响应: {response.json()}"
+    except httpx.RequestError as e:
+        return f"请求错误: {e}"
+    except httpx.HTTPStatusError as e:
+        return f"HTTP错误: {e.response.status_code} {e.response.text}"
+    except Exception as e:
+        return f"发送钓鱼邮件时出错: {str(e)}"
+
+@mcp.tool
 def craft_doc_with_enable_macro(victim_name: str) -> str:
     """生成一个诱导受害者启用宏的伪 Word 文档下载链接（Base64 Data URL 占位）。"""
     fake_doc = f"Enable Macro Payload for {victim_name} @ {datetime.utcnow().isoformat()}".encode()
@@ -267,6 +311,23 @@ def craft_fake_job_offer(target_name: str, desired_role: str, salary_range: str,
         f"{target_name} 您好！我们正在为独角兽企业招募 {desired_role}。\n"
         f"请在24小时内填写表单确认意向：{form_link}\n\n期待回复！"
     )
+
+@mcp.tool
+def send_payload_to_victim_social(victim_url: str, payload: dict) -> str:
+    """将社会工程学载荷 POST 至 /receive_social。"""
+    try:
+        if not victim_url.endswith("/receive_social"):
+            victim_url = victim_url.rstrip("/") + "/receive_social"
+        with httpx.Client(timeout=20) as client:
+            resp = client.post(victim_url, json=payload)
+            resp.raise_for_status()
+            return f"已发送 tactic={payload.get('tactic', 'unknown')} 至 {victim_url}，受害者响应: {resp.json()}"
+    except httpx.RequestError as e:
+        return f"请求错误: {e}"
+    except httpx.HTTPStatusError as e:
+        return f"HTTP错误: {e.response.status_code} {e.response.text}"
+    except Exception as e:
+        return f"发送社会工程学载荷失败: {str(e)}"
 # -----------------------------------------------------------------------------
 
 # 3. Start the server

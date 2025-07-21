@@ -18,7 +18,13 @@ dotenv_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
 
 ATTACK_SERVICE_URL = os.getenv("ATTACK_SERVICE_URL", "http://127.0.0.1:8001/mcp/")
-VICTIM_HOST_URL = "http://127.0.0.1:8005" # 受害者主机的基础URL
+# 受害者主机的基础URL，指向Docker容器的IP地址和端口
+# 由于我们现在使用Docker容器而不是本地进程，所以只能使用这些URL
+VICTIM_HOST_URLS = {
+    "alice": "http://192.168.100.9:5001",  # ws-ubuntu-cnt1
+    "bob": "http://192.168.100.34:5002",   # ws-ubuntu-cnt2
+    "default": "http://localhost:5001"     # 默认使用alice容器
+}
 
 # --- 初始化LLM和工具 ---
 llm = ChatDeepSeek(model="deepseek-chat", api_key=os.getenv("DEEPSEEK_API_KEY"))
@@ -126,31 +132,49 @@ async def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> s
     - phishing_email_json: 由craft_phishing_email工具生成的JSON格式钓鱼邮件内容
     """
     try:
-        # 解析钓鱼邮件JSON
-        try:
-            email_data = json.loads(phishing_email_json)
-        except json.JSONDecodeError:
-            return f"错误：phishing_email_json 不是有效的JSON格式: {phishing_email_json}"
+        # 确定目标URL
+        target_url = victim_url
         
-        # 构建发送给受害者的载荷
-        victim_payload = {
-            "company": email_data.get("sender", "").split("<")[0].strip() or email_data.get("company", "Unknown Company"),
-            "malicious_link": email_data.get("malicious_link", "http://evil-corp-phishing.com/login"),
-            "email_body": email_data.get("body", ""),
-            "target_name": email_data.get("recipient", "").split("<")[0].strip() or email_data.get("target_name", ""),
-            "subject": email_data.get("subject", "重要通知"),
-            "department": email_data.get("department", "研发部"),  # 默认使用"研发部"
-            "role": email_data.get("role", "软件工程师")  # 默认使用"软件工程师"
-        }
+        # 如果URL是旧的本地测试URL或为空，使用Docker容器URL
+        if victim_url == "http://127.0.0.1:8005" or not victim_url:
+            # 尝试从phishing_email_json中解析目标信息
+            try:
+                email_data = json.loads(phishing_email_json)
+                target_name = email_data.get("recipient", "").split("<")[0].strip() or email_data.get("target_name", "")
+                
+                # 根据目标用户名选择不同的容器
+                if "alice" in target_name.lower():
+                    target_url = VICTIM_HOST_URLS["alice"]
+                elif "bob" in target_name.lower():
+                    target_url = VICTIM_HOST_URLS["bob"]
+                else:
+                    # 默认使用alice容器
+                    target_url = VICTIM_HOST_URLS["default"]
+            except Exception as e:
+                print(f"解析phishing_email_json失败: {e}，使用默认URL")
+                target_url = VICTIM_HOST_URLS["default"]
+        
+        print(f"选择目标URL: {target_url}")
+        
+        # 调用攻击服务中的send_payload_to_victim工具
+        # 注意：我们需要确保攻击服务中有这个工具
+        async with attack_service_client.client as client:
+            # 构建参数
+            args = {
+                'victim_url': target_url,
+                'phishing_email_json': phishing_email_json
+            }
             
-        async with httpx.AsyncClient() as client:
-            # 确保URL是完整的
-            if not victim_url.endswith('/receive_email'):
-                victim_url = victim_url.rstrip('/') + '/receive_email'
+            # 调用工具
+            response = await client.call_tool(
+                "send_payload_to_victim",
+                arguments=args
+            )
             
-            response = await client.post(victim_url, json=victim_payload, timeout=20)
-            response.raise_for_status()
-            return f"成功将钓鱼邮件发送至 {victim_url}。\n\n邮件主题: {victim_payload['subject']}\n收件人: {victim_payload['target_name']}\n\n受害者响应: {response.json()}"
+            # 从CallToolResult对象中安全地提取文本
+            return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+    except Exception as e:
+        return f"执行send_payload_to_victim工具时出错: {e}"
     except Exception as e:
         return f"执行send_payload_to_victim工具时出错: {e}"
 
@@ -305,14 +329,43 @@ async def _generate_random_social_payload(victim_name: str, company_name: str):
 async def send_payload_to_victim_social(victim_url: str, payload: dict) -> str:
     """将社会工程学载荷 POST 至 /receive_social。"""
     try:
-        if not victim_url.endswith("/receive_social"):
-            victim_url = victim_url.rstrip("/") + "/receive_social"
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(victim_url, json=payload, timeout=20)
-            resp.raise_for_status()
-            return f"已发送 tactic={payload['tactic']} 至 {victim_url}，受害者响应: {resp.json()}"
+        # 确定目标URL
+        target_url = victim_url
+        
+        # 如果URL是旧的本地测试URL或为空，使用Docker容器URL
+        if victim_url == "http://127.0.0.1:8005" or not victim_url:
+            # 尝试从payload中解析目标信息
+            target_name = payload.get("target_name", "").lower()
+            
+            # 根据目标用户名选择不同的容器
+            if "alice" in target_name:
+                target_url = VICTIM_HOST_URLS["alice"]
+            elif "bob" in target_name:
+                target_url = VICTIM_HOST_URLS["bob"]
+            else:
+                # 默认使用alice容器
+                target_url = VICTIM_HOST_URLS["default"]
+        
+        print(f"选择社会工程学攻击目标URL: {target_url}")
+        
+        # 调用攻击服务中的send_payload_to_victim_social工具
+        async with attack_service_client.client as client:
+            # 构建参数
+            args = {
+                'victim_url': target_url,
+                'payload': payload
+            }
+            
+            # 调用工具
+            response = await client.call_tool(
+                "send_payload_to_victim_social",
+                arguments=args
+            )
+            
+            # 从CallToolResult对象中安全地提取文本
+            return "\n".join([b.text for b in response.content if hasattr(b, "text")])
     except Exception as e:
-        return f"发送社会工程学载荷失败: {e}"
+        return f"执行send_payload_to_victim_social工具时出错: {e}"
 
 tools.append(send_payload_to_victim_social)
 # --------------------------------------------------------------------
@@ -374,9 +427,23 @@ async def execute_full_attack(request: AttackRequest):
     接收来自中央智能体的指令，启动一次完整的、自主的攻击。
     现在会获取更多目标信息，生成更具针对性的钓鱼邮件。
     """
+    # 确定目标主机URL
+    target_host = request.target_host
+    
+    # 如果目标主机是Docker容器，使用对应的URL
+    if "alice" in target_host.lower() or "192.168.100.9" in target_host:
+        target_host = VICTIM_HOST_URLS["alice"]
+    elif "bob" in target_host.lower() or "192.168.100.34" in target_host:
+        target_host = VICTIM_HOST_URLS["bob"]
+    else:
+        # 默认使用本地测试URL
+        target_host = VICTIM_HOST_URLS["default"]
+    
+    print(f"选择目标主机URL: {target_host}")
+    
     # 构造一个清晰的指令，让Agent开始工作
     input_prompt = f"""
-    开始对目标 {request.target_host} 执行一次完整的钓鱼攻击。
+    开始对目标 {target_host} 执行一次完整的钓鱼攻击。
     
     首先，你需要通过目标的 /metadata 端点进行侦察，获取尽可能多的信息，包括：
     - 公司名称
@@ -446,7 +513,7 @@ async def execute_social_engineering(req: SocialEngRequest):
 
 # 新增端点：完整随机社会工程学攻击（无需 LangChain 规划）
 class RandomAttackReq(BaseModel):
-    victim_url: str = "http://127.0.0.1:8005"  # 基础 URL
+    victim_url: str = VICTIM_HOST_URLS["alice"]  # 默认使用alice容器
     victim_name: str = "Alice"
     company: str = "ACME_CORP"
 

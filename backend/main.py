@@ -231,6 +231,19 @@ async def execute_full_attack(req: AttackRequest):
         # 使用httpx发送请求到中控智能体
         async with httpx.AsyncClient() as client:
             try:
+                # 尝试连接中控智能体
+                try:
+                    # 先检查中控智能体是否可用
+                    check_response = await client.get(
+                        "http://localhost:8006/docs",
+                        timeout=2.0
+                    )
+                    logger.info("Central agent is available")
+                except Exception as e:
+                    logger.warning(f"Central agent check failed: {str(e)}")
+                    raise httpx.RequestError(f"Central agent unavailable: {str(e)}", request=None)
+                
+                # 发送请求到中控智能体
                 response = await client.post(
                     central_agent_url,
                     json=central_agent_payload,
@@ -240,6 +253,25 @@ async def execute_full_attack(req: AttackRequest):
                 logger.error(f"Request error to central agent: {str(e)}")
                 # 如果中控智能体不可用，直接调用攻击智能体
                 logger.warning("Central agent unavailable, trying to call attack agent directly")
+                
+                # 尝试连接攻击智能体
+                try:
+                    # 先检查攻击智能体是否可用
+                    check_response = await client.get(
+                        "http://localhost:8004/docs",
+                        timeout=2.0
+                    )
+                    logger.info("Attack agent is available")
+                except Exception as e:
+                    logger.error(f"Attack agent check failed: {str(e)}")
+                    # 如果攻击智能体也不可用，返回模拟数据
+                    return {
+                        "status": "simulated",
+                        "message": "Both central agent and attack agent are unavailable. Using simulated data.",
+                        "final_output": "模拟攻击过程：\n1. 扫描目标主机\n2. 发现开放端口\n3. 生成钓鱼邮件\n4. 发送钓鱼邮件\n5. 攻击成功，获取到目标凭据"
+                    }
+                
+                # 发送请求到攻击智能体
                 attack_agent_url = "http://localhost:8004/execute_full_attack"
                 response = await client.post(
                     attack_agent_url,
