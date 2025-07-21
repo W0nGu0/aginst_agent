@@ -242,14 +242,20 @@ def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> str:
     - phishing_email_json: 由craft_phishing_email工具生成的JSON格式钓鱼邮件内容
     """
     try:
+        print(f"[攻击服务] 开始执行钓鱼邮件发送操作，目标URL: {victim_url}")
+        
         # 解析钓鱼邮件JSON
         try:
             email_data = json.loads(phishing_email_json)
+            print(f"[攻击服务] 成功解析钓鱼邮件JSON: {email_data}")
         except json.JSONDecodeError:
-            return f"错误：phishing_email_json 不是有效的JSON格式: {phishing_email_json}"
+            error_msg = f"错误：phishing_email_json 不是有效的JSON格式: {phishing_email_json}"
+            print(f"[攻击服务] {error_msg}")
+            return error_msg
         
         # 从URL中获取元数据，以便更准确地匹配目标信息
         try:
+            print(f"[攻击服务] 正在获取目标元数据...")
             metadata_url = victim_url.rstrip('/') + '/metadata'
             metadata_response = httpx.get(metadata_url, timeout=10)
             metadata = metadata_response.json()
@@ -261,14 +267,16 @@ def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> str:
             target_email = metadata.get("email", "")
             company_name = metadata.get("company_name", "ACME_CORP")
             
-            print(f"成功获取目标元数据: {metadata}")
+            print(f"[攻击服务] 成功获取目标元数据: {metadata}")
+            print(f"[攻击服务] 目标信息: 部门={target_department}, 职位={target_role}, 用户名={target_name}, 邮箱={target_email}, 公司={company_name}")
         except Exception as e:
-            print(f"获取元数据失败，使用默认值: {e}")
+            print(f"[攻击服务] 获取元数据失败，使用默认值: {e}")
             target_department = "研发部"
             target_role = "软件工程师"
             target_name = email_data.get("recipient", "").split("@")[0] if "@" in email_data.get("recipient", "") else ""
             target_email = email_data.get("recipient", "")
             company_name = email_data.get("company", "ACME_CORP")
+            print(f"[攻击服务] 使用默认值: 部门={target_department}, 职位={target_role}, 用户名={target_name}, 邮箱={target_email}, 公司={company_name}")
         
         # 构建发送给受害者的载荷，确保包含所有匹配字段
         victim_payload = {
@@ -282,17 +290,50 @@ def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> str:
             "email": target_email
         }
         
-        print(f"构建的钓鱼邮件载荷: {victim_payload}")
+        print(f"[攻击服务] 构建的钓鱼邮件载荷: {victim_payload}")
+        print(f"[攻击服务] 钓鱼邮件主题: {victim_payload['subject']}")
+        print(f"[攻击服务] 钓鱼邮件目标: {victim_payload['target_name']} ({victim_payload['email']})")
+        print(f"[攻击服务] 钓鱼邮件部门匹配: {victim_payload['department']}")
+        print(f"[攻击服务] 钓鱼邮件职位匹配: {victim_payload['role']}")
         
         # 确保URL是完整的
         if not victim_url.endswith('/receive_email'):
             victim_url = victim_url.rstrip('/') + '/receive_email'
+            print(f"[攻击服务] 调整目标URL为: {victim_url}")
         
         # 发送请求到受害者主机
+        print(f"[攻击服务] 正在发送钓鱼邮件到目标主机...")
         with httpx.Client(timeout=20) as client:
             response = client.post(victim_url, json=victim_payload)
             response.raise_for_status()
-            return f"成功将钓鱼邮件发送至 {victim_url}。\n\n邮件主题: {victim_payload['subject']}\n收件人: {victim_payload['target_name']}\n\n受害者响应: {response.json()}"
+            response_data = response.json()
+            print(f"[攻击服务] 钓鱼邮件发送成功，受害者响应: {response_data}")
+            
+            # 分析响应结果
+            match_score = response_data.get("match_score", 0)
+            max_score = response_data.get("max_score", 4)
+            success_rate = response_data.get("success_rate", "0%")
+            status = response_data.get("status", "unknown")
+            
+            print(f"[攻击服务] 钓鱼邮件匹配分数: {match_score}/{max_score}")
+            print(f"[攻击服务] 钓鱼邮件成功率: {success_rate}")
+            print(f"[攻击服务] 钓鱼邮件状态: {status}")
+            
+            # 构建详细的响应信息
+            result = f"成功将钓鱼邮件发送至 {victim_url}。\n\n"
+            result += f"邮件主题: {victim_payload['subject']}\n"
+            result += f"收件人: {victim_payload['target_name']} ({victim_payload['email']})\n"
+            result += f"目标部门: {victim_payload['department']}\n"
+            result += f"目标职位: {victim_payload['role']}\n\n"
+            result += f"受害者响应: {response_data}\n\n"
+            
+            if status == "compromised":
+                result += "攻击结果: 成功! 目标已点击恶意链接并提交凭据。"
+            else:
+                result += f"攻击结果: 失败。匹配度: {match_score}/{max_score} ({success_rate})。"
+                result += "\n可能原因: 邮件内容与目标特征匹配度不足，或目标警惕性较高。"
+            
+            return result
     except httpx.RequestError as e:
         return f"请求错误: {e}"
     except httpx.HTTPStatusError as e:

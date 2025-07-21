@@ -4,6 +4,11 @@
  */
 import { gsap } from 'gsap';
 import { fabric } from 'fabric';
+// 导入GSAP插件
+import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
+
+// 注册GSAP插件
+gsap.registerPlugin(MotionPathPlugin);
 
 class GSAPAttackVisualization {
   constructor(topology) {

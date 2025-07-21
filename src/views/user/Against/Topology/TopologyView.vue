@@ -157,8 +157,14 @@ function initializeTopology() {
   topology.initialize().then(() => {
     console.log('拓扑图初始化完成')
 
-    // 初始化攻击可视化，使用GSAP版本
-    attackVisualization = new GSAPAttackVisualization(topology)
+    // 初始化攻击可视化，使用增强版GSAP可视化
+    try {
+      attackVisualization = new EnhancedAttackVisualization(topology)
+      console.log('增强版攻击可视化初始化成功')
+    } catch (error) {
+      console.error('增强版攻击可视化初始化失败，回退到基础版本:', error)
+      attackVisualization = new GSAPAttackVisualization(topology)
+    }
 
     // 监听事件
     topology.on('objectSelected', (data) => {

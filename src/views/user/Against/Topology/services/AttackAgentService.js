@@ -24,7 +24,7 @@ class AttackAgentService {
       
       // 构建请求数据
       // 根据攻击目标选择不同的主机URL
-      let targetHost = "http://127.0.0.1:8005"; // 默认本地测试URL
+      let targetHost = "http://localhost:5001"; // 默认使用alice容器
       
       // 如果有目标设备，根据设备名称或IP选择不同的主机
       if (attackData.target) {
@@ -32,9 +32,9 @@ class AttackAgentService {
         const targetIp = attackData.target.deviceData?.ip || "";
         
         if (targetName.includes("PC-1") || targetIp.includes("192.168.100.9")) {
-          targetHost = "http://192.168.100.9:5001"; // alice
+          targetHost = "http://localhost:5001"; // alice
         } else if (targetName.includes("PC-2") || targetIp.includes("192.168.100.34")) {
-          targetHost = "http://192.168.100.34:5002"; // bob
+          targetHost = "http://localhost:5002"; // bob
         }
       }
       
@@ -47,14 +47,21 @@ class AttackAgentService {
       
       console.log('发送攻击请求到中控智能体:', requestData)
       
+      // 添加错误处理和超时设置
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+      
       // 发送请求到中控智能体
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestData),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId); // 清除超时计时器
       
       // 检查响应状态
       if (!response.ok) {
@@ -93,8 +100,26 @@ class AttackAgentService {
       const apiUrl = `/api/attack/execute_random_social_attack`
       
       // 构建请求数据
+      // 根据攻击目标选择不同的主机URL
+      let targetHost = "http://localhost:5001"; // 默认使用alice容器
+      
+      // 如果有目标设备，根据设备名称或IP选择不同的主机
+      if (attackData.target) {
+        const targetName = attackData.target.deviceData?.name || "";
+        const targetIp = attackData.target.deviceData?.ip || "";
+        
+        if (targetName.includes("PC-1") || targetIp.includes("192.168.100.9")) {
+          targetHost = "http://localhost:5001"; // alice
+        } else if (targetName.includes("PC-2") || targetIp.includes("192.168.100.34")) {
+          targetHost = "http://localhost:5002"; // bob
+        }
+      }
+      
+      console.log(`选择社会工程学攻击目标主机: ${targetHost}`);
+      
+      // 构建请求数据
       const requestData = {
-        victim_url: "http://127.0.0.1:8005", // 目标主机URL
+        victim_url: targetHost, // 目标主机URL
         victim_name: attackData.target?.deviceData?.name || "未知用户",
         company: "ACME_CORP" // 公司名称，实际环境中应该从配置或参数中获取
       }
