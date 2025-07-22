@@ -132,16 +132,28 @@ export default {
   },
   watch: {
     events() {
+      // 保存当前滚动状态
+      const wasAtBottom = this.isScrolledToBottom('eventList');
+      
       this.$nextTick(() => {
-        this.scrollToBottom('eventList');
+        // 只有当之前在底部时，才自动滚动到底部
+        if (wasAtBottom) {
+          this.scrollToBottom('eventList');
+        }
       });
 
       // 根据事件内容更新攻击链阶段
       this.updateAttackChainFromEvents();
     },
     logs() {
+      // 保存当前滚动状态
+      const wasAtBottom = this.isScrolledToBottom('logList');
+      
       this.$nextTick(() => {
-        this.scrollToBottom('logList');
+        // 只有当之前在底部时，才自动滚动到底部
+        if (wasAtBottom) {
+          this.scrollToBottom('logList');
+        }
       });
 
       // 根据日志内容更新攻击链阶段
@@ -184,6 +196,9 @@ export default {
       this.logs = [];
     },
     addEvent(event) {
+      // 检查滚动条是否在底部
+      const wasAtBottom = this.isScrolledToBottom('eventList');
+      
       // 添加时间戳
       if (!event.timestamp) {
         event.timestamp = new Date().toLocaleTimeString();
@@ -195,8 +210,18 @@ export default {
       if (this.events.length > 50) {
         this.events.shift();
       }
+      
+      // 如果之前在底部，则在下一个渲染周期滚动到底部
+      if (wasAtBottom) {
+        this.$nextTick(() => {
+          this.scrollToBottom('eventList');
+        });
+      }
     },
     addLog(log) {
+      // 检查滚动条是否在底部
+      const wasAtBottom = this.isScrolledToBottom('logList');
+      
       // 添加时间戳
       if (!log.timestamp) {
         log.timestamp = new Date().toLocaleTimeString();
@@ -217,6 +242,13 @@ export default {
         this.logs.shift();
       }
 
+      // 如果之前在底部，则在下一个渲染周期滚动到底部
+      if (wasAtBottom) {
+        this.$nextTick(() => {
+          this.scrollToBottom('logList');
+        });
+      }
+
       // 如果是重要日志，也添加到关键事件
       if (log.level === 'error' || log.level === 'warning' || log.level === 'success') {
         this.addEvent({
@@ -227,6 +259,16 @@ export default {
         });
       }
     },
+    // 检查滚动条是否在底部或接近底部
+    isScrolledToBottom(refName) {
+      if (!this.$refs[refName]) return false;
+      
+      const element = this.$refs[refName];
+      // 如果滚动条位置在距离底部5像素内，认为是在底部
+      return element.scrollHeight - element.scrollTop - element.clientHeight < 5;
+    },
+    
+    // 滚动到底部
     scrollToBottom(refName) {
       if (this.$refs[refName]) {
         this.$refs[refName].scrollTop = this.$refs[refName].scrollHeight;
