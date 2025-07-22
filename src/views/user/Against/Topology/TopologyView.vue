@@ -42,7 +42,10 @@
 
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
-            <EventMonitor ref="eventMonitorRef" />
+            <EventMonitor 
+              ref="eventMonitorRef" 
+              :attackTaskStatus="currentAttackTaskStatus"
+            />
           </div>
         </div>
       </div>
@@ -63,11 +66,13 @@
     <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
       :target="selectedPhishingTarget" :attackType="currentAttackType"
       @close="showPhishingAttackVisualization = false" />
+      
+    <!-- 不再使用全屏的攻击进度监控，而是在EventMonitor中显示 -->
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
@@ -77,11 +82,13 @@ import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
 import PhishingService from './services/PhishingService'
 import AttackAgentService from './services/AttackAgentService'
+import AttackTaskService from './services/AttackTaskService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
 import SimplePhishingVisualization from './components/SimplePhishingVisualization.vue'
 import EventMonitor from './components/EventMonitor.vue'
+import AttackProgressMonitor from './components/AttackProgressMonitor.vue'
 
 const topologyStore = useTopologyStore()
 let topology = null
@@ -119,6 +126,11 @@ const currentAttackType = ref('phishing')
 const attackTargets = ref([])
 const eventMonitorRef = ref(null)
 
+// 攻击任务状态
+const showAttackProgressMonitor = ref(false)
+const currentAttackTaskId = ref('')
+const currentAttackTaskStatus = ref(null)
+
 // 计算属性
 const selectedDevice = computed(() => {
   const obj = topologyStore.selectedObject
@@ -134,6 +146,17 @@ const selectedConnection = computed(() => {
 onMounted(async () => {
   await loadFabric()
   initializeTopology()
+  
+  // 添加攻击进度和完成事件监听
+  window.addEventListener('attack-progress', handleAttackProgress)
+  window.addEventListener('attack-completed', handleAttackCompleted)
+})
+
+// 在组件卸载时移除事件监听器
+onUnmounted(() => {
+  // 移除事件监听器
+  window.removeEventListener('attack-progress', handleAttackProgress)
+  window.removeEventListener('attack-completed', handleAttackCompleted)
 })
 
 // 加载Fabric.js库
@@ -202,6 +225,101 @@ function handleDeviceClick(device) {
   }
 }
 
+// 处理攻击进度更新事件
+function handleAttackProgress(event) {
+  const { taskId, status } = event.detail
+  
+  // 更新当前任务状态
+  if (taskId === currentAttackTaskId.value) {
+    currentAttackTaskStatus.value = status
+    
+    // 记录日志
+    if (status.logs && status.logs.length > 0) {
+      const latestLog = status.logs[status.logs.length - 1]
+      logMessage(latestLog.level, latestLog.source, latestLog.message)
+    }
+    
+    // 根据阶段更新可视化
+    updateAttackVisualizationByPhase(status.phase, status.progress)
+  }
+}
+
+// 处理攻击完成事件
+function handleAttackCompleted(event) {
+  const { success, taskId, result, error } = event.detail
+  
+  if (taskId === currentAttackTaskId.value) {
+    if (success) {
+      logSuccess('攻击智能体', '攻击任务已完成')
+      
+      // 解析结果
+      if (result && result.final_output) {
+        logInfo('攻击结果', result.final_output)
+      }
+    } else {
+      logError('攻击智能体', `攻击任务失败: ${error}`)
+    }
+  }
+}
+
+// 根据攻击阶段更新可视化
+function updateAttackVisualizationByPhase(phase, progress) {
+  // 获取攻击者和目标
+  const attacker = selectedAttacker.value
+  const target = Object.values(topology.devices).find(d => 
+    d !== attacker && d.deviceData.name !== '攻击节点'
+  )
+  
+  if (!attacker || !target || !attackVisualization) return
+  
+  // 根据阶段显示不同的动画
+  switch (phase) {
+    case 'reconnaissance':
+      if (progress <= 5) {
+        attackVisualization.createThinkingAnimation(attacker, 3)
+      } else if (progress <= 10) {
+        attackVisualization.createScanningAnimation(attacker, target, 3)
+      }
+      break
+    case 'weaponization':
+      if (progress <= 20) {
+        attackVisualization.createThinkingAnimation(attacker, 3)
+      } else if (progress <= 25) {
+        attackVisualization.createWritingAnimation(attacker, 3)
+      }
+      break
+    case 'delivery':
+      if (progress <= 35) {
+        attackVisualization.createSendEmailAnimation(attacker, target, 3)
+      } else if (progress <= 45) {
+        attackVisualization.createThinkingAnimation(target, 3)
+      }
+      break
+    case 'exploitation':
+      if (progress <= 60) {
+        // 更新目标状态为被瞄准
+        updateNodeStatus(target, 'targeted')
+      }
+      break
+    case 'installation':
+      if (progress <= 75) {
+        // 更新目标状态为已攻陷
+        updateNodeStatus(target, 'compromised')
+      }
+      break
+    case 'command_and_control':
+      if (progress <= 85) {
+        attackVisualization.createDataTheftAnimation(target, attacker, 3)
+      }
+      break
+    case 'actions_on_objectives':
+      if (progress >= 95) {
+        attackVisualization.createSuccessAnimation(attacker, 3)
+      }
+      break
+  }
+}
+
 // 处理攻击事件
 async function handleAttack(attackData) {
   try {
@@ -226,123 +344,21 @@ async function handleAttack(attackData) {
         const result = await AttackAgentService.executeAutoAttack(attackData)
         
         if (result.success) {
+          // 更新当前任务ID和状态
+          currentAttackTaskId.value = result.taskId
+          currentAttackTaskStatus.value = result.details
+          
+          // 不再显示全屏攻击进度监控，而是使用EventMonitor中的攻击链阶段
+          
+          // 记录成功消息
           logSuccess('中央智能体', '成功向攻击智能体下达攻击指令')
           logInfo('攻击智能体', '开始执行自动攻击流程')
           
           // 添加到关键事件
           addAttackEvent(`中央智能体成功向攻击智能体下达攻击指令`)
           
-          // 记录详细日志
-          logDebug('攻击智能体', '正在扫描网络拓扑结构...')
-          
           // 在拓扑图上可视化攻击路径
           visualizeAttackPath(attackData.attacker)
-          
-          // 解析攻击智能体返回的结果
-          if (result.details && result.details.final_output) {
-            // 记录攻击智能体的输出
-            const outputLines = result.details.final_output.split('\n')
-            
-            // 延迟输出每一行，模拟攻击过程
-            for (let i = 0; i < outputLines.length; i++) {
-              const line = outputLines[i].trim()
-              if (line) {
-                await simulateDelay(800)
-                
-                // 根据内容判断日志级别
-                if (line.includes('成功') || line.includes('获取到')) {
-                  logSuccess('攻击智能体', line)
-                  
-                  // 如果是成功的攻击，显示成功动画
-                  if (i === outputLines.length - 1 && attackVisualization.createSuccessAnimation) {
-                    // 查找目标节点
-                    const target = Object.values(topology.devices).find(d => 
-                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-                    )
-                    if (target) {
-                      attackVisualization.createSuccessAnimation(target, 3)
-                      updateNodeStatus(target, 'compromised')
-                    }
-                  }
-                } else if (line.includes('失败') || line.includes('错误')) {
-                  logError('攻击智能体', line)
-                  
-                  // 如果是失败的攻击，显示失败动画
-                  if (i === outputLines.length - 1 && attackVisualization.createFailureAnimation) {
-                    // 查找目标节点
-                    const target = Object.values(topology.devices).find(d => 
-                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-                    )
-                    if (target) {
-                      attackVisualization.createFailureAnimation(target, 3)
-                    }
-                  }
-                } else if (line.includes('警告') || line.includes('注意')) {
-                  logWarning('攻击智能体', line)
-                } else {
-                  logInfo('攻击智能体', line)
-                  
-                  // 根据内容显示不同的动画
-                  if (line.includes('扫描') && attackVisualization.createScanningAnimation) {
-                    // 查找目标节点
-                    const target = Object.values(topology.devices).find(d => 
-                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-                    )
-                    if (target) {
-                      attackVisualization.createScanningAnimation(attackData.attacker, target, 3)
-                    }
-                  } else if (line.includes('邮件') && attackVisualization.createWritingAnimation) {
-                    attackVisualization.createWritingAnimation(attackData.attacker, 3)
-                  } else if (line.includes('发送') && attackVisualization.createSendEmailAnimation) {
-                    // 查找目标节点
-                    const target = Object.values(topology.devices).find(d => 
-                      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-                    )
-                    if (target) {
-                      attackVisualization.createSendEmailAnimation(attackData.attacker, target, 3)
-                    }
-                  }
-                }
-                
-                // 如果是关键步骤，添加到关键事件
-                if (line.includes('成功') || line.includes('失败') || 
-                    line.includes('开始') || line.includes('完成')) {
-                  addAttackEvent(line)
-                }
-              }
-            }
-          } else if (result.details && result.details.result && result.details.result.final_output) {
-            // 处理嵌套的结果
-            const finalOutput = result.details.result.final_output
-            logInfo('攻击智能体', finalOutput)
-            addAttackEvent(`攻击结果: ${finalOutput.substring(0, 100)}${finalOutput.length > 100 ? '...' : ''}`)
-            
-            // 根据结果判断是否成功
-            const isSuccess = finalOutput.includes('成功') && !finalOutput.includes('失败')
-            
-            // 查找目标节点
-            const target = Object.values(topology.devices).find(d => 
-              d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-            )
-            
-            if (target) {
-              if (isSuccess) {
-                // 显示成功动画
-                if (attackVisualization.createSuccessAnimation) {
-                  attackVisualization.createSuccessAnimation(target, 3)
-                }
-                updateNodeStatus(target, 'compromised')
-              } else {
-                // 显示失败动画
-                if (attackVisualization.createFailureAnimation) {
-                  attackVisualization.createFailureAnimation(target, 3)
-                }
-              }
-            }
-          } else {
-            // 如果没有详细输出，记录一个通用消息
-            logInfo('攻击智能体', '攻击流程执行完成，但未返回详细输出')
-          }
         } else {
           logError('中央智能体', `向攻击智能体下达指令失败: ${result.message}`)
           addEvent({
@@ -368,11 +384,19 @@ async function handleAttack(attackData) {
         const result = await AttackAgentService.executeSocialEngineeringAttack(attackData)
         
         if (result.success) {
+          // 更新当前任务ID和状态
+          if (result.taskId) {
+            currentAttackTaskId.value = result.taskId
+            currentAttackTaskStatus.value = result.details
+            
+            // 不再显示全屏攻击进度监控，而是使用EventMonitor中的攻击链阶段
+          }
+          
           // 记录成功消息
-          logSuccess('攻击智能体', `成功执行社会工程学攻击: ${result.details.tactic}`)
+          logSuccess('攻击智能体', `成功执行社会工程学攻击: ${result.details.tactic || ''}`)
           
           // 添加到关键事件
-          addAttackEvent(`社会工程学攻击成功: ${result.details.tactic}`)
+          addAttackEvent(`社会工程学攻击成功: ${result.details.tactic || ''}`)
           
           // 显示钓鱼攻击可视化
           selectedPhishingTarget.value = attackData.target

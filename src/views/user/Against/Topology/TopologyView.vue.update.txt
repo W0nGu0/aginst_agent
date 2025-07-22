@@ -1,0 +1,282 @@
+在TopologyView.vue中添加以下内容：
+
+1. 导入AttackProgressMonitor组件和AttackTaskService：
+
+```javascript
+import AttackProgressMonitor from './components/AttackProgressMonitor.vue'
+import AttackTaskService from './services/AttackTaskService'
+```
+
+2. 在template中添加AttackProgressMonitor组件：
+
+```html
+<!-- 攻击进度监控 -->
+<AttackProgressMonitor 
+  :visible="showAttackProgressMonitor" 
+  :taskId="currentAttackTaskId"
+  :taskStatus="currentAttackTaskStatus"
+  @close="showAttackProgressMonitor = false" 
+/>
+```
+
+3. 在data中添加相关状态：
+
+```javascript
+// 攻击任务状态
+const showAttackProgressMonitor = ref(false)
+const currentAttackTaskId = ref('')
+const currentAttackTaskStatus = ref(null)
+```
+
+4. 在onMounted中添加事件监听器：
+
+```javascript
+// 添加攻击进度和完成事件监听
+window.addEventListener('attack-progress', handleAttackProgress)
+window.addEventListener('attack-completed', handleAttackCompleted)
+```
+
+5. 在onUnmounted中移除事件监听器：
+
+```javascript
+// 移除事件监听器
+window.removeEventListener('attack-progress', handleAttackProgress)
+window.removeEventListener('attack-completed', handleAttackCompleted)
+```
+
+6. 添加事件处理函数：
+
+```javascript
+// 处理攻击进度更新事件
+function handleAttackProgress(event) {
+  const { taskId, status } = event.detail
+  
+  // 更新当前任务状态
+  if (taskId === currentAttackTaskId.value) {
+    currentAttackTaskStatus.value = status
+    
+    // 记录日志
+    if (status.logs && status.logs.length > 0) {
+      const latestLog = status.logs[status.logs.length - 1]
+      logMessage(latestLog.level, latestLog.source, latestLog.message)
+    }
+    
+    // 根据阶段更新可视化
+    updateAttackVisualizationByPhase(status.phase, status.progress)
+  }
+}
+
+// 处理攻击完成事件
+function handleAttackCompleted(event) {
+  const { success, taskId, result, error } = event.detail
+  
+  if (taskId === currentAttackTaskId.value) {
+    if (success) {
+      logSuccess('攻击智能体', '攻击任务已完成')
+      
+      // 解析结果
+      if (result && result.final_output) {
+        logInfo('攻击结果', result.final_output)
+      }
+    } else {
+      logError('攻击智能体', `攻击任务失败: ${error}`)
+    }
+  }
+}
+
+// 根据攻击阶段更新可视化
+function updateAttackVisualizationByPhase(phase, progress) {
+  // 获取攻击者和目标
+  const attacker = selectedAttacker.value
+  const target = Object.values(topology.devices).find(d => 
+    d !== attacker && d.deviceData.name !== '攻击节点'
+  )
+  
+  if (!attacker || !target || !attackVisualization) return
+  
+  // 根据阶段显示不同的动画
+  switch (phase) {
+    case 'reconnaissance':
+      if (progress <= 5) {
+        attackVisualization.createThinkingAnimation(attacker, 3)
+      } else if (progress <= 10) {
+        attackVisualization.createScanningAnimation(attacker, target, 3)
+      }
+      break
+    case 'weaponization':
+      if (progress <= 20) {
+        attackVisualization.createThinkingAnimation(attacker, 3)
+      } else if (progress <= 25) {
+        attackVisualization.createWritingAnimation(attacker, 3)
+      }
+      break
+    case 'delivery':
+      if (progress <= 35) {
+        attackVisualization.createSendEmailAnimation(attacker, target, 3)
+      } else if (progress <= 45) {
+        attackVisualization.createThinkingAnimation(target, 3)
+      }
+      break
+    case 'exploitation':
+      if (progress <= 60) {
+        // 更新目标状态为被瞄准
+        updateNodeStatus(target, 'targeted')
+      }
+      break
+    case 'installation':
+      if (progress <= 75) {
+        // 更新目标状态为已攻陷
+        updateNodeStatus(target, 'compromised')
+      }
+      break
+    case 'command_and_control':
+      if (progress <= 85) {
+        attackVisualization.createDataTheftAnimation(target, attacker, 3)
+      }
+      break
+    case 'actions_on_objectives':
+      if (progress >= 95) {
+        attackVisualization.createSuccessAnimation(attacker, 3)
+      }
+      break
+  }
+}
+```
+
+7. 修改handleAttack函数，使用新的轮询机制：
+
+```javascript
+// 处理攻击事件
+async function handleAttack(attackData) {
+  try {
+    // 检查是否为自动攻击模式
+    if (attackData.attackType === 'auto') {
+      // 记录自动攻击开始
+      logInfo('攻击智能体', `${attackData.attacker.deviceData.name} 开始自动分析网络拓扑并规划攻击路径`)
+      
+      // 添加到关键事件
+      addAttackEvent(`攻击智能体启动：开始自动分析网络拓扑并规划攻击路径`)
+      
+      try {
+        // 调用攻击智能体服务，执行自动攻击
+        const result = await AttackAgentService.executeAutoAttack(attackData)
+        
+        if (result.success) {
+          // 更新当前任务ID和状态
+          currentAttackTaskId.value = result.taskId
+          currentAttackTaskStatus.value = result.details
+          
+          // 显示攻击进度监控
+          showAttackProgressMonitor.value = true
+          
+          // 记录成功消息
+          logSuccess('中央智能体', '成功向攻击智能体下达攻击指令')
+          logInfo('攻击智能体', '开始执行自动攻击流程')
+          
+          // 添加到关键事件
+          addAttackEvent(`中央智能体成功向攻击智能体下达攻击指令`)
+          
+          // 在拓扑图上可视化攻击路径
+          visualizeAttackPath(attackData.attacker)
+        } else {
+          logError('中央智能体', `向攻击智能体下达指令失败: ${result.message}`)
+          addEvent({
+            type: 'failure',
+            message: `攻击指令下达失败: ${result.message}`
+          })
+        }
+      } catch (error) {
+        logError('中央智能体', `与攻击智能体通信失败: ${error.message}`)
+        addEvent({
+          type: 'failure',
+          message: `与攻击智能体通信失败: ${error.message}`
+        })
+        
+        // 如果与后端通信失败，使用前端模拟攻击流程
+        logWarning('系统', '切换到前端模拟攻击流程')
+        await simulateFrontendAttack(attackData)
+      }
+    } else if (attackData.attackType === 'phishing' || attackData.attackType === 'social_engineering') {
+      // 钓鱼攻击或社会工程学攻击
+      try {
+        // 调用攻击智能体服务，执行社会工程学攻击
+        const result = await AttackAgentService.executeSocialEngineeringAttack(attackData)
+        
+        if (result.success) {
+          // 更新当前任务ID和状态
+          if (result.taskId) {
+            currentAttackTaskId.value = result.taskId
+            currentAttackTaskStatus.value = result.details
+            
+            // 显示攻击进度监控
+            showAttackProgressMonitor.value = true
+          }
+          
+          // 记录成功消息
+          logSuccess('攻击智能体', `成功执行社会工程学攻击: ${result.details.tactic || ''}`)
+          
+          // 添加到关键事件
+          addAttackEvent(`社会工程学攻击成功: ${result.details.tactic || ''}`)
+          
+          // 显示钓鱼攻击可视化
+          selectedPhishingTarget.value = attackData.target
+          currentAttackType.value = attackData.attackType
+          showPhishingAttackVisualization.value = true
+          
+          // 在拓扑图上可视化攻击路径
+          visualizeAttackPath(attackData.attacker, attackData.target)
+        } else {
+          logError('攻击智能体', `社会工程学攻击失败: ${result.message}`)
+          addEvent({
+            type: 'failure',
+            message: `社会工程学攻击失败: ${result.message}`
+          })
+        }
+      } catch (error) {
+        logError('攻击智能体', `社会工程学攻击执行失败: ${error.message}`)
+        
+        // 如果与后端通信失败，使用前端模拟攻击流程
+        logWarning('系统', '切换到前端模拟钓鱼攻击')
+        await executePhishingAttack(attackData.attacker, attackData.target, attackData.attackType)
+      }
+    } else {
+      // 其他类型的攻击
+      // 记录日志
+      logInfo('攻击', `${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+      // 添加到关键事件
+      addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
+
+      // 在拓扑图上可视化攻击路径
+      visualizeAttackPath(attackData.attacker, attackData.target)
+
+      // 使用攻击服务执行攻击
+      const result = await AttackService.simulateAttack(attackData)
+
+      // 记录攻击日志
+      if (result.logs) {
+        result.logs.forEach(log => {
+          logMessage(log.level, '攻击', log.message)
+        })
+      }
+
+      // 显示攻击结果
+      if (result.success) {
+        logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
+        addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
+        
+        // 更新目标节点状态为已攻陷
+        updateNodeStatus(attackData.target, 'compromised')
+      } else {
+        logError('攻击', `攻击失败: ${result.error || '未知错误'}`)
+        addEvent({
+          type: 'failure',
+          message: `攻击失败: ${attackData.target.deviceData.name} 未被攻陷`
+        })
+      }
+    }
+  } catch (error) {
+    console.error('攻击失败:', error)
+    logError('攻击', `攻击过程中发生错误: ${error.message}`)
+  }
+}

@@ -99,6 +99,10 @@ export default {
     initialExpanded: {
       type: Boolean,
       default: false
+    },
+    attackTaskStatus: {
+      type: Object,
+      default: null
     }
   },
   data() {
@@ -142,6 +146,27 @@ export default {
 
       // 根据日志内容更新攻击链阶段
       this.updateAttackChainFromLogs();
+    },
+    attackTaskStatus: {
+      handler(newStatus) {
+        if (newStatus) {
+          // 根据攻击任务状态更新攻击链阶段
+          this.updateAttackChainFromTaskStatus(newStatus);
+          
+          // 如果有新的日志，添加到日志列表
+          if (newStatus.logs && newStatus.logs.length > 0) {
+            // 获取最新的日志
+            const latestLog = newStatus.logs[newStatus.logs.length - 1];
+            
+            // 检查是否已经存在相同ID的日志
+            const existingLog = this.logs.find(log => log.id === latestLog.id);
+            if (!existingLog) {
+              this.addLog(latestLog);
+            }
+          }
+        }
+      },
+      deep: true
     }
   },
   methods: {
@@ -358,6 +383,46 @@ export default {
       for (let i = 0; i < index; i++) {
         this.attackChainStages[i].active = false;
         this.attackChainStages[i].completed = true;
+      }
+    },
+    
+    // 根据攻击任务状态更新攻击链阶段
+    updateAttackChainFromTaskStatus(taskStatus) {
+      if (!taskStatus || !taskStatus.phase || !taskStatus.progress) return;
+      
+      // 阶段映射
+      const phaseMap = {
+        'reconnaissance': 0,
+        'weaponization': 1,
+        'delivery': 2,
+        'exploitation': 3,
+        'installation': 4,
+        'command_and_control': 5,
+        'actions_on_objectives': 6
+      };
+      
+      // 获取当前阶段索引
+      const currentPhaseIndex = phaseMap[taskStatus.phase];
+      
+      if (currentPhaseIndex !== undefined) {
+        // 重置所有阶段
+        this.resetAttackChain();
+        
+        // 激活当前阶段
+        this.attackChainStages[currentPhaseIndex].active = true;
+        
+        // 完成之前的所有阶段
+        for (let i = 0; i < currentPhaseIndex; i++) {
+          this.attackChainStages[i].completed = true;
+        }
+        
+        // 如果进度达到100%，完成所有阶段
+        if (taskStatus.progress >= 100) {
+          for (let i = 0; i < this.attackChainStages.length; i++) {
+            this.attackChainStages[i].active = false;
+            this.attackChainStages[i].completed = true;
+          }
+        }
       }
     }
   }
