@@ -14,7 +14,7 @@ services:
       server_segment:
         ipv4_address: 192.168.200.23
     ports:
-      - "3306:3306"
+      - "3307:3307"
 
   cnt-files:
     build: ../images/cnt-files
