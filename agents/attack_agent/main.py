@@ -1,17 +1,98 @@
 import os
 import httpx
 import json
+import asyncio
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from pathlib import Path
 from dotenv import load_dotenv
 import random
+import websockets.client
 
 from fastmcp import FastMCP
 from langchain_deepseek import ChatDeepSeek
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.tools import tool
+
+# --- 设置日志 ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("attack-agent")
+
+# --- 后端WebSocket连接 ---
+BACKEND_WS_URL = "ws://localhost:8080/ws/logs"
+backend_ws = None
+
+async def connect_to_backend():
+    """连接到后端WebSocket"""
+    global backend_ws
+    try:
+        # 如果已有连接，先关闭
+        if backend_ws:
+            try:
+                await backend_ws.close()
+            except Exception:
+                pass
+            backend_ws = None
+            
+        # 创建新连接
+        backend_ws = await websockets.client.connect(BACKEND_WS_URL)
+        
+        # 发送一条测试消息
+        await backend_ws.send(json.dumps({
+            "level": "info",
+            "source": "攻击智能体",
+            "message": "WebSocket连接已建立"
+        }))
+        
+        logger.info(f"已连接到后端WebSocket: {BACKEND_WS_URL}")
+        return True
+    except Exception as e:
+        logger.error(f"连接后端WebSocket失败: {e}")
+        return False
+
+async def send_log_to_backend(level: str, source: str, message: str):
+    """发送日志到后端WebSocket"""
+    global backend_ws
+    try:
+        # 检查连接是否存在或是否需要重新连接
+        if backend_ws is None:
+            await connect_to_backend()
+        
+        # 使用try/except来检查连接状态
+        try:
+            if backend_ws:
+                log_data = {
+                    "timestamp": asyncio.get_event_loop().time(),
+                    "level": level,
+                    "source": source,
+                    "message": message
+                }
+                await backend_ws.send(json.dumps(log_data))
+                logger.debug(f"已发送日志到后端: {message}")
+        except Exception as e:
+            logger.warning(f"发送消息失败，尝试重新连接: {e}")
+            await connect_to_backend()
+            
+            # 重试一次发送
+            try:
+                if backend_ws:
+                    log_data = {
+                        "timestamp": asyncio.get_event_loop().time(),
+                        "level": level,
+                        "source": source,
+                        "message": message
+                    }
+                    await backend_ws.send(json.dumps(log_data))
+            except Exception:
+                pass
+    except Exception as e:
+        logger.error(f"发送日志到后端WebSocket失败: {e}")
 
 # --- 环境变量和配置 ---
 dotenv_path = Path(__file__).parent / '.env'
@@ -439,7 +520,8 @@ async def execute_full_attack(request: AttackRequest):
         # 默认使用本地测试URL
         target_host = VICTIM_HOST_URLS["default"]
     
-    print(f"选择目标主机URL: {target_host}")
+    logger.info(f"选择目标主机URL: {target_host}")
+    await send_log_to_backend("info", "攻击智能体", f"开始对目标 {target_host} 执行钓鱼攻击")
     
     # 构造一个清晰的指令，让Agent开始工作
     input_prompt = f"""
@@ -466,14 +548,29 @@ async def execute_full_attack(request: AttackRequest):
     记住，越是针对性强的钓鱼邮件，成功率越高。利用所有可用的信息使攻击更加精准。
     """
     try:
+        # 发送日志到后端
+        await send_log_to_backend("info", "攻击智能体", "开始侦察阶段，获取目标信息")
+        
         # 运行Agent，它现在会自主完成所有步骤，包括最后的交付
         attack_result = await agent_executor.ainvoke({"input": input_prompt})
+        
+        # 发送成功日志到后端
+        await send_log_to_backend("success", "攻击智能体", "攻击流程执行完成")
+        
+        # 解析输出并发送详细日志
+        output_lines = attack_result.get("output", "").split("\n")
+        for line in output_lines:
+            if line.strip():
+                await send_log_to_backend("info", "攻击结果", line.strip())
 
         # 直接返回Agent的最终输出
         return {"status": "success", "detail": "Agent finished execution.", "final_output": attack_result.get("output")}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"攻击流程执行失败: {str(e)}")
+        error_msg = f"攻击流程执行失败: {str(e)}"
+        logger.error(error_msg)
+        await send_log_to_backend("error", "攻击智能体", error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 # --- 新增 API: 随机社会工程学攻击 -----------------------------------------
 class SocialEngRequest(BaseModel):

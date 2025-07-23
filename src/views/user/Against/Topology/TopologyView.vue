@@ -83,6 +83,7 @@ import AttackService from './services/AttackService'
 import PhishingService from './services/PhishingService'
 import AttackAgentService from './services/AttackAgentService'
 import AttackTaskService from './services/AttackTaskService'
+import WebSocketService from './services/WebSocketService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
@@ -150,13 +151,163 @@ onMounted(async () => {
   // 添加攻击进度和完成事件监听
   window.addEventListener('attack-progress', handleAttackProgress)
   window.addEventListener('attack-completed', handleAttackCompleted)
+  
+  // 初始化WebSocket连接
+  await initWebSocketConnection()
 })
+
+// 初始化WebSocket连接
+async function initWebSocketConnection() {
+  try {
+    // 连接到WebSocket服务器
+    const connected = await WebSocketService.connect();
+    
+    if (connected) {
+      console.log('WebSocket连接成功');
+      
+      // 添加消息处理器
+      WebSocketService.addMessageHandler(handleWebSocketMessage);
+      
+      // 发送测试消息
+      logInfo('系统', 'WebSocket连接已建立，可以接收实时日志');
+      
+      // 每30秒检查一次连接状态
+      setInterval(() => {
+        if (!WebSocketService.connected) {
+          console.log('WebSocket连接已断开，尝试重新连接');
+          WebSocketService.connect();
+        }
+      }, 30000);
+    } else {
+      console.error('WebSocket连接失败');
+      logWarning('系统', 'WebSocket连接失败，无法接收实时日志');
+      
+      // 5秒后重试
+      setTimeout(() => initWebSocketConnection(), 5000);
+    }
+  } catch (error) {
+    console.error('初始化WebSocket连接失败:', error);
+    logError('系统', `初始化WebSocket连接失败: ${error.message}`);
+    
+    // 5秒后重试
+    setTimeout(() => initWebSocketConnection(), 5000);
+  }
+}
+
+// 处理WebSocket消息
+function handleWebSocketMessage(message) {
+  try {
+    // 检查消息格式
+    if (!message || !message.level || !message.source || !message.message) {
+      console.warn('收到格式不正确的WebSocket消息:', message);
+      return;
+    }
+    
+    console.log('收到WebSocket消息:', message);
+    
+    // 记录日志
+    logMessage(message.level, message.source, message.message);
+    
+    // 如果是攻击相关的消息，更新攻击状态
+    if (message.source.includes('攻击') || 
+        message.message.includes('攻击') || 
+        message.message.includes('侦察') || 
+        message.message.includes('钓鱼') ||
+        message.message.includes('扫描') ||
+        message.message.includes('漏洞') ||
+        message.message.includes('利用') ||
+        message.message.includes('命令') ||
+        message.message.includes('控制')) {
+      
+      // 如果有攻击任务ID，更新任务状态
+      if (currentAttackTaskId.value) {
+        // 添加日志到任务
+        AttackTaskService.addTaskLog(
+          currentAttackTaskId.value, 
+          message.level, 
+          message.source, 
+          message.message
+        );
+        
+        // 根据消息内容更新攻击阶段
+        updateAttackPhaseFromMessage(message);
+      }
+    }
+  } catch (error) {
+    console.error('处理WebSocket消息失败:', error);
+  }
+}
+
+// 根据消息内容更新攻击阶段
+function updateAttackPhaseFromMessage(message) {
+  const msg = message.message.toLowerCase();
+  const source = message.source.toLowerCase();
+  
+  // 根据消息内容判断当前阶段
+  let phase = null;
+  let progress = 0;
+  
+  if (source.includes('侦察') || msg.includes('侦察') || msg.includes('扫描') || msg.includes('情报收集')) {
+    phase = AttackTaskService.PHASE.RECONNAISSANCE;
+    progress = 10;
+  } else if (source.includes('武器化') || msg.includes('武器化') || msg.includes('生成') || msg.includes('钓鱼邮件')) {
+    phase = AttackTaskService.PHASE.WEAPONIZATION;
+    progress = 25;
+  } else if (source.includes('投递') || msg.includes('投递') || msg.includes('发送') || msg.includes('邮件')) {
+    phase = AttackTaskService.PHASE.DELIVERY;
+    progress = 40;
+  } else if (source.includes('利用') || msg.includes('利用') || msg.includes('漏洞') || msg.includes('点击')) {
+    phase = AttackTaskService.PHASE.EXPLOITATION;
+    progress = 60;
+  } else if (source.includes('安装') || msg.includes('安装') || msg.includes('持久') || msg.includes('访问')) {
+    phase = AttackTaskService.PHASE.INSTALLATION;
+    progress = 75;
+  } else if (source.includes('命令') || msg.includes('命令') || msg.includes('控制') || msg.includes('远程')) {
+    phase = AttackTaskService.PHASE.COMMAND_AND_CONTROL;
+    progress = 85;
+  } else if (source.includes('目标') || msg.includes('目标') || msg.includes('数据') || msg.includes('攻陷')) {
+    phase = AttackTaskService.PHASE.ACTIONS_ON_OBJECTIVES;
+    progress = 95;
+  }
+  
+  // 如果确定了阶段，更新任务状态
+  if (phase) {
+    const currentTask = AttackTaskService.getTaskStatus(currentAttackTaskId.value);
+    if (currentTask) {
+      // 只有当新阶段比当前阶段更高时才更新
+      const currentPhaseIndex = Object.values(AttackTaskService.PHASE).indexOf(currentTask.phase);
+      const newPhaseIndex = Object.values(AttackTaskService.PHASE).indexOf(phase);
+      
+      if (newPhaseIndex > currentPhaseIndex || currentTask.progress < progress) {
+        AttackTaskService.updateTask(currentAttackTaskId.value, {
+          phase,
+          progress: Math.max(progress, currentTask.progress)
+        });
+        
+        // 触发任务更新事件
+        const event = new CustomEvent('attack-progress', { 
+          detail: { 
+            taskId: currentAttackTaskId.value,
+            status: AttackTaskService.getTaskStatus(currentAttackTaskId.value)
+          } 
+        });
+        window.dispatchEvent(event);
+      }
+    }
+  }
+}
 
 // 在组件卸载时移除事件监听器
 onUnmounted(() => {
   // 移除事件监听器
   window.removeEventListener('attack-progress', handleAttackProgress)
   window.removeEventListener('attack-completed', handleAttackCompleted)
+  
+  // 移除WebSocket消息处理器
+  WebSocketService.removeMessageHandler(handleWebSocketMessage)
+  
+  // 断开WebSocket连接
+  WebSocketService.disconnect()
 })
 
 // 加载Fabric.js库

@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import FastAPI, HTTPException, APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 import subprocess
 import os
 import json
 import logging
 import httpx
-from typing import List, Dict, Optional, Any
+import asyncio
+from typing import List, Dict, Optional, Any, Set
 
 # 设置日志
 logging.basicConfig(
@@ -186,6 +187,81 @@ def _compose_ps(compose_file: str):
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+# WebSocket连接管理
+connected_clients: Set[WebSocket] = set()
+
+@app.websocket("/ws/logs")
+async def websocket_logs(websocket: WebSocket):
+    """WebSocket端点，用于实时推送日志"""
+    await websocket.accept()
+    connected_clients.add(websocket)
+    logger.info(f"WebSocket客户端已连接，当前连接数: {len(connected_clients)}")
+    
+    # 发送一条欢迎消息
+    welcome_message = {
+        "timestamp": asyncio.get_event_loop().time(),
+        "level": "info",
+        "source": "系统",
+        "message": "WebSocket连接已建立，可以接收实时日志"
+    }
+    await websocket.send_json(welcome_message)
+    
+    try:
+        while True:
+            # 保持连接活跃，等待客户端消息
+            data = await websocket.receive_text()
+            
+            # 处理心跳消息
+            if data == "ping":
+                await websocket.send_text("pong")
+                continue
+                
+            # 如果客户端发送了其他消息，可以在这里处理
+            logger.debug(f"收到WebSocket消息: {data}")
+            
+            # 尝试解析JSON消息
+            try:
+                message = json.loads(data)
+                # 如果是日志消息，广播给所有客户端
+                if "level" in message and "source" in message and "message" in message:
+                    await broadcast_log(message)
+            except json.JSONDecodeError:
+                logger.warning(f"收到非JSON格式的WebSocket消息: {data}")
+            
+    except WebSocketDisconnect:
+        # 客户端断开连接
+        if websocket in connected_clients:
+            connected_clients.remove(websocket)
+        logger.info(f"WebSocket客户端已断开，当前连接数: {len(connected_clients)}")
+    except Exception as e:
+        # 其他异常
+        if websocket in connected_clients:
+            connected_clients.remove(websocket)
+        logger.error(f"WebSocket连接异常: {str(e)}")
+
+async def broadcast_log(log_data: dict):
+    """向所有连接的WebSocket客户端广播日志"""
+    if not connected_clients:
+        return
+    
+    # 添加时间戳
+    if "timestamp" not in log_data:
+        log_data["timestamp"] = asyncio.get_event_loop().time()
+    
+    # 广播消息
+    disconnected_clients = set()
+    for client in connected_clients:
+        try:
+            await client.send_json(log_data)
+        except Exception as e:
+            logger.error(f"向WebSocket客户端发送消息失败: {str(e)}")
+            disconnected_clients.add(client)
+    
+    # 移除断开连接的客户端
+    for client in disconnected_clients:
+        if client in connected_clients:
+            connected_clients.remove(client)
 
 # -----------------------------
 # Expose the same functionality under the /api prefix so that the

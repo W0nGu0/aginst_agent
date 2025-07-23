@@ -9,6 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
 from typing import List, Dict, Any, Optional
+import websockets.client
 
 # --- 设置日志 ---
 logging.basicConfig(
@@ -46,6 +47,38 @@ class CommandRequest(BaseModel):
     target_host: str  # 需要明确攻击目标
     attack_type: Optional[str] = "auto"  # 攻击类型：auto, phishing, etc.
 
+# --- 后端WebSocket连接 ---
+BACKEND_WS_URL = "ws://localhost:8080/ws/logs"
+backend_ws = None
+
+async def connect_to_backend():
+    """连接到后端WebSocket"""
+    global backend_ws
+    try:
+        # 如果已有连接，先关闭
+        if backend_ws:
+            try:
+                await backend_ws.close()
+            except Exception:
+                pass
+            backend_ws = None
+            
+        # 创建新连接
+        backend_ws = await websockets.client.connect(BACKEND_WS_URL)
+        
+        # 发送一条测试消息
+        await backend_ws.send(json.dumps({
+            "level": "info",
+            "source": "中央智能体",
+            "message": "WebSocket连接已建立"
+        }))
+        
+        logger.info(f"已连接到后端WebSocket: {BACKEND_WS_URL}")
+        return True
+    except Exception as e:
+        logger.error(f"连接后端WebSocket失败: {e}")
+        return False
+
 # --- WebSocket连接管理 ---
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -61,14 +94,16 @@ async def websocket_endpoint(websocket: WebSocket):
 # --- 广播攻击进度 ---
 async def broadcast_progress(message: str, progress_type: str = "info"):
     """向所有连接的客户端广播攻击进度"""
-    global attack_progress
+    global attack_progress, backend_ws
     
     # 添加到进度列表
     timestamp = asyncio.get_event_loop().time()
     progress_item = {
         "timestamp": timestamp,
         "message": message,
-        "type": progress_type
+        "type": progress_type,
+        "source": "中央智能体",
+        "level": progress_type
     }
     attack_progress.append(progress_item)
     
@@ -79,6 +114,29 @@ async def broadcast_progress(message: str, progress_type: str = "info"):
                 await client.send_json(progress_item)
             except Exception as e:
                 logger.error(f"广播进度失败: {e}")
+    
+    # 发送到后端WebSocket
+    try:
+        # 检查连接是否存在或是否需要重新连接
+        if backend_ws is None:
+            await connect_to_backend()
+        
+        # 使用try/except来检查连接状态
+        try:
+            if backend_ws:
+                await backend_ws.send(json.dumps(progress_item))
+        except Exception as e:
+            logger.warning(f"发送消息失败，尝试重新连接: {e}")
+            await connect_to_backend()
+            
+            # 重试一次发送
+            try:
+                if backend_ws:
+                    await backend_ws.send(json.dumps(progress_item))
+            except Exception:
+                pass
+    except Exception as e:
+        logger.error(f"发送日志到后端WebSocket失败: {e}")
 
 # --- API端点 ---
 @app.post("/process_command")

@@ -98,6 +98,7 @@ class AttackAgentService {
   static async startRealAttack(requestData, taskId) {
     try {
       // 构建API请求URL
+      // 使用后端的API端点，后端会转发请求到攻击智能体
       const apiUrl = `/api/attack/execute_full_attack`;
       
       // 调用攻击API
