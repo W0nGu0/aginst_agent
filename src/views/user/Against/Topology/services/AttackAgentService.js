@@ -183,152 +183,20 @@ class AttackAgentService {
    * @param {string} taskId - 任务ID
    */
   static async startPollingTaskStatus(taskId) {
-    // 模拟攻击进度更新
-    // 在实际应用中，这里应该调用后端API获取真实的攻击进度
-    const updateProgress = async () => {
-      const task = AttackTaskService.getTaskStatus(taskId);
-      
-      // 如果任务已完成或失败，停止轮询
-      if (task.status === AttackTaskService.STATUS.COMPLETED || 
-          task.status === AttackTaskService.STATUS.FAILED) {
-        return;
-      }
-      
-      // 根据当前进度更新阶段
-      let newPhase = task.phase;
-      let newProgress = task.progress;
-      
-      // 模拟进度更新
-      if (task.progress < 15) {
-        // 侦察阶段
-        newPhase = AttackTaskService.PHASE.RECONNAISSANCE;
-        newProgress += 5;
-        
-        // 添加侦察阶段日志
-        if (task.progress === 0) {
-          AttackTaskService.addTaskLog(taskId, 'info', '侦察阶段', '开始获取目标主机信息');
-        } else if (task.progress === 10) {
-          AttackTaskService.addTaskLog(taskId, 'success', '侦察阶段', '成功获取目标主机元数据');
-        }
-      } else if (task.progress < 30) {
-        // 武器化阶段
-        newPhase = AttackTaskService.PHASE.WEAPONIZATION;
-        newProgress += 5;
-        
-        // 添加武器化阶段日志
-        if (task.progress === 15) {
-          AttackTaskService.addTaskLog(taskId, 'info', '武器化阶段', '开始生成针对性钓鱼邮件');
-        } else if (task.progress === 25) {
-          AttackTaskService.addTaskLog(taskId, 'success', '武器化阶段', '成功生成定制化钓鱼邮件');
-        }
-      } else if (task.progress < 50) {
-        // 投递阶段
-        newPhase = AttackTaskService.PHASE.DELIVERY;
-        newProgress += 5;
-        
-        // 添加投递阶段日志
-        if (task.progress === 30) {
-          AttackTaskService.addTaskLog(taskId, 'info', '投递阶段', '开始发送钓鱼邮件');
-        } else if (task.progress === 40) {
-          AttackTaskService.addTaskLog(taskId, 'success', '投递阶段', '钓鱼邮件发送成功');
-        } else if (task.progress === 45) {
-          AttackTaskService.addTaskLog(taskId, 'success', '投递阶段', '目标已点击恶意链接');
-        }
-      } else if (task.progress < 70) {
-        // 利用阶段
-        newPhase = AttackTaskService.PHASE.EXPLOITATION;
-        newProgress += 5;
-        
-        // 添加利用阶段日志
-        if (task.progress === 50) {
-          AttackTaskService.addTaskLog(taskId, 'info', '利用阶段', '开始利用目标漏洞');
-        } else if (task.progress === 60) {
-          AttackTaskService.addTaskLog(taskId, 'success', '利用阶段', '成功获取目标系统访问权限');
-        }
-      } else if (task.progress < 80) {
-        // 安装阶段
-        newPhase = AttackTaskService.PHASE.INSTALLATION;
-        newProgress += 5;
-        
-        // 添加安装阶段日志
-        if (task.progress === 70) {
-          AttackTaskService.addTaskLog(taskId, 'info', '安装阶段', '开始在目标系统安装持久化访问');
-        } else if (task.progress === 75) {
-          AttackTaskService.addTaskLog(taskId, 'success', '安装阶段', '成功建立持久化访问');
-        }
-      } else if (task.progress < 90) {
-        // 命令与控制阶段
-        newPhase = AttackTaskService.PHASE.COMMAND_AND_CONTROL;
-        newProgress += 5;
-        
-        // 添加命令与控制阶段日志
-        if (task.progress === 80) {
-          AttackTaskService.addTaskLog(taskId, 'info', '命令与控制阶段', '开始建立远程控制通道');
-        } else if (task.progress === 85) {
-          AttackTaskService.addTaskLog(taskId, 'success', '命令与控制阶段', '成功建立远程控制通道');
-        }
-      } else if (task.progress < 100) {
-        // 目标行动阶段
-        newPhase = AttackTaskService.PHASE.ACTIONS_ON_OBJECTIVES;
-        newProgress += 5;
-        
-        // 添加目标行动阶段日志
-        if (task.progress === 90) {
-          AttackTaskService.addTaskLog(taskId, 'info', '目标行动阶段', '开始执行横向移动');
-        } else if (task.progress === 95) {
-          AttackTaskService.addTaskLog(taskId, 'success', '目标行动阶段', '成功获取敏感数据');
-        }
-      }
-      
-      // 更新任务状态
-      AttackTaskService.updateTask(taskId, {
-        phase: newPhase,
-        progress: newProgress
-      });
-      
-      // 触发任务更新事件
-      const event = new CustomEvent('attack-progress', { 
-        detail: { 
-          taskId,
-          status: AttackTaskService.getTaskStatus(taskId)
-        } 
-      });
-      window.dispatchEvent(event);
-      
-      // 如果进度未达到100%，继续轮询
-      if (newProgress < 100) {
-        setTimeout(updateProgress, 1000); // 每秒更新一次
-      } else {
-        // 如果后端API没有返回结果，模拟完成
-        const task = AttackTaskService.getTaskStatus(taskId);
-        if (task.status !== AttackTaskService.STATUS.COMPLETED && 
-            task.status !== AttackTaskService.STATUS.FAILED) {
-          
-          // 添加完成日志
-          AttackTaskService.addTaskLog(taskId, 'success', '攻击智能体', '攻击流程已完成');
-          
-          // 更新任务状态
-          AttackTaskService.completeTask(taskId, {
-            final_output: '攻击流程已完成，所有阶段执行成功。'
-          });
-          
-          // 触发攻击完成事件
-          const event = new CustomEvent('attack-completed', { 
-            detail: { 
-              success: true,
-              taskId,
-              result: {
-                final_output: '攻击流程已完成，所有阶段执行成功。'
-              }
-            } 
-          });
-          window.dispatchEvent(event);
-        }
-      }
-    };
+    // 不再模拟攻击进度更新，只依赖后端WebSocket推送的实时日志
+    console.log(`等待后端WebSocket推送攻击进度，任务ID: ${taskId}`);
     
-    // 开始轮询
-    setTimeout(updateProgress, 1000);
+    // 添加一条日志，告知用户等待后端推送
+    AttackTaskService.addTaskLog(taskId, 'info', '系统', '等待后端实时推送攻击进度...');
+    
+    // 触发任务更新事件
+    const event = new CustomEvent('attack-progress', { 
+      detail: { 
+        taskId,
+        status: AttackTaskService.getTaskStatus(taskId)
+      } 
+    });
+    window.dispatchEvent(event);
   }
   
   /**

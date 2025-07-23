@@ -59,6 +59,29 @@ async def connect_to_backend():
 async def send_log_to_backend(level: str, source: str, message: str):
     """发送日志到后端WebSocket"""
     global backend_ws
+    
+    # 优化日志消息，使其更清晰
+    # 添加攻击阶段前缀，使日志更有结构
+    if "扫描" in message or "侦察" in message or "情报" in message or "元数据" in message:
+        prefix = "[侦察阶段] "
+    elif "武器化" in message or "生成" in message or "定制" in message or "钓鱼邮件" in message:
+        prefix = "[武器化阶段] "
+    elif "投递" in message or "发送" in message or "邮件" in message:
+        prefix = "[投递阶段] "
+    elif "利用" in message or "点击" in message or "漏洞" in message or "凭据" in message:
+        prefix = "[利用阶段] "
+    elif "安装" in message or "持久" in message or "访问" in message:
+        prefix = "[安装阶段] "
+    elif "命令" in message or "控制" in message or "远程" in message:
+        prefix = "[命令控制阶段] "
+    elif "目标" in message or "数据" in message or "攻陷" in message or "完成" in message:
+        prefix = "[行动目标阶段] "
+    else:
+        prefix = ""
+    
+    # 添加前缀到消息
+    formatted_message = prefix + message
+    
     try:
         # 检查连接是否存在或是否需要重新连接
         if backend_ws is None:
@@ -71,10 +94,10 @@ async def send_log_to_backend(level: str, source: str, message: str):
                     "timestamp": asyncio.get_event_loop().time(),
                     "level": level,
                     "source": source,
-                    "message": message
+                    "message": formatted_message
                 }
                 await backend_ws.send(json.dumps(log_data))
-                logger.debug(f"已发送日志到后端: {message}")
+                logger.debug(f"已发送日志到后端: {formatted_message}")
         except Exception as e:
             logger.warning(f"发送消息失败，尝试重新连接: {e}")
             await connect_to_backend()
@@ -86,7 +109,7 @@ async def send_log_to_backend(level: str, source: str, message: str):
                         "timestamp": asyncio.get_event_loop().time(),
                         "level": level,
                         "source": source,
-                        "message": message
+                        "message": formatted_message
                     }
                     await backend_ws.send(json.dumps(log_data))
             except Exception:

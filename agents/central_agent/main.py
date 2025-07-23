@@ -96,11 +96,33 @@ async def broadcast_progress(message: str, progress_type: str = "info"):
     """向所有连接的客户端广播攻击进度"""
     global attack_progress, backend_ws
     
+    # 优化日志消息，使其更清晰
+    # 添加攻击阶段前缀，使日志更有结构
+    if "分析" in message or "扫描" in message or "侦察" in message:
+        prefix = "[侦察阶段] "
+    elif "武器化" in message or "生成" in message or "定制" in message:
+        prefix = "[武器化阶段] "
+    elif "投递" in message or "发送" in message or "邮件" in message:
+        prefix = "[投递阶段] "
+    elif "利用" in message or "点击" in message or "漏洞" in message:
+        prefix = "[利用阶段] "
+    elif "安装" in message or "持久" in message or "访问" in message:
+        prefix = "[安装阶段] "
+    elif "命令" in message or "控制" in message or "远程" in message:
+        prefix = "[命令控制阶段] "
+    elif "目标" in message or "数据" in message or "攻陷" in message:
+        prefix = "[行动目标阶段] "
+    else:
+        prefix = ""
+    
+    # 添加前缀到消息
+    formatted_message = prefix + message
+    
     # 添加到进度列表
     timestamp = asyncio.get_event_loop().time()
     progress_item = {
         "timestamp": timestamp,
-        "message": message,
+        "message": formatted_message,
         "type": progress_type,
         "source": "中央智能体",
         "level": progress_type

@@ -119,7 +119,11 @@ export default {
         { name: '安装', icon: 'fas fa-download', active: false, completed: false },
         { name: '命令控制', icon: 'fas fa-terminal', active: false, completed: false },
         { name: '行动目标', icon: 'fas fa-flag', active: false, completed: false }
-      ]
+      ],
+      // 标记是否是从WebSocket接收的日志
+      isWebSocketLog: false,
+      // 是否已清除前端模拟日志
+      hasCleanedSimulatedLogs: false
     };
   },
   computed: {
@@ -129,6 +133,25 @@ export default {
       }
       return this.logs.filter(log => log.level === this.logFilter);
     }
+  },
+  mounted() {
+    // 组件挂载时清空所有日志和事件
+    this.clearAll();
+    
+    // 重置攻击链阶段
+    this.resetAttackChain();
+    
+    // 标记已清除
+    this.hasCleanedSimulatedLogs = true;
+    
+    // 添加一条初始化日志
+    this.addLog({
+      level: 'info',
+      source: '系统',
+      message: '演练过程记录组件已初始化，等待后端日志推送...',
+      timestamp: new Date().toLocaleTimeString(),
+      fromWebSocket: true // 标记为WebSocket日志，避免被清除
+    });
   },
   watch: {
     events() {
@@ -158,6 +181,11 @@ export default {
 
       // 根据日志内容更新攻击链阶段
       this.updateAttackChainFromLogs();
+      
+      // 如果收到了WebSocket日志，并且还没有清除模拟日志，则清除
+      if (!this.hasCleanedSimulatedLogs && this.logs.some(log => log.fromWebSocket)) {
+        this.cleanSimulatedLogs();
+      }
     },
     attackTaskStatus: {
       handler(newStatus) {
@@ -203,7 +231,29 @@ export default {
       if (!event.timestamp) {
         event.timestamp = new Date().toLocaleTimeString();
       }
+      
+      // 添加来源标记
+      if (event.fromWebSocket === undefined) {
+        event.fromWebSocket = false;
+      }
+      
+      // 检查是否有重复事件（相同类型和消息内容）
+      const isDuplicate = this.events.some(existingEvent => {
+        // 检查最近5秒内的事件，避免长时间的重复检查
+        const timeDiff = Math.abs(new Date(existingEvent.timestamp) - new Date(event.timestamp));
+        if (timeDiff > 5000) return false;
+        
+        return existingEvent.type === event.type && 
+               existingEvent.message === event.message;
+      });
+      
+      // 如果是重复事件，不添加
+      if (isDuplicate) {
+        console.log('跳过重复事件:', event.message);
+        return;
+      }
 
+      // 添加到事件列表
       this.events.push(event);
 
       // 限制事件数量，避免内存占用过多
@@ -217,6 +267,9 @@ export default {
           this.scrollToBottom('eventList');
         });
       }
+      
+      // 如果是关键攻击事件，更新攻击链阶段
+      this.updateAttackChainFromEvent(event);
     },
     addLog(log) {
       // 检查滚动条是否在底部
@@ -230,6 +283,35 @@ export default {
       // 添加详细信息
       if (!log.details) {
         log.details = '';
+      }
+      
+      // 标记日志来源
+      if (log.fromWebSocket === undefined) {
+        // 如果没有明确标记，默认为非WebSocket日志
+        log.fromWebSocket = false;
+      }
+      
+      // 如果已经清除了模拟日志，且当前日志不是来自WebSocket，则不添加
+      if (this.hasCleanedSimulatedLogs && !log.fromWebSocket) {
+        console.log('跳过非WebSocket日志:', log.message);
+        return;
+      }
+      
+      // 检查是否有重复日志（相同来源和消息内容）
+      const isDuplicate = this.logs.some(existingLog => {
+        // 检查最近5秒内的日志，避免长时间的重复检查
+        const timeDiff = Math.abs(new Date(existingLog.timestamp) - new Date(log.timestamp));
+        if (timeDiff > 5000) return false;
+        
+        return existingLog.source === log.source && 
+               existingLog.message === log.message && 
+               existingLog.level === log.level;
+      });
+      
+      // 如果是重复日志，不添加
+      if (isDuplicate) {
+        console.log('跳过重复日志:', log.message);
+        return;
       }
 
       // 添加日志ID
@@ -255,7 +337,18 @@ export default {
           type: log.level === 'error' ? 'failure' :
             log.level === 'warning' ? 'warning' :
               log.level === 'success' ? 'success' : 'system',
-          message: `[${log.source}] ${log.message}`
+          message: `[${log.source}] ${log.message}`,
+          fromWebSocket: log.fromWebSocket
+        });
+      }
+      
+      // 检查是否是关键攻击事件，如果是，添加到关键事件区域
+      if (this.isKeyAttackEvent(log)) {
+        const eventType = this.determineEventType(log);
+        this.addEvent({
+          type: eventType,
+          message: `[${log.source}] ${log.message}`,
+          fromWebSocket: log.fromWebSocket
         });
       }
     },
@@ -465,6 +558,115 @@ export default {
             this.attackChainStages[i].completed = true;
           }
         }
+      }
+    },
+    
+    // 清除前端模拟的日志，只保留WebSocket日志
+    cleanSimulatedLogs() {
+      if (this.hasCleanedSimulatedLogs) return;
+      
+      console.log('清除前端模拟日志，只保留WebSocket日志');
+      
+      // 清空所有日志和事件
+      this.logs = [];
+      this.events = [];
+      
+      // 重置攻击链阶段
+      this.resetAttackChain();
+      
+      // 标记已清除
+      this.hasCleanedSimulatedLogs = true;
+      
+      // 添加一条清除日志的记录
+      this.addLog({
+        level: 'info',
+        source: '系统',
+        message: '已清除所有日志，等待后端实时日志推送...',
+        timestamp: new Date().toLocaleTimeString(),
+        fromWebSocket: true
+      });
+    },
+    
+    // 判断是否是关键攻击事件
+    isKeyAttackEvent(log) {
+      const msg = log.message.toLowerCase();
+      const source = log.source.toLowerCase();
+      
+      // 关键词列表
+      const keyPhrases = [
+        '开始侦察', '扫描目标', '情报收集', '元数据',
+        '武器化', '生成钓鱼', '定制钓鱼', 
+        '投递', '发送邮件', '邮件已发送',
+        '利用', '漏洞', '点击链接', '凭据',
+        '安装', '持久化', '访问权限',
+        '命令控制', '远程连接', '横向移动',
+        '目标行动', '数据窃取', '攻陷', '完成'
+      ];
+      
+      // 检查消息是否包含关键词
+      return keyPhrases.some(phrase => msg.includes(phrase)) || 
+             log.level === 'success' || 
+             log.level === 'error' ||
+             source.includes('攻击智能体') ||
+             source.includes('中央智能体');
+    },
+    
+    // 确定事件类型
+    determineEventType(log) {
+      const level = log.level?.toLowerCase();
+      const msg = log.message?.toLowerCase() || '';
+      
+      if (level === 'error') {
+        return 'failure';
+      } else if (level === 'warning') {
+        return 'warning';
+      } else if (level === 'success') {
+        return 'success';
+      } else if (msg.includes('攻击') || msg.includes('侦察') || msg.includes('扫描') || 
+                 msg.includes('武器化') || msg.includes('投递') || msg.includes('利用') || 
+                 msg.includes('安装') || msg.includes('命令') || msg.includes('控制') || 
+                 msg.includes('目标')) {
+        return 'attack';
+      } else if (msg.includes('防御') || msg.includes('阻止') || msg.includes('检测')) {
+        return 'defense';
+      } else {
+        return 'system';
+      }
+    },
+    
+    // 根据单个事件更新攻击链阶段
+    updateAttackChainFromEvent(event) {
+      if (!event || !event.message) return;
+      
+      const message = event.message.toLowerCase();
+      
+      // 侦察阶段
+      if (message.includes('侦察') || message.includes('扫描') || message.includes('情报收集') || message.includes('元数据')) {
+        this.activateStage(0);
+      }
+      // 武器化阶段
+      else if (message.includes('武器化') || message.includes('生成') || message.includes('定制') || message.includes('钓鱼邮件')) {
+        this.activateStage(1);
+      }
+      // 投递阶段
+      else if (message.includes('投递') || message.includes('发送') || message.includes('邮件已发送')) {
+        this.activateStage(2);
+      }
+      // 利用阶段
+      else if (message.includes('利用') || message.includes('点击') || message.includes('漏洞') || message.includes('凭据')) {
+        this.activateStage(3);
+      }
+      // 安装阶段
+      else if (message.includes('安装') || message.includes('持久') || message.includes('访问')) {
+        this.activateStage(4);
+      }
+      // 命令控制阶段
+      else if (message.includes('命令') || message.includes('控制') || message.includes('远程连接')) {
+        this.activateStage(5);
+      }
+      // 行动目标阶段
+      else if (message.includes('目标') || message.includes('数据') || message.includes('完全控制') || message.includes('攻陷')) {
+        this.activateStage(6);
       }
     }
   }

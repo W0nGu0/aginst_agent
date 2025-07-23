@@ -42,10 +42,7 @@
 
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
-            <EventMonitor 
-              ref="eventMonitorRef" 
-              :attackTaskStatus="currentAttackTaskStatus"
-            />
+            <EventMonitor ref="eventMonitorRef" :attackTaskStatus="currentAttackTaskStatus" />
           </div>
         </div>
       </div>
@@ -66,7 +63,7 @@
     <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
       :target="selectedPhishingTarget" :attackType="currentAttackType"
       @close="showPhishingAttackVisualization = false" />
-      
+
     <!-- 不再使用全屏的攻击进度监控，而是在EventMonitor中显示 -->
   </div>
 </template>
@@ -147,11 +144,11 @@ const selectedConnection = computed(() => {
 onMounted(async () => {
   await loadFabric()
   initializeTopology()
-  
+
   // 添加攻击进度和完成事件监听
   window.addEventListener('attack-progress', handleAttackProgress)
   window.addEventListener('attack-completed', handleAttackCompleted)
-  
+
   // 初始化WebSocket连接
   await initWebSocketConnection()
 })
@@ -161,16 +158,16 @@ async function initWebSocketConnection() {
   try {
     // 连接到WebSocket服务器
     const connected = await WebSocketService.connect();
-    
+
     if (connected) {
       console.log('WebSocket连接成功');
-      
+
       // 添加消息处理器
       WebSocketService.addMessageHandler(handleWebSocketMessage);
-      
+
       // 发送测试消息
       logInfo('系统', 'WebSocket连接已建立，可以接收实时日志');
-      
+
       // 每30秒检查一次连接状态
       setInterval(() => {
         if (!WebSocketService.connected) {
@@ -181,14 +178,14 @@ async function initWebSocketConnection() {
     } else {
       console.error('WebSocket连接失败');
       logWarning('系统', 'WebSocket连接失败，无法接收实时日志');
-      
+
       // 5秒后重试
       setTimeout(() => initWebSocketConnection(), 5000);
     }
   } catch (error) {
     console.error('初始化WebSocket连接失败:', error);
     logError('系统', `初始化WebSocket连接失败: ${error.message}`);
-    
+
     // 5秒后重试
     setTimeout(() => initWebSocketConnection(), 5000);
   }
@@ -202,33 +199,66 @@ function handleWebSocketMessage(message) {
       console.warn('收到格式不正确的WebSocket消息:', message);
       return;
     }
-    
+
     console.log('收到WebSocket消息:', message);
-    
-    // 记录日志
-    logMessage(message.level, message.source, message.message);
-    
+
+    // 记录日志到系统日志区域，标记为WebSocket日志
+    logMessage(message.level, message.source, message.message, true);
+
+    // 判断是否是关键事件
+    const isKeyEvent = isKeyAttackEvent(message);
+
+    // 如果是关键事件，添加到关键事件区域
+    if (isKeyEvent) {
+      // 确定事件类型
+      const eventType = determineEventType(message);
+
+      // 添加到关键事件，标记为WebSocket事件
+      addEvent({
+        type: eventType,
+        message: `[${message.source}] ${message.message}`,
+        fromWebSocket: true
+      });
+    }
+
+    // 如果是攻击相关的消息，也添加到关键事件区域
+    if (message.source.includes('攻击') ||
+      message.message.toLowerCase().includes('攻击') ||
+      message.message.toLowerCase().includes('侦察') ||
+      message.message.toLowerCase().includes('扫描') ||
+      message.message.toLowerCase().includes('武器化') ||
+      message.message.toLowerCase().includes('投递') ||
+      message.message.toLowerCase().includes('利用') ||
+      message.message.toLowerCase().includes('安装') ||
+      message.message.toLowerCase().includes('命令') ||
+      message.message.toLowerCase().includes('控制') ||
+      message.message.toLowerCase().includes('目标')) {
+
+      // 添加到关键事件，标记为WebSocket事件
+      addAttackEvent(`[${message.source}] ${message.message}`, true);
+    }
+
     // 如果是攻击相关的消息，更新攻击状态
-    if (message.source.includes('攻击') || 
-        message.message.includes('攻击') || 
-        message.message.includes('侦察') || 
-        message.message.includes('钓鱼') ||
-        message.message.includes('扫描') ||
-        message.message.includes('漏洞') ||
-        message.message.includes('利用') ||
-        message.message.includes('命令') ||
-        message.message.includes('控制')) {
-      
+    if (message.source.includes('攻击') ||
+      message.message.includes('攻击') ||
+      message.message.includes('侦察') ||
+      message.message.includes('钓鱼') ||
+      message.message.includes('扫描') ||
+      message.message.includes('漏洞') ||
+      message.message.includes('利用') ||
+      message.message.includes('命令') ||
+      message.message.includes('控制')) {
+
       // 如果有攻击任务ID，更新任务状态
       if (currentAttackTaskId.value) {
         // 添加日志到任务
         AttackTaskService.addTaskLog(
-          currentAttackTaskId.value, 
-          message.level, 
-          message.source, 
+          currentAttackTaskId.value,
+          message.level,
+          message.source,
           message.message
         );
-        
+
         // 根据消息内容更新攻击阶段
         updateAttackPhaseFromMessage(message);
       }
@@ -238,15 +268,62 @@ function handleWebSocketMessage(message) {
   }
 }
 
+// 判断是否是关键攻击事件
+function isKeyAttackEvent(message) {
+  const msg = message.message.toLowerCase();
+  const source = message.source.toLowerCase();
+
+  // 关键词列表
+  const keyPhrases = [
+    '开始侦察', '扫描目标', '情报收集', '元数据',
+    '武器化', '生成钓鱼', '定制钓鱼',
+    '投递', '发送邮件', '邮件已发送',
+    '利用', '漏洞', '点击链接', '凭据',
+    '安装', '持久化', '访问权限',
+    '命令控制', '远程连接', '横向移动',
+    '目标行动', '数据窃取', '攻陷', '完成'
+  ];
+
+  // 检查消息是否包含关键词
+  return keyPhrases.some(phrase => msg.includes(phrase)) ||
+    message.level === 'success' ||
+    message.level === 'error' ||
+    source.includes('攻击智能体') ||
+    source.includes('中央智能体');
+}
+
+// 确定事件类型
+function determineEventType(message) {
+  const level = message.level.toLowerCase();
+  const msg = message.message.toLowerCase();
+
+  if (level === 'error') {
+    return 'failure';
+  } else if (level === 'warning') {
+    return 'warning';
+  } else if (level === 'success') {
+    return 'success';
+  } else if (msg.includes('攻击') || msg.includes('侦察') || msg.includes('扫描') ||
+    msg.includes('武器化') || msg.includes('投递') || msg.includes('利用') ||
+    msg.includes('安装') || msg.includes('命令') || msg.includes('控制') ||
+    msg.includes('目标')) {
+    return 'attack';
+  } else if (msg.includes('防御') || msg.includes('阻止') || msg.includes('检测')) {
+    return 'defense';
+  } else {
+    return 'system';
+  }
+}
+
 // 根据消息内容更新攻击阶段
 function updateAttackPhaseFromMessage(message) {
   const msg = message.message.toLowerCase();
   const source = message.source.toLowerCase();
-  
+
   // 根据消息内容判断当前阶段
   let phase = null;
   let progress = 0;
-  
+
   if (source.includes('侦察') || msg.includes('侦察') || msg.includes('扫描') || msg.includes('情报收集')) {
     phase = AttackTaskService.PHASE.RECONNAISSANCE;
     progress = 10;
@@ -269,7 +346,7 @@ function updateAttackPhaseFromMessage(message) {
     phase = AttackTaskService.PHASE.ACTIONS_ON_OBJECTIVES;
     progress = 95;
   }
-  
+
   // 如果确定了阶段，更新任务状态
   if (phase) {
     const currentTask = AttackTaskService.getTaskStatus(currentAttackTaskId.value);
@@ -277,19 +354,19 @@ function updateAttackPhaseFromMessage(message) {
       // 只有当新阶段比当前阶段更高时才更新
       const currentPhaseIndex = Object.values(AttackTaskService.PHASE).indexOf(currentTask.phase);
       const newPhaseIndex = Object.values(AttackTaskService.PHASE).indexOf(phase);
-      
+
       if (newPhaseIndex > currentPhaseIndex || currentTask.progress < progress) {
         AttackTaskService.updateTask(currentAttackTaskId.value, {
           phase,
           progress: Math.max(progress, currentTask.progress)
         });
-        
+
         // 触发任务更新事件
-        const event = new CustomEvent('attack-progress', { 
-          detail: { 
+        const event = new CustomEvent('attack-progress', {
+          detail: {
             taskId: currentAttackTaskId.value,
             status: AttackTaskService.getTaskStatus(currentAttackTaskId.value)
-          } 
+          }
         });
         window.dispatchEvent(event);
       }
@@ -302,10 +379,10 @@ onUnmounted(() => {
   // 移除事件监听器
   window.removeEventListener('attack-progress', handleAttackProgress)
   window.removeEventListener('attack-completed', handleAttackCompleted)
-  
+
   // 移除WebSocket消息处理器
   WebSocketService.removeMessageHandler(handleWebSocketMessage)
-  
+
   // 断开WebSocket连接
   WebSocketService.disconnect()
 })
@@ -379,17 +456,17 @@ function handleDeviceClick(device) {
 // 处理攻击进度更新事件
 function handleAttackProgress(event) {
   const { taskId, status } = event.detail
-  
+
   // 更新当前任务状态
   if (taskId === currentAttackTaskId.value) {
     currentAttackTaskStatus.value = status
-    
+
     // 记录日志
     if (status.logs && status.logs.length > 0) {
       const latestLog = status.logs[status.logs.length - 1]
       logMessage(latestLog.level, latestLog.source, latestLog.message)
     }
-    
+
     // 根据阶段更新可视化
     updateAttackVisualizationByPhase(status.phase, status.progress)
   }
@@ -398,11 +475,11 @@ function handleAttackProgress(event) {
 // 处理攻击完成事件
 function handleAttackCompleted(event) {
   const { success, taskId, result, error } = event.detail
-  
+
   if (taskId === currentAttackTaskId.value) {
     if (success) {
       logSuccess('攻击智能体', '攻击任务已完成')
-      
+
       // 解析结果
       if (result && result.final_output) {
         logInfo('攻击结果', result.final_output)
@@ -417,12 +494,12 @@ function handleAttackCompleted(event) {
 function updateAttackVisualizationByPhase(phase, progress) {
   // 获取攻击者和目标
   const attacker = selectedAttacker.value
-  const target = Object.values(topology.devices).find(d => 
+  const target = Object.values(topology.devices).find(d =>
     d !== attacker && d.deviceData.name !== '攻击节点'
   )
-  
+
   if (!attacker || !target || !attackVisualization) return
-  
+
   // 根据阶段显示不同的动画
   switch (phase) {
     case 'reconnaissance':
@@ -478,36 +555,36 @@ async function handleAttack(attackData) {
     if (attackData.attackType === 'auto') {
       // 记录自动攻击开始
       logInfo('攻击智能体', `${attackData.attacker.deviceData.name} 开始自动分析网络拓扑并规划攻击路径`)
-      
+
       // 添加到关键事件
       addAttackEvent(`攻击智能体启动：开始自动分析网络拓扑并规划攻击路径`)
-      
+
       // 记录详细日志
       logDebug('攻击智能体', '向中央智能体发送攻击指令...')
-      
+
       // 在拓扑图上显示思考动画
       if (attackVisualization.createThinkingAnimation) {
         attackVisualization.createThinkingAnimation(attackData.attacker, 3)
       }
-      
+
       try {
         // 调用攻击智能体服务，执行自动攻击
         const result = await AttackAgentService.executeAutoAttack(attackData)
-        
+
         if (result.success) {
           // 更新当前任务ID和状态
           currentAttackTaskId.value = result.taskId
           currentAttackTaskStatus.value = result.details
-          
+
           // 不再显示全屏攻击进度监控，而是使用EventMonitor中的攻击链阶段
-          
+
           // 记录成功消息
           logSuccess('中央智能体', '成功向攻击智能体下达攻击指令')
           logInfo('攻击智能体', '开始执行自动攻击流程')
-          
+
           // 添加到关键事件
           addAttackEvent(`中央智能体成功向攻击智能体下达攻击指令`)
-          
+
           // 在拓扑图上可视化攻击路径
           visualizeAttackPath(attackData.attacker)
         } else {
@@ -523,37 +600,36 @@ async function handleAttack(attackData) {
           type: 'failure',
           message: `与攻击智能体通信失败: ${error.message}`
         })
-        
-        // 如果与后端通信失败，使用前端模拟攻击流程
-        logWarning('系统', '切换到前端模拟攻击流程')
-        await simulateFrontendAttack(attackData)
+
+        // 不再使用前端模拟攻击流程
+        logWarning('系统', '后端通信失败，请检查网络连接或后端服务状态')
       }
     } else if (attackData.attackType === 'phishing' || attackData.attackType === 'social_engineering') {
       // 钓鱼攻击或社会工程学攻击
       try {
         // 调用攻击智能体服务，执行社会工程学攻击
         const result = await AttackAgentService.executeSocialEngineeringAttack(attackData)
-        
+
         if (result.success) {
           // 更新当前任务ID和状态
           if (result.taskId) {
             currentAttackTaskId.value = result.taskId
             currentAttackTaskStatus.value = result.details
-            
+
             // 不再显示全屏攻击进度监控，而是使用EventMonitor中的攻击链阶段
           }
-          
+
           // 记录成功消息
           logSuccess('攻击智能体', `成功执行社会工程学攻击: ${result.details.tactic || ''}`)
-          
+
           // 添加到关键事件
           addAttackEvent(`社会工程学攻击成功: ${result.details.tactic || ''}`)
-          
+
           // 显示钓鱼攻击可视化
           selectedPhishingTarget.value = attackData.target
           currentAttackType.value = attackData.attackType
           showPhishingAttackVisualization.value = true
-          
+
           // 在拓扑图上可视化攻击路径
           visualizeAttackPath(attackData.attacker, attackData.target)
         } else {
@@ -565,10 +641,9 @@ async function handleAttack(attackData) {
         }
       } catch (error) {
         logError('攻击智能体', `社会工程学攻击执行失败: ${error.message}`)
-        
-        // 如果与后端通信失败，使用前端模拟攻击流程
-        logWarning('系统', '切换到前端模拟钓鱼攻击')
-        await executePhishingAttack(attackData.attacker, attackData.target, attackData.attackType)
+
+        // 不再使用前端模拟攻击流程
+        logWarning('系统', '后端通信失败，请检查网络连接或后端服务状态')
       }
     } else {
       // 其他类型的攻击
@@ -595,7 +670,7 @@ async function handleAttack(attackData) {
       if (result.success) {
         logSuccess('攻击', `攻击成功: ${attackData.attackName}`)
         addAttackEvent(`攻击成功: ${attackData.target.deviceData.name} 已被攻陷`)
-        
+
         // 更新目标节点状态为已攻陷
         updateNodeStatus(attackData.target, 'compromised')
       } else {
@@ -615,27 +690,27 @@ async function handleAttack(attackData) {
 // 在拓扑图上可视化攻击路径
 function visualizeAttackPath(attacker, target = null) {
   if (!topology || !attackVisualization) return
-  
+
   // 如果没有指定目标，则寻找可能的目标
   if (!target) {
     // 查找Web服务器作为第一个目标
-    target = Object.values(topology.devices).find(d => 
+    target = Object.values(topology.devices).find(d =>
       d.deviceData.name.includes('Web') || d.deviceType === 'web'
     )
-    
+
     // 如果没有Web服务器，选择任意一个非攻击者的设备
     if (!target) {
-      target = Object.values(topology.devices).find(d => 
+      target = Object.values(topology.devices).find(d =>
         d !== attacker && d.deviceData.name !== '攻击节点'
       )
     }
-    
+
     if (!target) return // 如果没有找到目标，直接返回
   }
-  
+
   // 清除之前的攻击路径
   attackVisualization.clearAttackPaths()
-  
+
   // 使用GSAP创建攻击动画序列
   if (attackVisualization.createAttackSequence) {
     // 使用GSAP版本的攻击可视化
@@ -644,72 +719,72 @@ function visualizeAttackPath(attacker, target = null) {
     // 使用简单版本的攻击可视化
     // 创建攻击路径
     const path = []
-    
+
     // 添加攻击者
     path.push({
       x: attacker.left,
       y: attacker.top
     })
-    
+
     // 如果攻击者和目标之间有防火墙，添加防火墙作为中间点
-    const firewall = Object.values(topology.devices).find(d => 
+    const firewall = Object.values(topology.devices).find(d =>
       d.deviceType === 'firewall'
     )
-    
+
     if (firewall) {
       path.push({
         x: firewall.left,
         y: firewall.top
       })
     }
-    
+
     // 添加目标
     path.push({
       x: target.left,
       y: target.top
     })
-    
+
     // 绘制攻击路径
     attackVisualization.drawAttackPath(path, '#ff0000', 2)
-    
+
     // 高亮目标节点
     updateNodeStatus(target, 'targeted')
-    
+
     // 如果是数据库服务器，可能还有第二阶段攻击
     if (target.deviceType === 'web' || target.deviceData.name.includes('Web')) {
       // 寻找数据库服务器作为第二阶段目标
-      const secondTarget = Object.values(topology.devices).find(d => 
+      const secondTarget = Object.values(topology.devices).find(d =>
         d.deviceData.name.includes('数据库') || d.deviceType === 'db'
       )
-      
+
       if (secondTarget) {
         // 创建第二阶段攻击路径
         const secondPath = []
-        
+
         // 添加第一个目标（现在是攻击者）
         secondPath.push({
           x: target.left,
           y: target.top
         })
-        
+
         // 如果有内部防火墙，添加防火墙作为中间点
-        const internalFirewall = Object.values(topology.devices).find(d => 
+        const internalFirewall = Object.values(topology.devices).find(d =>
           d.deviceType === 'firewall' && d !== firewall
         )
-        
+
         if (internalFirewall) {
           secondPath.push({
             x: internalFirewall.left,
             y: internalFirewall.top
           })
         }
-        
+
         // 添加第二个目标
         secondPath.push({
           x: secondTarget.left,
           y: secondTarget.top
         })
-        
+
         // 延迟绘制第二阶段攻击路径
         setTimeout(() => {
           attackVisualization.drawAttackPath(secondPath, '#ff9900', 2)
@@ -723,7 +798,7 @@ function visualizeAttackPath(attacker, target = null) {
 // 更新节点状态
 function updateNodeStatus(node, status) {
   if (!node) return
-  
+
   // 根据状态设置节点样式
   switch (status) {
     case 'targeted':
@@ -751,7 +826,7 @@ function updateNodeStatus(node, status) {
       })
       break
   }
-  
+
   // 更新画布
   topology.canvas.requestRenderAll()
 }
@@ -759,73 +834,73 @@ function updateNodeStatus(node, status) {
 // 前端模拟攻击流程（当后端通信失败时使用）
 async function simulateFrontendAttack(attackData) {
   logInfo('系统', '使用前端模拟攻击流程')
-  
+
   // 记录详细日志
   logDebug('攻击智能体', '正在扫描网络拓扑结构...')
   await simulateDelay(1000)
-  
+
   logDebug('攻击智能体', '识别到潜在目标：内部网络服务器、数据库服务器')
   await simulateDelay(800)
-  
+
   logDebug('攻击智能体', '分析防火墙规则和网络隔离策略...')
   await simulateDelay(1200)
-  
+
   logDebug('攻击智能体', '确定最佳攻击路径：外部防火墙 → Web服务器 → 内部防火墙 → 数据库服务器')
   await simulateDelay(500)
-  
+
   // 在拓扑图上可视化攻击路径
   visualizeAttackPath(attackData.attacker)
-  
+
   // 选择第一个目标（例如Web服务器）
-  const firstTarget = Object.values(topology.devices).find(d => 
+  const firstTarget = Object.values(topology.devices).find(d =>
     d.deviceData.name.includes('Web') || d.deviceType === 'web'
   )
-  
+
   if (!firstTarget) {
     logWarning('攻击智能体', '未找到合适的初始目标，尝试选择其他目标')
     // 选择任意一个非攻击者的设备作为目标
-    const anyTarget = Object.values(topology.devices).find(d => 
+    const anyTarget = Object.values(topology.devices).find(d =>
       d !== attackData.attacker && d.deviceData.name !== '攻击节点'
     )
-    
+
     if (!anyTarget) {
       throw new Error('无法找到任何攻击目标')
     }
-    
+
     // 执行钓鱼攻击
     await executePhishingAttack(attackData.attacker, anyTarget)
   } else {
     // 执行第一阶段攻击：钓鱼攻击Web服务器管理员
     await executePhishingAttack(attackData.attacker, firstTarget)
-    
+
     // 更新节点状态为已攻陷
     updateNodeStatus(firstTarget, 'compromised')
-    
+
     // 等待一段时间后执行第二阶段攻击
     await simulateDelay(3000)
-    
+
     // 寻找数据库服务器作为第二阶段目标
-    const secondTarget = Object.values(topology.devices).find(d => 
+    const secondTarget = Object.values(topology.devices).find(d =>
       d.deviceData.name.includes('数据库') || d.deviceType === 'db'
     )
-    
+
     if (secondTarget) {
       // 执行第二阶段攻击：利用Web服务器漏洞攻击数据库
       logInfo('攻击智能体', `开始第二阶段攻击：从已攻陷的Web服务器横向移动到数据库服务器`)
-      
+
       // 添加到关键事件
       addAttackEvent(`开始横向移动：从Web服务器向数据库服务器发起攻击`)
-      
+
       // 模拟攻击结果
       await simulateDelay(2000)
-      
+
       // 记录攻击结果
       const success = Math.random() > 0.3 // 70%的成功率
-      
+
       if (success) {
         logSuccess('攻击智能体', `成功攻陷数据库服务器`)
         addAttackEvent(`横向移动成功：数据库服务器已被攻陷`)
-        
+
         // 更新节点状态为已攻陷
         updateNodeStatus(secondTarget, 'compromised')
       } else {
@@ -840,14 +915,14 @@ async function simulateFrontendAttack(attackData) {
 async function executePhishingAttack(attacker, target, attackType = 'phishing') {
   // 记录日志
   logInfo('攻击', `${attacker.deviceData.name} 开始对 ${target.deviceData.name} 发起钓鱼攻击`)
-  
+
   // 添加详细日志
   logDebug('钓鱼攻击', `正在收集目标 ${target.deviceData.name} 的信息...`)
   await simulateDelay(800)
-  
+
   logDebug('钓鱼攻击', `生成针对目标的定制化钓鱼邮件...`)
   await simulateDelay(1000)
-  
+
   // 添加到关键事件
   addAttackEvent(`${attacker.deviceData.name} 向 ${target.deviceData.name} 发送钓鱼邮件`)
 
@@ -870,26 +945,26 @@ async function executePhishingAttack(attacker, target, attackType = 'phishing') 
   if (result.success) {
     logSuccess('钓鱼攻击', `成功对 ${target.deviceData.name} 发起钓鱼攻击`)
     addAttackEvent(`钓鱼攻击成功：${target.deviceData.name} 的凭据已被窃取`)
-    
+
     // 添加详细日志
     logDebug('钓鱼攻击', `获取到目标凭据：${target.deviceData.name}的管理员账号`)
     await simulateDelay(500)
-    
+
     logDebug('钓鱼攻击', `尝试使用获取的凭据登录目标系统...`)
     await simulateDelay(800)
-    
+
     logDebug('钓鱼攻击', `成功登录目标系统，获取控制权限`)
-    
+
     // 更新节点状态为已攻陷
     updateNodeStatus(target, 'compromised')
   } else {
     logError('钓鱼攻击', `对 ${target.deviceData.name} 的钓鱼攻击失败`)
     addAttackEvent(`钓鱼攻击失败：${target.deviceData.name} 识别出了钓鱼邮件`)
-    
+
     // 添加详细日志
     logDebug('钓鱼攻击', `目标未点击钓鱼链接，攻击失败`)
   }
-  
+
   return result
 }
 
@@ -1087,7 +1162,7 @@ async function destroyScenario() {
 }
 
 // 日志记录函数
-function logMessage(level, source, message) {
+function logMessage(level, source, message, fromWebSocket = false) {
   if (!message) {
     message = source
     source = '系统'
@@ -1100,7 +1175,8 @@ function logMessage(level, source, message) {
       level: level,
       source: source,
       message: message,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      fromWebSocket: fromWebSocket
     })
   } else if (eventMonitorRef.value) {
     // 使用ref引用
@@ -1108,11 +1184,12 @@ function logMessage(level, source, message) {
       level: level,
       source: source,
       message: message,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      fromWebSocket: fromWebSocket
     })
   } else {
     // 如果无法找到组件，则使用控制台记录
-    console.log(`[${level.toUpperCase()}] [${source}] ${message}`)
+    console.log(`[${level.toUpperCase()}] [${source}] ${message} ${fromWebSocket ? '[WebSocket]' : ''}`)
   }
 
   // 如果是重要事件，也添加到关键事件
@@ -1128,6 +1205,11 @@ function logMessage(level, source, message) {
 
 // 添加关键事件
 function addEvent(event) {
+  // 确保事件对象有fromWebSocket属性
+  if (event.fromWebSocket === undefined) {
+    event.fromWebSocket = false;
+  }
+
   if (eventMonitorRef.value) {
     // 使用ref引用
     eventMonitorRef.value.addEvent(event)
@@ -1138,16 +1220,17 @@ function addEvent(event) {
       eventMonitor.__vue__.addEvent(event)
     } else {
       // 如果无法找到组件，则使用控制台记录
-      console.log(`[EVENT] ${event.type}: ${event.message}`)
+      console.log(`[EVENT] ${event.type}: ${event.message} ${event.fromWebSocket ? '[WebSocket]' : ''}`)
     }
   }
 }
 
 // 添加攻击事件
-function addAttackEvent(message) {
+function addAttackEvent(message, fromWebSocket = false) {
   addEvent({
     type: 'attack',
-    message: message
+    message: message,
+    fromWebSocket: fromWebSocket
   })
 }
 
