@@ -56,31 +56,29 @@ async def connect_to_backend():
         logger.error(f"连接后端WebSocket失败: {e}")
         return False
 
-async def send_log_to_backend(level: str, source: str, message: str):
-    """发送日志到后端WebSocket"""
+async def send_log_to_backend(level: str, source: str, message: str, attack_step_info: dict = None):
+    """发送精确的结构化日志到后端WebSocket"""
     global backend_ws
     
-    # 优化日志消息，使其更清晰
-    # 添加攻击阶段前缀，使日志更有结构
-    if "扫描" in message or "侦察" in message or "情报" in message or "元数据" in message:
-        prefix = "[侦察阶段] "
-    elif "武器化" in message or "生成" in message or "定制" in message or "钓鱼邮件" in message:
-        prefix = "[武器化阶段] "
-    elif "投递" in message or "发送" in message or "邮件" in message:
-        prefix = "[投递阶段] "
-    elif "利用" in message or "点击" in message or "漏洞" in message or "凭据" in message:
-        prefix = "[利用阶段] "
-    elif "安装" in message or "持久" in message or "访问" in message:
-        prefix = "[安装阶段] "
-    elif "命令" in message or "控制" in message or "远程" in message:
-        prefix = "[命令控制阶段] "
-    elif "目标" in message or "数据" in message or "攻陷" in message or "完成" in message:
-        prefix = "[行动目标阶段] "
-    else:
-        prefix = ""
+    # 分析消息内容，提取攻击步骤信息
+    step_info = analyze_attack_step(message, attack_step_info)
     
-    # 添加前缀到消息
-    formatted_message = prefix + message
+    # 构建结构化日志数据
+    log_data = {
+        "timestamp": asyncio.get_event_loop().time(),
+        "level": level,
+        "source": source,
+        "message": f"[{step_info['stage']}] {message}",
+        # 新增：攻击步骤详细信息
+        "attack_info": {
+            "stage": step_info["stage"],           # 攻击阶段
+            "technique": step_info["technique"],   # 攻击技术
+            "source_node": step_info["source_node"],  # 源节点
+            "target_node": step_info["target_node"],  # 目标节点
+            "progress": step_info["progress"],     # 进度百分比
+            "status": step_info["status"]          # 状态：starting/in_progress/completed/failed
+        }
+    }
     
     try:
         # 检查连接是否存在或是否需要重新连接
@@ -90,14 +88,8 @@ async def send_log_to_backend(level: str, source: str, message: str):
         # 使用try/except来检查连接状态
         try:
             if backend_ws:
-                log_data = {
-                    "timestamp": asyncio.get_event_loop().time(),
-                    "level": level,
-                    "source": source,
-                    "message": formatted_message
-                }
-                await backend_ws.send(json.dumps(log_data))
-                logger.debug(f"已发送日志到后端: {formatted_message}")
+                await backend_ws.send(json.dumps(log_data, ensure_ascii=False))
+                logger.debug(f"已发送结构化日志到后端: {step_info['stage']} - {message}")
         except Exception as e:
             logger.warning(f"发送消息失败，尝试重新连接: {e}")
             await connect_to_backend()
@@ -105,17 +97,87 @@ async def send_log_to_backend(level: str, source: str, message: str):
             # 重试一次发送
             try:
                 if backend_ws:
-                    log_data = {
-                        "timestamp": asyncio.get_event_loop().time(),
-                        "level": level,
-                        "source": source,
-                        "message": formatted_message
-                    }
-                    await backend_ws.send(json.dumps(log_data))
+                    await backend_ws.send(json.dumps(log_data, ensure_ascii=False))
             except Exception:
                 pass
     except Exception as e:
         logger.error(f"发送日志到后端WebSocket失败: {e}")
+
+def analyze_attack_step(message: str, step_info: dict = None) -> dict:
+    """分析消息内容，提取攻击步骤信息"""
+    
+    # 默认值
+    result = {
+        "stage": "未知阶段",
+        "technique": "未知技术", 
+        "source_node": "internet",
+        "target_node": "unknown",
+        "progress": 0,
+        "status": "in_progress"
+    }
+    
+    # 如果提供了明确的步骤信息，优先使用
+    if step_info:
+        result.update(step_info)
+        return result
+    
+    msg_lower = message.lower()
+    
+    # 阶段识别
+    if any(keyword in msg_lower for keyword in ["扫描", "侦察", "nmap", "端口", "服务发现", "元数据"]):
+        result["stage"] = "侦察阶段"
+        result["technique"] = "网络扫描" if "扫描" in msg_lower else "信息收集"
+        result["target_node"] = "firewall" if "防火墙" in message else "target_host"
+        
+    elif any(keyword in msg_lower for keyword in ["武器化", "生成", "定制", "钓鱼邮件", "载荷"]):
+        result["stage"] = "武器化阶段"
+        result["technique"] = "钓鱼邮件生成" if "邮件" in msg_lower else "载荷生成"
+        result["target_node"] = "pc-user"
+        
+    elif any(keyword in msg_lower for keyword in ["投递", "发送", "邮件", "传输"]):
+        result["stage"] = "投递阶段"
+        result["technique"] = "邮件投递"
+        result["target_node"] = "pc-user"
+        
+    elif any(keyword in msg_lower for keyword in ["利用", "点击", "漏洞", "exploit", "凭据"]):
+        result["stage"] = "利用阶段"
+        result["technique"] = "漏洞利用"
+        result["source_node"] = "pc-user"
+        result["target_node"] = "pc-user"
+        
+    elif any(keyword in msg_lower for keyword in ["安装", "持久", "后门", "权限"]):
+        result["stage"] = "安装阶段"
+        result["technique"] = "后门安装"
+        result["source_node"] = "pc-user"
+        result["target_node"] = "pc-user"
+        
+    elif any(keyword in msg_lower for keyword in ["命令", "控制", "远程", "c2", "通信"]):
+        result["stage"] = "命令控制阶段"
+        result["technique"] = "C2通信"
+        result["source_node"] = "pc-user"
+        result["target_node"] = "internet"
+        
+    elif any(keyword in msg_lower for keyword in ["目标", "数据", "窃取", "攻陷", "横向", "移动"]):
+        result["stage"] = "行动目标阶段"
+        result["technique"] = "数据窃取" if "数据" in msg_lower else "横向移动"
+        result["source_node"] = "pc-user"
+        result["target_node"] = "internal-db" if "数据" in msg_lower else "internal-server"
+    
+    # 状态识别
+    if any(keyword in msg_lower for keyword in ["开始", "启动", "初始化"]):
+        result["status"] = "starting"
+        result["progress"] = 0
+    elif any(keyword in msg_lower for keyword in ["完成", "成功", "获取", "建立"]):
+        result["status"] = "completed"
+        result["progress"] = 100
+    elif any(keyword in msg_lower for keyword in ["失败", "错误", "无法"]):
+        result["status"] = "failed"
+        result["progress"] = 0
+    else:
+        result["status"] = "in_progress"
+        result["progress"] = 50  # 默认进度
+    
+    return result
 
 # --- 环境变量和配置 ---
 dotenv_path = Path(__file__).parent / '.env'

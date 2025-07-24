@@ -27,6 +27,7 @@
             <button @click="saveTopology" class="btn btn-sm btn-primary">保存拓扑图</button>
             <button @click="generateScenario" class="btn btn-sm btn-success">生成场景</button>
             <button @click="destroyScenario" class="btn btn-sm btn-error">销毁场景</button>
+
             <button @click="toggleFullScreen" class="btn btn-sm">全屏</button>
           </div>
         </h2>
@@ -39,6 +40,13 @@
             </div>
           </div>
           <canvas id="network-topology" width="800" height="500"></canvas>
+
+
+
+          <!-- 拓扑攻击可视化层 - 覆盖在canvas上但不阻挡交互 -->
+          <div class="topology-attack-overlay">
+            <TopologyAttackVisualizer />
+          </div>
 
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
@@ -64,6 +72,8 @@
       :target="selectedPhishingTarget" :attackType="currentAttackType"
       @close="showPhishingAttackVisualization = false" />
 
+
+
     <!-- 不再使用全屏的攻击进度监控，而是在EventMonitor中显示 -->
   </div>
 </template>
@@ -87,6 +97,7 @@ import HostInfoDialog from './components/HostInfoDialog.vue'
 import SimplePhishingVisualization from './components/SimplePhishingVisualization.vue'
 import EventMonitor from './components/EventMonitor.vue'
 import AttackProgressMonitor from './components/AttackProgressMonitor.vue'
+import TopologyAttackVisualizer from './components/TopologyAttackVisualizer.vue'
 
 const topologyStore = useTopologyStore()
 let topology = null
@@ -128,6 +139,8 @@ const eventMonitorRef = ref(null)
 const showAttackProgressMonitor = ref(false)
 const currentAttackTaskId = ref('')
 const currentAttackTaskStatus = ref(null)
+
+
 
 // 计算属性
 const selectedDevice = computed(() => {
@@ -203,7 +216,23 @@ function handleWebSocketMessage(message) {
     console.log('收到WebSocket消息:', message);
 
     // 记录日志到系统日志区域，标记为WebSocket日志
-    logMessage(message.level, message.source, message.message, true);
+    // 如果消息包含attack_info，需要传递给EventMonitor处理
+    if (message.attack_info) {
+      // 直接调用EventMonitor的addLog方法，确保attack_info被处理
+      if (eventMonitorRef.value) {
+        eventMonitorRef.value.addLog({
+          level: message.level,
+          source: message.source,
+          message: message.message,
+          timestamp: new Date().toLocaleTimeString(),
+          fromWebSocket: true,
+          attack_info: message.attack_info  // 传递attack_info
+        });
+      }
+    } else {
+      // 普通日志使用logMessage函数
+      logMessage(message.level, message.source, message.message, true);
+    }
 
     // 判断是否是关键事件
     const isKeyEvent = isKeyAttackEvent(message);
@@ -973,6 +1002,51 @@ function simulateDelay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// 开始攻击模拟
+async function startAttackSimulation() {
+  try {
+    logInfo('系统', '开始攻击模拟...')
+    
+    // 查找攻击者节点
+    const attacker = Object.values(topology.devices || {}).find(d => 
+      d.deviceData?.name?.includes('攻击') || 
+      d.deviceType === 'attacker' ||
+      d.deviceData?.name === '攻击者'
+    )
+    
+    if (!attacker) {
+      // 如果没有攻击者，创建一个虚拟攻击者
+      logWarning('系统', '未找到攻击者节点，将模拟外部攻击')
+      
+      // 创建攻击数据
+      const attackData = {
+        attacker: { deviceData: { name: '外部攻击者' } },
+        attackType: 'auto',
+        target: 'network'
+      }
+      
+      // 执行自动攻击
+      await handleAttack(attackData)
+    } else {
+      logInfo('系统', `找到攻击者: ${attacker.deviceData.name}`)
+      
+      // 创建攻击数据
+      const attackData = {
+        attacker: attacker,
+        attackType: 'auto',
+        target: 'network'
+      }
+      
+      // 执行自动攻击
+      await handleAttack(attackData)
+    }
+    
+  } catch (error) {
+    console.error('启动攻击模拟失败:', error)
+    logError('系统', `启动攻击模拟失败: ${error.message}`)
+  }
+}
+
 // 处理防火墙保存事件
 function handleFirewallSave(firewallData) {
   logInfo('防火墙', `${selectedFirewall.value.deviceData.name} 配置已更新`)
@@ -1160,6 +1234,8 @@ async function destroyScenario() {
     }
   }
 }
+
+
 
 // 日志记录函数
 function logMessage(level, source, message, fromWebSocket = false) {
@@ -1385,5 +1461,17 @@ function getDeviceTypeName(type) {
   z-index: 10;
   display: flex;
   flex-direction: column;
+}
+
+/* 拓扑攻击可视化覆盖层 */
+.topology-attack-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1; /* 设置为最低层，确保不会覆盖拓扑图 */
+  background: transparent;
 }
 </style>
