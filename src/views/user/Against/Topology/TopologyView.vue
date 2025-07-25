@@ -216,11 +216,11 @@ function handleWebSocketMessage(message) {
   try {
     // 检查消息格式
     if (!message || !message.level || !message.source || !message.message) {
-      console.warn('收到格式不正确的WebSocket消息:', message);
+      console.warn('收到格式不正确的WebSocket消息:', JSON.stringify(message, null, 2));
       return;
     }
 
-    console.log('收到WebSocket消息:', message);
+    console.log('收到WebSocket消息:', JSON.stringify(message, null, 2));
 
     // 记录日志到系统日志区域，标记为WebSocket日志
     // 如果消息包含attack_info，需要传递给EventMonitor处理

@@ -59,9 +59,9 @@
         <div class="log-list" ref="logList">
           <div v-for="(log, index) in filteredLogs" :key="index" class="log-item" :class="getLogLevelClass(log.level)">
             <div class="log-time">{{ log.timestamp }}</div>
-            <div class="log-level">{{ log.level }}</div>
-            <div class="log-source">{{ log.source }}</div>
-            <div class="log-message">{{ log.message }}</div>
+            <div class="log-level">{{ formatLogLevel(log.level) }}</div>
+            <div class="log-source">{{ formatLogSource(log.source) }}</div>
+            <div class="log-message">{{ formatLogMessage(log.message) }}</div>
             <div v-if="log.details" class="log-details" @click="toggleDetails(log)">
               <i class="fas" :class="log.showDetails ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
             </div>
@@ -157,9 +157,9 @@
             <div v-for="(log, index) in filteredLogs" :key="index" class="log-item"
               :class="getLogLevelClass(log.level)">
               <div class="log-time">{{ log.timestamp }}</div>
-              <div class="log-level">{{ log.level }}</div>
-              <div class="log-source">{{ log.source }}</div>
-              <div class="log-message">{{ log.message }}</div>
+              <div class="log-level">{{ formatLogLevel(log.level) }}</div>
+              <div class="log-source">{{ formatLogSource(log.source) }}</div>
+              <div class="log-message">{{ formatLogMessage(log.message) }}</div>
               <div v-if="log.details" class="log-details" @click="toggleDetails(log)">
                 <i class="fas" :class="log.showDetails ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </div>
@@ -594,6 +594,31 @@ export default {
       // 检查滚动条是否在底部
       const wasAtBottom = this.isScrolledToBottom('logList');
 
+      // 确保log是对象且有必要的属性
+      if (!log || typeof log !== 'object') {
+        console.warn('无效的日志对象:', log);
+        return;
+      }
+
+      // 确保message是字符串
+      if (typeof log.message !== 'string') {
+        if (typeof log.message === 'object') {
+          log.message = JSON.stringify(log.message);
+        } else {
+          log.message = String(log.message || '');
+        }
+      }
+
+      // 确保source是字符串
+      if (typeof log.source !== 'string') {
+        log.source = String(log.source || '未知');
+      }
+
+      // 确保level是字符串
+      if (typeof log.level !== 'string') {
+        log.level = String(log.level || 'info');
+      }
+
       // 添加时间戳
       if (!log.timestamp) {
         log.timestamp = new Date().toLocaleTimeString();
@@ -717,6 +742,55 @@ export default {
           return '';
       }
     },
+
+    // 格式化日志级别显示
+    formatLogLevel(level) {
+      if (!level || typeof level !== 'string') {
+        return 'INFO';
+      }
+      return level.toUpperCase();
+    },
+
+    // 格式化日志来源显示
+    formatLogSource(source) {
+      if (!source || typeof source !== 'string') {
+        return '未知';
+      }
+      // 如果来源过长，截断显示
+      if (source.length > 20) {
+        return source.substring(0, 17) + '...';
+      }
+      return source;
+    },
+
+    // 格式化日志消息显示
+    formatLogMessage(message) {
+      if (!message) {
+        return '';
+      }
+
+      // 如果是对象，转换为字符串
+      if (typeof message === 'object') {
+        try {
+          return JSON.stringify(message, null, 2);
+        } catch (e) {
+          return String(message);
+        }
+      }
+
+      // 如果是字符串但包含特殊字符，进行清理
+      let formattedMessage = String(message);
+
+      // 移除多余的空白字符
+      formattedMessage = formattedMessage.replace(/\s+/g, ' ').trim();
+
+      // 如果消息过长，截断显示
+      if (formattedMessage.length > 200) {
+        formattedMessage = formattedMessage.substring(0, 197) + '...';
+      }
+
+      return formattedMessage;
+    },
     getEventIcon(type) {
       switch (type) {
         case 'attack':
@@ -805,12 +879,12 @@ export default {
       if (attackEvent.stage) {
         const stageIndex = this.getStageIndex(attackEvent.stage);
         if (stageIndex !== -1) {
-          console.log(`增强匹配：激活${this.attackChainStages[stageIndex].name}阶段:`, {
+          console.log(`增强匹配：激活${this.attackChainStages[stageIndex].name}阶段:`, JSON.stringify({
             technique: attackEvent.technique,
             targetNode: attackEvent.targetNode,
             progress: attackEvent.progress,
             status: attackEvent.status
-          });
+          }, null, 2));
 
           // 使用增强的激活方法
           this.activateStageEnhanced(stageIndex, attackEvent);
@@ -1156,13 +1230,13 @@ export default {
       // 分发事件到document，让拓扑图组件可以监听
       document.dispatchEvent(animationEvent);
 
-      console.log('拓扑动画事件已触发:', {
+      console.log('拓扑动画事件已触发:', JSON.stringify({
         stage: attackInfo.stage,
         technique: attackInfo.technique,
         from: attackInfo.source_node,
         to: attackInfo.target_node,
         status: attackInfo.status
-      });
+      }, null, 2));
     },
 
     // 新增：解析增强的攻击事件信息
@@ -1383,7 +1457,7 @@ export default {
 
       const stage = this.attackChainStages[index];
 
-      console.log(`增强激活攻击链阶段: ${index} - ${stage.name}`, attackEvent);
+      console.log(`增强激活攻击链阶段: ${index} - ${stage.name}`, JSON.stringify(attackEvent, null, 2));
 
       // 更新当前阶段索引
       if (index > this.currentAttackPhase) {

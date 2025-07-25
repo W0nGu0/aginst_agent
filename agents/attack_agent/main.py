@@ -68,8 +68,8 @@ async def send_log_to_backend(level: str, source: str, message: str, attack_step
         "timestamp": asyncio.get_event_loop().time(),
         "level": level,
         "source": source,
-        "message": f"[{step_info['stage']}] {message}",
-        # 新增：攻击步骤详细信息
+        "message": message,  # 使用简化的消息，不再添加阶段前缀
+        # 攻击步骤详细信息
         "attack_info": {
             "stage": step_info["stage"],           # 攻击阶段
             "technique": step_info["technique"],   # 攻击技术
@@ -103,66 +103,167 @@ async def send_log_to_backend(level: str, source: str, message: str, attack_step
     except Exception as e:
         logger.error(f"发送日志到后端WebSocket失败: {e}")
 
-def analyze_attack_step(message: str, step_info: dict = None) -> dict:
-    """分析消息内容，提取攻击步骤信息"""
-    
+async def send_standardized_log(level: str, source: str, standard_message: str, **kwargs):
+    """发送标准化的简化日志消息"""
+    # 构建攻击信息
+    attack_info = None
+    if kwargs:
+        attack_info = kwargs
+
+    await send_log_to_backend(level, source, standard_message, attack_info)
+
+class AttackLogHandler:
+    """攻击日志处理器，根据工具调用自动生成标准化日志"""
+
+    def __init__(self):
+        self.current_stage = "reconnaissance"
+        self.stage_progress = {
+            "reconnaissance": 0,
+            "weaponization": 0,
+            "delivery": 0,
+            "exploitation": 0,
+            "installation": 0,
+            "command_and_control": 0,
+            "actions_on_objectives": 0
+        }
+        self.stage_order = [
+            "reconnaissance", "weaponization", "delivery",
+            "exploitation", "installation", "command_and_control",
+            "actions_on_objectives"
+        ]
+
+    def get_overall_progress(self) -> int:
+        """计算整体攻击进度"""
+        total_stages = len(self.stage_order)
+        total_progress = 0
+
+        for stage in self.stage_order:
+            total_progress += self.stage_progress[stage]
+
+        return int(total_progress / total_stages)
+
+    def advance_stage(self, stage: str, progress: int = 100):
+        """推进特定阶段的进度"""
+        if stage in self.stage_progress:
+            self.stage_progress[stage] = progress
+            self.current_stage = stage
+
+    async def log_tool_start(self, tool_name: str, tool_input: dict):
+        """工具开始执行时的日志"""
+        if tool_name == "run_nmap":
+            self.advance_stage("reconnaissance", 10)
+            await send_standardized_log("info", "攻击智能体", "攻击者扫描防火墙")
+        elif tool_name == "fetch_url_content":
+            if "/metadata" in str(tool_input):
+                self.advance_stage("reconnaissance", 30)
+                await send_standardized_log("info", "攻击智能体", "攻击者发现防火墙开放端口")
+        elif tool_name == "craft_phishing_email":
+            self.advance_stage("weaponization", 45)
+            await send_standardized_log("info", "攻击智能体", "攻击者生成钓鱼邮件")
+        elif tool_name == "send_payload_to_victim":
+            self.advance_stage("delivery", 55)
+            await send_standardized_log("info", "攻击智能体", "攻击者向目标发送钓鱼邮件")
+
+    async def log_tool_end(self, tool_name: str, tool_output: str):
+        """工具执行完成时的日志"""
+        if tool_name == "run_nmap":
+            if "open" in tool_output.lower():
+                self.advance_stage("reconnaissance", 30)
+                await send_standardized_log("info", "攻击智能体", "攻击者发现防火墙开放端口")
+        elif tool_name == "fetch_url_content":
+            if "/metadata" in tool_output or "company" in tool_output.lower():
+                self.advance_stage("reconnaissance", 100)
+                await send_standardized_log("success", "攻击智能体", "攻击者完成目标侦察")
+        elif tool_name == "craft_phishing_email":
+            self.advance_stage("weaponization", 100)
+            await send_standardized_log("success", "攻击智能体", "攻击者完成恶意载荷制作")
+        elif tool_name == "send_payload_to_victim":
+            if "成功" in tool_output or "success" in tool_output.lower():
+                self.advance_stage("delivery", 100)
+                await send_standardized_log("success", "攻击智能体", "钓鱼邮件成功投递到目标")
+
+                # 模拟用户交互和后续阶段
+                self.advance_stage("exploitation", 65)
+                await send_standardized_log("warning", "攻击智能体", "目标用户点击恶意链接")
+
+                self.advance_stage("exploitation", 100)
+                await send_standardized_log("success", "攻击智能体", "攻击者获得目标主机访问权限")
+
+                # 模拟安装和持久化
+                self.advance_stage("installation", 75)
+                await send_standardized_log("info", "攻击智能体", "攻击者在目标主机安装后门")
+
+                self.advance_stage("installation", 100)
+                await send_standardized_log("success", "攻击智能体", "攻击者建立目标主机持久化访问")
+
+                # 模拟C2通信
+                self.advance_stage("command_and_control", 85)
+                await send_standardized_log("info", "攻击智能体", "攻击者与目标主机建立C2通信")
+
+                self.advance_stage("command_and_control", 100)
+                await send_standardized_log("info", "攻击智能体", "攻击者从目标主机向内网横向移动")
+
+                # 模拟数据窃取
+                self.advance_stage("actions_on_objectives", 95)
+                await send_standardized_log("warning", "攻击智能体", "攻击者从内网数据库窃取数据")
+
+# 创建全局日志处理器
+attack_log_handler = AttackLogHandler()
+
+def analyze_attack_step_fallback(message: str) -> dict:
+    """备选的智能匹配逻辑，用于处理非标准化消息"""
+
     # 默认值
     result = {
         "stage": "未知阶段",
-        "technique": "未知技术", 
+        "technique": "未知技术",
         "source_node": "internet",
         "target_node": "unknown",
         "progress": 0,
         "status": "in_progress"
     }
-    
-    # 如果提供了明确的步骤信息，优先使用
-    if step_info:
-        result.update(step_info)
-        return result
-    
+
     msg_lower = message.lower()
-    
+
     # 阶段识别
     if any(keyword in msg_lower for keyword in ["扫描", "侦察", "nmap", "端口", "服务发现", "元数据"]):
-        result["stage"] = "侦察阶段"
-        result["technique"] = "网络扫描" if "扫描" in msg_lower else "信息收集"
+        result["stage"] = "reconnaissance"
+        result["technique"] = "port_scan" if "扫描" in msg_lower else "info_gathering"
         result["target_node"] = "firewall" if "防火墙" in message else "target_host"
-        
+
     elif any(keyword in msg_lower for keyword in ["武器化", "生成", "定制", "钓鱼邮件", "载荷"]):
-        result["stage"] = "武器化阶段"
-        result["technique"] = "钓鱼邮件生成" if "邮件" in msg_lower else "载荷生成"
-        result["target_node"] = "pc-user"
-        
+        result["stage"] = "weaponization"
+        result["technique"] = "phishing_email"
+        result["target_node"] = "target_host"
+
     elif any(keyword in msg_lower for keyword in ["投递", "发送", "邮件", "传输"]):
-        result["stage"] = "投递阶段"
-        result["technique"] = "邮件投递"
-        result["target_node"] = "pc-user"
-        
+        result["stage"] = "delivery"
+        result["technique"] = "email_delivery"
+        result["source_node"] = "internet"
+        result["target_node"] = "target_host"
+
     elif any(keyword in msg_lower for keyword in ["利用", "点击", "漏洞", "exploit", "凭据"]):
-        result["stage"] = "利用阶段"
-        result["technique"] = "漏洞利用"
-        result["source_node"] = "pc-user"
-        result["target_node"] = "pc-user"
-        
+        result["stage"] = "exploitation"
+        result["technique"] = "credential_theft"
+        result["target_node"] = "target_host"
+
     elif any(keyword in msg_lower for keyword in ["安装", "持久", "后门", "权限"]):
-        result["stage"] = "安装阶段"
-        result["technique"] = "后门安装"
-        result["source_node"] = "pc-user"
-        result["target_node"] = "pc-user"
-        
+        result["stage"] = "installation"
+        result["technique"] = "backdoor_install"
+        result["target_node"] = "target_host"
+
     elif any(keyword in msg_lower for keyword in ["命令", "控制", "远程", "c2", "通信"]):
-        result["stage"] = "命令控制阶段"
-        result["technique"] = "C2通信"
-        result["source_node"] = "pc-user"
-        result["target_node"] = "internet"
-        
+        result["stage"] = "command_and_control"
+        result["technique"] = "c2_communication"
+        result["source_node"] = "internet"
+        result["target_node"] = "target_host"
+
     elif any(keyword in msg_lower for keyword in ["目标", "数据", "窃取", "攻陷", "横向", "移动"]):
-        result["stage"] = "行动目标阶段"
-        result["technique"] = "数据窃取" if "数据" in msg_lower else "横向移动"
-        result["source_node"] = "pc-user"
-        result["target_node"] = "internal-db" if "数据" in msg_lower else "internal-server"
-    
+        result["stage"] = "actions_on_objectives"
+        result["technique"] = "data_theft" if "数据" in msg_lower else "lateral_movement"
+        result["source_node"] = "target_host"
+        result["target_node"] = "internal-db"
+
     # 状态识别
     if any(keyword in msg_lower for keyword in ["开始", "启动", "初始化"]):
         result["status"] = "starting"
@@ -175,9 +276,160 @@ def analyze_attack_step(message: str, step_info: dict = None) -> dict:
         result["progress"] = 0
     else:
         result["status"] = "in_progress"
-        result["progress"] = 50  # 默认进度
-    
+        result["progress"] = 50
+
     return result
+
+def analyze_attack_step(message: str, step_info: dict = None) -> dict:
+    """简化的攻击步骤分析 - 基于标准化消息映射"""
+
+    # 如果提供了明确的步骤信息，优先使用
+    if step_info:
+        return step_info
+
+    # 标准化消息映射表 - 包含动作+发起方+承受方的基本语义要素
+    message_mapping = {
+        # 侦察阶段
+        "攻击者扫描防火墙": {
+            "stage": "reconnaissance",
+            "technique": "port_scan",
+            "source_node": "internet",
+            "target_node": "firewall",
+            "status": "starting",
+            "progress": 10
+        },
+        "攻击者发现防火墙开放端口": {
+            "stage": "reconnaissance",
+            "technique": "port_scan",
+            "source_node": "internet",
+            "target_node": "firewall",
+            "status": "in_progress",
+            "progress": 30
+        },
+        "攻击者完成目标侦察": {
+            "stage": "reconnaissance",
+            "technique": "info_gathering",
+            "source_node": "internet",
+            "target_node": "firewall",
+            "status": "completed",
+            "progress": 40
+        },
+
+        # 武器化阶段
+        "攻击者生成钓鱼邮件": {
+            "stage": "weaponization",
+            "technique": "phishing_email",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "starting",
+            "progress": 45
+        },
+        "攻击者完成恶意载荷制作": {
+            "stage": "weaponization",
+            "technique": "phishing_email",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "completed",
+            "progress": 50
+        },
+
+        # 投递阶段
+        "攻击者向目标发送钓鱼邮件": {
+            "stage": "delivery",
+            "technique": "email_delivery",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "starting",
+            "progress": 55
+        },
+        "钓鱼邮件成功投递到目标": {
+            "stage": "delivery",
+            "technique": "email_delivery",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "completed",
+            "progress": 60
+        },
+
+        # 利用阶段
+        "目标用户点击恶意链接": {
+            "stage": "exploitation",
+            "technique": "credential_theft",
+            "source_node": "target_host",
+            "target_node": "target_host",
+            "status": "starting",
+            "progress": 65
+        },
+        "攻击者获得目标主机访问权限": {
+            "stage": "exploitation",
+            "technique": "credential_theft",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "completed",
+            "progress": 70
+        },
+
+        # 安装阶段
+        "攻击者在目标主机安装后门": {
+            "stage": "installation",
+            "technique": "backdoor_install",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "starting",
+            "progress": 75
+        },
+        "攻击者建立目标主机持久化访问": {
+            "stage": "installation",
+            "technique": "persistence_mechanism",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "completed",
+            "progress": 80
+        },
+
+        # 命令控制阶段
+        "攻击者与目标主机建立C2通信": {
+            "stage": "command_and_control",
+            "technique": "c2_communication",
+            "source_node": "internet",
+            "target_node": "target_host",
+            "status": "starting",
+            "progress": 85
+        },
+        "攻击者从目标主机向内网横向移动": {
+            "stage": "command_and_control",
+            "technique": "lateral_movement",
+            "source_node": "target_host",
+            "target_node": "internal-db",
+            "status": "in_progress",
+            "progress": 90
+        },
+
+        # 行动目标阶段
+        "攻击者从内网数据库窃取数据": {
+            "stage": "actions_on_objectives",
+            "technique": "data_theft",
+            "source_node": "internal-db",
+            "target_node": "internet",
+            "status": "starting",
+            "progress": 95
+        },
+        "攻击者完全攻陷目标系统": {
+            "stage": "actions_on_objectives",
+            "technique": "system_compromise",
+            "source_node": "internet",
+            "target_node": "internal-db",
+            "status": "completed",
+            "progress": 100
+        }
+    }
+
+    # 查找标准化消息
+    if message in message_mapping:
+        return message_mapping[message].copy()
+
+    # 如果没有找到标准化消息，使用智能匹配作为备选
+    return analyze_attack_step_fallback(message)
 
 # --- 环境变量和配置 ---
 dotenv_path = Path(__file__).parent / '.env'
@@ -206,13 +458,21 @@ attack_service_client = FastMCP.as_proxy(ATTACK_SERVICE_URL)
 async def run_nmap(target_ip: str, options: str = "-T4 --top-ports 20") -> str:
     """对目标IP地址执行Nmap扫描。对于Web服务器，通常目标IP是URL中的域名或IP。"""
     try:
+        # 记录工具开始执行
+        await attack_log_handler.log_tool_start("run_nmap", {"target_ip": target_ip, "options": options})
+
         async with attack_service_client.client as client:
             response = await client.call_tool(
                 "run_nmap",
                 arguments={'target_ip': target_ip, 'options': options}
             )
         # 从CallToolResult对象中安全地提取文本
-        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+        # 记录工具执行完成
+        await attack_log_handler.log_tool_end("run_nmap", result)
+
+        return result
     except Exception as e:
         return f"执行nmap工具时出错: {e}"
 
@@ -220,12 +480,20 @@ async def run_nmap(target_ip: str, options: str = "-T4 --top-ports 20") -> str:
 async def fetch_url_content(url: str) -> str:
     """获取给定URL的内容。这对于发现目标网站上的信息（如公司名称）至关重要。"""
     try:
+        # 记录工具开始执行
+        await attack_log_handler.log_tool_start("fetch_url_content", {"url": url})
+
         async with attack_service_client.client as client:
             response = await client.call_tool(
                 "fetch_url_content",
                 arguments={'url': url}
             )
-        return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+        # 记录工具执行完成
+        await attack_log_handler.log_tool_end("fetch_url_content", result)
+
+        return result
     except Exception as e:
         return f"执行fetch_url_content工具时出错: {e}"
 
@@ -268,9 +536,15 @@ async def craft_phishing_email(target_name: str, company: str, malicious_link: s
                 arguments=args
             )
         
+        # 记录工具开始执行
+        await attack_log_handler.log_tool_start("craft_phishing_email", args)
+
         # 获取响应内容
         response_text = "\n".join([b.text for b in response.content if hasattr(b, "text")])
-        
+
+        # 记录工具执行完成
+        await attack_log_handler.log_tool_end("craft_phishing_email", response_text)
+
         # 尝试解析JSON响应
         try:
             # 如果响应已经是JSON格式，直接返回
@@ -321,7 +595,10 @@ async def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> s
                 target_url = VICTIM_HOST_URLS["default"]
         
         print(f"选择目标URL: {target_url}")
-        
+
+        # 记录工具开始执行
+        await attack_log_handler.log_tool_start("send_payload_to_victim", {"victim_url": target_url})
+
         # 调用攻击服务中的send_payload_to_victim工具
         # 注意：我们需要确保攻击服务中有这个工具
         async with attack_service_client.client as client:
@@ -330,15 +607,20 @@ async def send_payload_to_victim(victim_url: str, phishing_email_json: str) -> s
                 'victim_url': target_url,
                 'phishing_email_json': phishing_email_json
             }
-            
+
             # 调用工具
             response = await client.call_tool(
                 "send_payload_to_victim",
                 arguments=args
             )
-            
+
             # 从CallToolResult对象中安全地提取文本
-            return "\n".join([b.text for b in response.content if hasattr(b, "text")])
+            result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+            # 记录工具执行完成
+            await attack_log_handler.log_tool_end("send_payload_to_victim", result)
+
+            return result
     except Exception as e:
         return f"执行send_payload_to_victim工具时出错: {e}"
     except Exception as e:
@@ -606,7 +888,7 @@ async def execute_full_attack(request: AttackRequest):
         target_host = VICTIM_HOST_URLS["default"]
     
     logger.info(f"选择目标主机URL: {target_host}")
-    await send_log_to_backend("info", "攻击智能体", f"开始对目标 {target_host} 执行钓鱼攻击")
+    await send_standardized_log("info", "攻击智能体", "攻击者扫描防火墙")
     
     # 构造一个清晰的指令，让Agent开始工作
     input_prompt = f"""
@@ -633,14 +915,15 @@ async def execute_full_attack(request: AttackRequest):
     记住，越是针对性强的钓鱼邮件，成功率越高。利用所有可用的信息使攻击更加精准。
     """
     try:
-        # 发送日志到后端
-        await send_log_to_backend("info", "攻击智能体", "开始侦察阶段，获取目标信息")
-        
+        # 发送侦察开始日志
+        await send_standardized_log("info", "攻击智能体", "攻击者扫描防火墙")
+
         # 运行Agent，它现在会自主完成所有步骤，包括最后的交付
         attack_result = await agent_executor.ainvoke({"input": input_prompt})
-        
-        # 发送成功日志到后端
-        await send_log_to_backend("success", "攻击智能体", "攻击流程执行完成")
+
+        # 发送攻击完成日志
+        attack_log_handler.advance_stage("actions_on_objectives", 100)
+        await send_standardized_log("success", "攻击智能体", "攻击者完全攻陷目标系统")
         
         # 解析输出并发送详细日志
         output_lines = attack_result.get("output", "").split("\n")

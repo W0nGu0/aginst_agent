@@ -63,11 +63,11 @@ class FabricAttackVisualization {
    */
   createAttackPath(source, target, options = {}) {
     const config = { ...this.config.attackPath, ...options };
-    
+
     // 计算路径坐标
     const sourceCenter = source.getCenterPoint();
     const targetCenter = target.getCenterPoint();
-    
+
     // 创建攻击路径线
     const attackLine = new fabric.Line([
       sourceCenter.x, sourceCenter.y,
@@ -80,10 +80,10 @@ class FabricAttackVisualization {
       evented: false,
       opacity: 0.8
     });
-    
+
     this.canvas.add(attackLine);
     this.attackEffects.push(attackLine);
-    
+
     // 动画扩展到目标
     const animation = attackLine.animate({
       x2: targetCenter.x,
@@ -96,16 +96,57 @@ class FabricAttackVisualization {
       onComplete: () => {
         // 创建数据包动画
         this.createPacketAnimation(sourceCenter, targetCenter);
-        
+
         // 延迟移除攻击路径
         setTimeout(() => {
           this.removeEffect(attackLine);
         }, 1000);
       }
     });
-    
+
     this.activeAnimations.push(animation);
     return animation;
+  }
+
+  /**
+   * 开始连续攻击动画
+   * @param {fabric.Object} source - 源节点
+   * @param {fabric.Object} target - 目标节点
+   * @param {string} attackId - 攻击ID
+   * @param {Object} options - 动画选项
+   */
+  startContinuousAttack(source, target, attackId = 'default', options = {}) {
+    const config = {
+      interval: 4000,  // 每4秒一次攻击
+      ...options
+    };
+
+    const executeAttack = () => {
+      if (!this.continuousAnimations.has(attackId)) return;
+
+      // 创建攻击路径
+      this.createAttackPath(source, target, options);
+
+      // 设置下次攻击
+      const timeoutId = setTimeout(executeAttack, config.interval);
+      this.continuousAnimations.set(attackId, timeoutId);
+    };
+
+    // 开始连续攻击
+    this.continuousAnimations.set(attackId, true);
+    executeAttack();
+  }
+
+  /**
+   * 停止连续攻击
+   * @param {string} attackId - 攻击ID
+   */
+  stopContinuousAttack(attackId = 'default') {
+    const timeoutId = this.continuousAnimations.get(attackId);
+    if (timeoutId && typeof timeoutId === 'number') {
+      clearTimeout(timeoutId);
+    }
+    this.continuousAnimations.delete(attackId);
   }
 
   /**

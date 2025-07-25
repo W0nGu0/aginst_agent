@@ -132,18 +132,28 @@ export function handleDeliveryAnimation(technique, sourceNode, targetNode, statu
 // 利用阶段动画处理
 export function handleExploitationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization) {
   console.log('💥 利用阶段动画:', { technique, status, progress })
-  
+
   if (!attackVisualization) return
-  
+
   switch (technique) {
     case 'buffer_overflow':
     case '缓冲区溢出':
       if (targetNode) {
         attackVisualization.updateNodeStatus(targetNode, 'targeted')
         attackVisualization.createScanningPulse(targetNode, { pulseColor: '#dc2626' })
+
+        // 如果是持续攻击，启动连续攻击动画
+        if (sourceNode && (status === 'starting' || status === 'in_progress')) {
+          attackVisualization.startContinuousAttack(sourceNode, targetNode, `exploit-${targetNode.id}`, {
+            color: '#dc2626',
+            interval: 3000
+          })
+        } else if (status === 'completed') {
+          attackVisualization.stopContinuousAttack(`exploit-${targetNode.id}`)
+        }
       }
       break
-      
+
     case 'sql_injection':
     case 'SQL注入':
       if (targetNode) {
@@ -151,31 +161,52 @@ export function handleExploitationAnimation(technique, sourceNode, targetNode, s
         // 创建数据窃取动画
         if (sourceNode) {
           attackVisualization.createDataTheftAnimation(targetNode, sourceNode, 2)
+
+          // 启动连续数据窃取
+          if (status === 'starting' || status === 'in_progress') {
+            attackVisualization.startContinuousAttack(sourceNode, targetNode, `sql-${targetNode.id}`, {
+              color: '#f59e0b',
+              interval: 2500
+            })
+          } else if (status === 'completed') {
+            attackVisualization.stopContinuousAttack(`sql-${targetNode.id}`)
+          }
         }
       }
       break
-      
+
     case 'xss_attack':
     case 'XSS攻击':
       if (targetNode) {
         attackVisualization.updateNodeStatus(targetNode, 'targeted')
       }
       break
-      
+
     case 'credential_theft':
     case '凭据窃取':
       if (sourceNode && targetNode) {
         attackVisualization.createDataTheftAnimation(targetNode, sourceNode, 1.5)
       }
       break
-      
+
     default:
       if (targetNode) {
         attackVisualization.updateNodeStatus(targetNode, 'targeted')
         if (sourceNode) {
-          attackVisualization.createAttackPath(sourceNode, targetNode, {
-            color: '#dc2626'
-          })
+          // 启动连续攻击
+          if (status === 'starting' || status === 'in_progress') {
+            attackVisualization.startContinuousAttack(sourceNode, targetNode, `attack-${targetNode.id}`, {
+              color: '#dc2626',
+              interval: 3500
+            })
+          } else if (status === 'completed') {
+            attackVisualization.stopContinuousAttack(`attack-${targetNode.id}`)
+          } else {
+            // 单次攻击
+            attackVisualization.createAttackPath(sourceNode, targetNode, {
+              color: '#dc2626'
+            })
+          }
         }
       }
   }
@@ -314,11 +345,11 @@ export function handleLogBasedAnimation(log, sourceNode, targetNode, attackVisua
   const message = log.message.toLowerCase()
   const source = log.source.toLowerCase()
 
-  console.log('🎨 智能匹配动画:', {
+  console.log('🎨 智能匹配动画:', JSON.stringify({
     message: log.message,
     sourceNode: sourceNode?.deviceData?.name,
     targetNode: targetNode?.deviceData?.name
-  })
+  }, null, 2))
 
   // 基于关键词的智能匹配
   if (message.includes('扫描') || message.includes('scan') || message.includes('nmap')) {

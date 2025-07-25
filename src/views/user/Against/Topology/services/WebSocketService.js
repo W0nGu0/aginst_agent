@@ -106,7 +106,7 @@ class WebSocketService {
               return;
             }
             
-            console.debug('收到WebSocket消息:', message);
+            console.debug('收到WebSocket消息:', JSON.stringify(message, null, 2));
             
             // 调用所有消息处理器
             this.messageHandlers.forEach(handler => {
