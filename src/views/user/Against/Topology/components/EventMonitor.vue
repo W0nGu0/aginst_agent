@@ -2103,12 +2103,20 @@ export default {
   color: #a9a9a9;
 }
 
-.event-list,
-.log-list {
+.event-list {
   flex-grow: 1;
   overflow-y: auto;
   padding: 4px;
   max-height: 150px;
+}
+
+.log-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 4px;
+  max-height: 150px;
+  min-width: 0;
 }
 
 .event-item {
@@ -2169,12 +2177,16 @@ export default {
 }
 
 .log-item {
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 4px;
   margin-bottom: 2px;
   display: flex;
   align-items: center;
   font-size: 11px;
+  min-height: 24px;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .log-time {
@@ -2185,26 +2197,37 @@ export default {
 }
 
 .log-level {
-  width: 40px;
+  min-width: 60px;
+  max-width: 120px;
   text-align: center;
-  padding: 0px 4px;
-  border-radius: 2px;
-  margin-right: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
   font-weight: bold;
   text-transform: uppercase;
   font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .log-source {
   color: #1d8cf8;
-  margin-right: 4px;
+  margin-right: 6px;
   white-space: nowrap;
   font-size: 10px;
+  min-width: 80px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .log-message {
   flex-grow: 1;
-  word-break: break-word;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .log-error {
@@ -2617,12 +2640,20 @@ export default {
   color: #a9a9a9;
 }
 
-.event-list,
-.log-list {
+.event-list {
   flex-grow: 1;
   overflow-y: auto;
   padding: 4px;
   max-height: 150px;
+}
+
+.log-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 4px;
+  max-height: 150px;
+  min-width: 0;
 }
 
 .event-item {
@@ -2683,12 +2714,16 @@ export default {
 }
 
 .log-item {
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 4px;
   margin-bottom: 2px;
   display: flex;
   align-items: center;
   font-size: 11px;
+  min-height: 24px;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .log-time {
@@ -2699,26 +2734,37 @@ export default {
 }
 
 .log-level {
-  width: 40px;
+  min-width: 60px;
+  max-width: 120px;
   text-align: center;
-  padding: 0px 4px;
-  border-radius: 2px;
-  margin-right: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
   font-weight: bold;
   text-transform: uppercase;
   font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .log-source {
   color: #1d8cf8;
-  margin-right: 4px;
+  margin-right: 6px;
   white-space: nowrap;
   font-size: 10px;
+  min-width: 80px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .log-message {
   flex-grow: 1;
-  word-break: break-word;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .log-error {

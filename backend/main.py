@@ -310,50 +310,80 @@ async def execute_full_attack(req: AttackRequest):
                 # 尝试连接中控智能体
                 try:
                     # 先检查中控智能体是否可用
+                    logger.info("正在检查中控智能体连接状态...")
                     check_response = await client.get(
                         "http://localhost:8006/docs",
                         timeout=2.0
                     )
-                    logger.info("Central agent is available")
+                    logger.info(f"中控智能体连接检查成功，状态码: {check_response.status_code}")
+                except httpx.TimeoutException as e:
+                    logger.error(f"中控智能体连接超时: {str(e)}")
+                    raise httpx.RequestError(f"Central agent timeout: {str(e)}", request=None)
+                except httpx.ConnectError as e:
+                    logger.error(f"中控智能体连接被拒绝: {str(e)}")
+                    raise httpx.RequestError(f"Central agent connection refused: {str(e)}", request=None)
                 except Exception as e:
-                    logger.warning(f"Central agent check failed: {str(e)}")
+                    logger.error(f"中控智能体连接检查失败: {type(e).__name__}: {str(e)}")
                     raise httpx.RequestError(f"Central agent unavailable: {str(e)}", request=None)
                 
                 # 发送请求到中控智能体
+                logger.info(f"正在向中控智能体发送攻击请求: {central_agent_url}")
+                logger.info(f"请求载荷: {central_agent_payload}")
                 response = await client.post(
                     central_agent_url,
                     json=central_agent_payload,
-                    timeout=60.0  # 设置较长的超时时间，因为攻击过程可能需要时间
+                    timeout=400.0  # 增加超时时间，因为中控智能体需要调用LLM分析+攻击智能体执行(300s)
                 )
+                logger.info(f"中控智能体响应状态码: {response.status_code}")
             except httpx.RequestError as e:
-                logger.error(f"Request error to central agent: {str(e)}")
+                logger.error(f"中控智能体请求错误: {type(e).__name__}: {str(e)}")
                 # 如果中控智能体不可用，直接调用攻击智能体
-                logger.warning("Central agent unavailable, trying to call attack agent directly")
-                
+                logger.warning("中控智能体不可用，尝试直接调用攻击智能体")
+
                 # 尝试连接攻击智能体
                 try:
                     # 先检查攻击智能体是否可用
+                    logger.info("正在检查攻击智能体连接状态...")
                     check_response = await client.get(
                         "http://localhost:8004/docs",
                         timeout=2.0
                     )
-                    logger.info("Attack agent is available")
+                    logger.info(f"攻击智能体连接检查成功，状态码: {check_response.status_code}")
+                except httpx.TimeoutException as e:
+                    logger.error(f"攻击智能体连接超时: {str(e)}")
+                    return {
+                        "status": "error",
+                        "message": "Both central agent and attack agent are unavailable (timeout).",
+                        "error_details": f"Central agent error: {str(e)}, Attack agent timeout"
+                    }
+                except httpx.ConnectError as e:
+                    logger.error(f"攻击智能体连接被拒绝: {str(e)}")
+                    return {
+                        "status": "error",
+                        "message": "Both central agent and attack agent are unavailable (connection refused).",
+                        "error_details": f"Central agent error: {str(e)}, Attack agent connection refused"
+                    }
                 except Exception as e:
-                    logger.error(f"Attack agent check failed: {str(e)}")
+                    logger.error(f"攻击智能体连接检查失败: {type(e).__name__}: {str(e)}")
                     # 如果攻击智能体也不可用，返回模拟数据
                     return {
                         "status": "simulated",
                         "message": "Both central agent and attack agent are unavailable. Using simulated data.",
-                        "final_output": "模拟攻击过程：\n1. 扫描目标主机\n2. 发现开放端口\n3. 生成钓鱼邮件\n4. 发送钓鱼邮件\n5. 攻击成功，获取到目标凭据"
+                        "final_output": "模拟攻击过程：\n1. 扫描目标主机\n2. 发现开放端口\n3. 生成钓鱼邮件\n4. 发送钓鱼邮件\n5. 攻击成功，获取到目标凭据",
+                        "error_details": f"Central agent error: {str(e)}, Attack agent error: {str(e)}"
                     }
                 
                 # 发送请求到攻击智能体
                 attack_agent_url = "http://localhost:8004/execute_full_attack"
+                attack_payload = {"target_host": req.target_host}
+                logger.info(f"正在向攻击智能体发送请求: {attack_agent_url}")
+                logger.info(f"攻击智能体请求载荷: {attack_payload}")
                 response = await client.post(
                     attack_agent_url,
-                    json={"target_host": req.target_host},
+                    json=attack_payload,
                     timeout=60.0
                 )
+                logger.info(f"攻击智能体响应状态码: {response.status_code}")
             
             # 检查响应状态
             response.raise_for_status()
@@ -369,15 +399,25 @@ async def execute_full_attack(req: AttackRequest):
             
     except httpx.HTTPStatusError as e:
         error_msg = f"HTTP error occurred when contacting attack agent: {e.response.status_code} {e.response.text}"
-        logger.error(error_msg)
+        logger.error(f"HTTP状态错误: {error_msg}")
+        logger.error(f"响应头: {dict(e.response.headers)}")
         raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.TimeoutException as e:
+        error_msg = f"Timeout error occurred when contacting attack agent: {str(e)}"
+        logger.error(f"超时错误: {error_msg}")
+        raise HTTPException(status_code=504, detail=error_msg)
+    except httpx.ConnectError as e:
+        error_msg = f"Connection error occurred when contacting attack agent: {str(e)}"
+        logger.error(f"连接错误: {error_msg}")
+        raise HTTPException(status_code=503, detail=error_msg)
     except httpx.RequestError as e:
-        error_msg = f"Request error occurred when contacting attack agent: {str(e)}"
-        logger.error(error_msg)
+        error_msg = f"Request error occurred when contacting attack agent: {type(e).__name__}: {str(e)}"
+        logger.error(f"请求错误: {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
     except Exception as e:
-        error_msg = f"Unexpected error when executing attack: {str(e)}"
-        logger.error(error_msg)
+        error_msg = f"Unexpected error when executing attack: {type(e).__name__}: {str(e)}"
+        logger.error(f"未预期错误: {error_msg}")
+        logger.error(f"错误堆栈: ", exc_info=True)
         raise HTTPException(status_code=500, detail=error_msg)
 
 @api_router.post("/attack/execute_random_social_attack")
