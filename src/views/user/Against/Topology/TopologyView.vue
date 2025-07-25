@@ -43,14 +43,16 @@
 
 
 
-          <!-- 拓扑攻击可视化层 - 覆盖在canvas上但不阻挡交互 -->
-          <div class="topology-attack-overlay">
-            <TopologyAttackVisualizer />
-          </div>
+          <!-- 攻击可视化现在直接在Canvas中实现，无需额外组件 -->
 
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
-            <EventMonitor ref="eventMonitorRef" :attackTaskStatus="currentAttackTaskStatus" />
+            <EventMonitor
+              ref="eventMonitorRef"
+              :attackTaskStatus="currentAttackTaskStatus"
+              @nodes-status-reset="handleNodesStatusReset"
+              @nodes-status-refreshed="handleNodesStatusRefreshed"
+            />
           </div>
         </div>
       </div>
@@ -67,10 +69,10 @@
     <!-- 主机信息对话框 -->
     <HostInfoDialog :show="showHostInfoDialog" :host="selectedHost" @close="showHostInfoDialog = false" />
 
-    <!-- 钓鱼攻击可视化 -->
-    <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
+    <!-- 钓鱼攻击可视化 - 暂时禁用，使用新的 TopologyAttackVisualizer -->
+    <!-- <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
       :target="selectedPhishingTarget" :attackType="currentAttackType"
-      @close="showPhishingAttackVisualization = false" />
+      @close="showPhishingAttackVisualization = false" /> -->
 
 
 
@@ -83,21 +85,27 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
-import EnhancedAttackVisualization from './core/EnhancedAttackVisualization'
-import GSAPAttackVisualization from './core/GSAPAttackVisualization'
+import FabricAttackVisualization from './core/FabricAttackVisualization'
+import {
+  handleReconnaissanceAnimation,
+  handleWeaponizationAnimation,
+  handleDeliveryAnimation,
+  handleExploitationAnimation,
+  handleInstallationAnimation,
+  handleCommandControlAnimation,
+  handleActionsAnimation,
+  handleLogBasedAnimation
+} from './core/AttackStageAnimations'
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
-import PhishingService from './services/PhishingService'
+
 import AttackAgentService from './services/AttackAgentService'
 import AttackTaskService from './services/AttackTaskService'
 import WebSocketService from './services/WebSocketService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
-import SimplePhishingVisualization from './components/SimplePhishingVisualization.vue'
 import EventMonitor from './components/EventMonitor.vue'
-import AttackProgressMonitor from './components/AttackProgressMonitor.vue'
-import TopologyAttackVisualizer from './components/TopologyAttackVisualizer.vue'
 
 const topologyStore = useTopologyStore()
 let topology = null
@@ -126,17 +134,13 @@ const deviceTypes = {
 const showAttackerDialog = ref(false)
 const showFirewallDialog = ref(false)
 const showHostInfoDialog = ref(false)
-const showPhishingAttackVisualization = ref(false)
 const selectedAttacker = ref(null)
 const selectedFirewall = ref(null)
 const selectedHost = ref(null)
-const selectedPhishingTarget = ref(null)
-const currentAttackType = ref('phishing')
 const attackTargets = ref([])
 const eventMonitorRef = ref(null)
 
 // 攻击任务状态
-const showAttackProgressMonitor = ref(false)
 const currentAttackTaskId = ref('')
 const currentAttackTaskStatus = ref(null)
 
@@ -161,6 +165,9 @@ onMounted(async () => {
   // 添加攻击进度和完成事件监听
   window.addEventListener('attack-progress', handleAttackProgress)
   window.addEventListener('attack-completed', handleAttackCompleted)
+
+  // 添加拓扑动画事件监听
+  document.addEventListener('topology-animation', handleTopologyAnimationEvent)
 
   // 初始化WebSocket连接
   await initWebSocketConnection()
@@ -408,6 +415,7 @@ onUnmounted(() => {
   // 移除事件监听器
   window.removeEventListener('attack-progress', handleAttackProgress)
   window.removeEventListener('attack-completed', handleAttackCompleted)
+  document.removeEventListener('topology-animation', handleTopologyAnimationEvent)
 
   // 移除WebSocket消息处理器
   WebSocketService.removeMessageHandler(handleWebSocketMessage)
@@ -430,20 +438,39 @@ function initializeTopology() {
     return
   }
 
-  topology = new NetworkTopology({
-    canvasId: 'network-topology'
-  })
+  console.log('🚀 开始创建 NetworkTopology 实例...')
 
-  topology.initialize().then(() => {
-    console.log('拓扑图初始化完成')
+  try {
+    topology = new NetworkTopology({
+      canvasId: 'network-topology'
+    })
 
-    // 初始化攻击可视化，使用增强版GSAP可视化
+    console.log('✅ NetworkTopology 实例创建成功:', topology)
+
+    // 将 topology 对象暴露到全局，供调试使用
+    window.topology = topology
+
+    topology.initialize().then(() => {
+      console.log('✅ 拓扑图初始化完成')
+      console.log('📊 Topology canvas:', topology.canvas)
+
+      // 验证 Fabric.js 实例是否正确创建
+      const canvas = document.querySelector('#network-topology')
+      if (canvas && topology.canvas) {
+        console.log('🔗 将 Fabric 实例附加到 DOM 元素...')
+        // 手动设置 Fabric 实例到 DOM 元素
+        canvas.__fabric = topology.canvas
+        canvas.fabric = topology.canvas
+        console.log('✅ Fabric 实例已附加到 DOM')
+      }
+
+    // 使用新的基于Fabric.js的攻击可视化系统
     try {
-      attackVisualization = new EnhancedAttackVisualization(topology)
-      console.log('增强版攻击可视化初始化成功')
+      attackVisualization = new FabricAttackVisualization(topology)
+      console.log('✅ Fabric攻击可视化初始化成功')
     } catch (error) {
-      console.error('增强版攻击可视化初始化失败，回退到基础版本:', error)
-      attackVisualization = new GSAPAttackVisualization(topology)
+      console.error('❌ Fabric攻击可视化初始化失败:', error)
+      attackVisualization = null
     }
 
     // 监听事件
@@ -458,9 +485,34 @@ function initializeTopology() {
 
     // 初始化canvas
     topologyStore.setCanvas(topology.canvas)
-  }).catch(err => {
-    console.error('拓扑图初始化失败:', err)
-  })
+
+    // 运行 Fabric.js 诊断
+    console.log('🔍 运行 Fabric.js 诊断...')
+    setTimeout(() => {
+      if (window.FabricDiagnostic) {
+        window.FabricDiagnostic.diagnose()
+        window.FabricDiagnostic.testFabricInstance()
+      }
+    }, 1000)
+
+    // 触发拓扑图初始化完成事件，通知攻击可视化组件
+    const initEvent = new CustomEvent('topology-initialized', {
+      detail: {
+        topology: topology,
+        canvas: topology.canvas,
+        timestamp: new Date()
+      }
+    })
+    document.dispatchEvent(initEvent)
+    console.log('🎉 拓扑图初始化完成事件已触发')
+
+    }).catch(err => {
+      console.error('❌ 拓扑图初始化失败:', err)
+    })
+
+  } catch (error) {
+    console.error('❌ NetworkTopology 实例创建失败:', error)
+  }
 }
 
 // 处理设备点击事件
@@ -490,10 +542,18 @@ function handleAttackProgress(event) {
   if (taskId === currentAttackTaskId.value) {
     currentAttackTaskStatus.value = status
 
-    // 记录日志
+    // 记录日志并触发对应动画
     if (status.logs && status.logs.length > 0) {
       const latestLog = status.logs[status.logs.length - 1]
       logMessage(latestLog.level, latestLog.source, latestLog.message)
+
+      // 根据日志内容触发动画
+      if (attackVisualization && selectedAttacker.value) {
+        const target = Object.values(topology.devices || {}).find(d =>
+          d !== selectedAttacker.value && d.deviceData.name !== '攻击节点'
+        )
+        attackVisualization.triggerAnimationFromLog(latestLog, selectedAttacker.value, target)
+      }
     }
 
     // 根据阶段更新可视化
@@ -513,21 +573,159 @@ function handleAttackCompleted(event) {
       if (result && result.final_output) {
         logInfo('攻击结果', result.final_output)
       }
+
+      // 显示成功动画
+      if (attackVisualization && selectedAttacker.value) {
+        attackVisualization.createSuccessAnimation(selectedAttacker.value, 3)
+      }
     } else {
       logError('攻击智能体', `攻击任务失败: ${error}`)
     }
+
+    // 清除当前任务状态
+    currentAttackTaskId.value = ''
+    currentAttackTaskStatus.value = null
   }
+}
+
+// 处理拓扑动画事件
+function handleTopologyAnimationEvent(event) {
+  const { type, attackInfo, log } = event.detail
+
+  if (!attackVisualization || !topology) {
+    console.log('⚠️ 动画系统或拓扑未初始化，跳过动画')
+    return
+  }
+
+  console.log('🎬 收到拓扑动画事件:', {
+    type,
+    stage: attackInfo?.stage,
+    technique: attackInfo?.technique,
+    source: attackInfo?.source_node,
+    target: attackInfo?.target_node,
+    status: attackInfo?.status,
+    message: log?.message
+  })
+
+  // 根据攻击信息触发对应动画
+  if (type === 'attack_step') {
+    triggerAttackStepAnimation(attackInfo, log)
+  }
+}
+
+// 根据攻击步骤触发动画
+function triggerAttackStepAnimation(attackInfo, log) {
+  const { stage, technique, source_node, target_node, status, progress } = attackInfo
+
+  // 查找对应的拓扑节点
+  const sourceNode = findTopologyNode(source_node)
+  const targetNode = findTopologyNode(target_node)
+
+  console.log('🎯 触发攻击步骤动画:', {
+    stage,
+    technique,
+    sourceNode: sourceNode?.deviceData?.name,
+    targetNode: targetNode?.deviceData?.name,
+    status,
+    progress
+  })
+
+  // 根据攻击阶段和技术选择动画
+  switch (stage) {
+    case 'reconnaissance':
+      handleReconnaissanceAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'weaponization':
+      handleWeaponizationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'delivery':
+      handleDeliveryAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'exploitation':
+      handleExploitationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'installation':
+      handleInstallationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'command_and_control':
+      handleCommandControlAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    case 'actions_on_objectives':
+      handleActionsAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      break
+    default:
+      // 默认动画：根据日志内容触发
+      if (log) {
+        handleLogBasedAnimation(log, sourceNode || targetNode, targetNode, attackVisualization)
+      }
+  }
+}
+
+// 查找拓扑节点
+function findTopologyNode(nodeId) {
+  if (!topology || !nodeId) return null
+
+  console.log('🔍 查找节点:', nodeId)
+
+  // 节点ID映射 - 根据后端实际使用的ID和前端实际设备名称
+  const nodeMapping = {
+    // 后端使用的ID -> 前端设备名称的可能匹配
+    'internet': ['攻击者', '攻击节点'],
+    'firewall': ['内部防火墙', '外部防火墙', '防火墙'],
+    'target_host': ['PC-1', 'PC-2'],
+    'pc-user': ['PC-1', 'PC-2'],
+    'internal-server': ['服务器', 'WordPress网站', 'Apache_web服务器'],
+    'internal-db': ['数据库', 'PostgreSQL'],
+    'internal-file': ['文件服务器'],
+    'dmz-web': ['WordPress网站', 'Apache_web服务器'],
+    'dmz-dns': ['DNS服务器'],
+    'dmz-mail': ['邮件服务器'],
+    'vpn': ['VPN网关']
+  }
+
+  // 获取可能的设备名称列表
+  const possibleNames = nodeMapping[nodeId] || [nodeId]
+
+  // 在拓扑设备中查找
+  const devices = Object.values(topology.devices || {})
+
+  // 优先精确匹配
+  let foundDevice = devices.find(device => {
+    const deviceName = device.deviceData?.name
+    return possibleNames.some(name => deviceName === name)
+  })
+
+  // 如果精确匹配失败，尝试包含匹配
+  if (!foundDevice) {
+    foundDevice = devices.find(device => {
+      const deviceName = device.deviceData?.name
+      return possibleNames.some(name =>
+        deviceName?.includes(name) || name.includes(deviceName || '')
+      )
+    })
+  }
+
+  // 如果还是没找到，尝试设备类型匹配
+  if (!foundDevice) {
+    foundDevice = devices.find(device => device.deviceType === nodeId)
+  }
+
+  console.log('🎯 找到设备:', foundDevice?.deviceData?.name || '未找到')
+
+  return foundDevice
 }
 
 // 根据攻击阶段更新可视化
 function updateAttackVisualizationByPhase(phase, progress) {
+  if (!attackVisualization) return
+
   // 获取攻击者和目标
   const attacker = selectedAttacker.value
   const target = Object.values(topology.devices).find(d =>
     d !== attacker && d.deviceData.name !== '攻击节点'
   )
 
-  if (!attacker || !target || !attackVisualization) return
+  if (!attacker || !target) return
 
   // 根据阶段显示不同的动画
   switch (phase) {
@@ -535,33 +733,29 @@ function updateAttackVisualizationByPhase(phase, progress) {
       if (progress <= 5) {
         attackVisualization.createThinkingAnimation(attacker, 3)
       } else if (progress <= 10) {
-        attackVisualization.createScanningAnimation(attacker, target, 3)
+        attackVisualization.createScanningPulse(target)
       }
       break
     case 'weaponization':
       if (progress <= 20) {
         attackVisualization.createThinkingAnimation(attacker, 3)
-      } else if (progress <= 25) {
-        attackVisualization.createWritingAnimation(attacker, 3)
       }
       break
     case 'delivery':
       if (progress <= 35) {
-        attackVisualization.createSendEmailAnimation(attacker, target, 3)
+        attackVisualization.createAttackPath(attacker, target)
       } else if (progress <= 45) {
-        attackVisualization.createThinkingAnimation(target, 3)
+        attackVisualization.createThinkingAnimation(target, 2)
       }
       break
     case 'exploitation':
       if (progress <= 60) {
-        // 更新目标状态为被瞄准
-        updateNodeStatus(target, 'targeted')
+        attackVisualization.updateNodeStatus(target, 'targeted')
       }
       break
     case 'installation':
       if (progress <= 75) {
-        // 更新目标状态为已攻陷
-        updateNodeStatus(target, 'compromised')
+        attackVisualization.updateNodeStatus(target, 'compromised')
       }
       break
     case 'command_and_control':
@@ -591,8 +785,8 @@ async function handleAttack(attackData) {
       // 记录详细日志
       logDebug('攻击智能体', '向中央智能体发送攻击指令...')
 
-      // 在拓扑图上显示思考动画
-      if (attackVisualization.createThinkingAnimation) {
+      // 在拓扑图上显示思考动画 - 使用新的 Fabric.js 动画系统
+      if (attackVisualization && attackVisualization.createThinkingAnimation) {
         attackVisualization.createThinkingAnimation(attackData.attacker, 3)
       }
 
@@ -654,10 +848,10 @@ async function handleAttack(attackData) {
           // 添加到关键事件
           addAttackEvent(`社会工程学攻击成功: ${result.details.tactic || ''}`)
 
-          // 显示钓鱼攻击可视化
-          selectedPhishingTarget.value = attackData.target
-          currentAttackType.value = attackData.attackType
-          showPhishingAttackVisualization.value = true
+          // 显示钓鱼攻击可视化 - 暂时禁用
+          // selectedPhishingTarget.value = attackData.target
+          // currentAttackType.value = attackData.attackType
+          // showPhishingAttackVisualization.value = true
 
           // 在拓扑图上可视化攻击路径
           visualizeAttackPath(attackData.attacker, attackData.target)
@@ -716,8 +910,54 @@ async function handleAttack(attackData) {
   }
 }
 
-// 在拓扑图上可视化攻击路径
+// 在拓扑图上可视化攻击路径 - 使用新的 Fabric.js 动画系统
 function visualizeAttackPath(attacker, target = null) {
+  if (!topology || !attackVisualization) {
+    console.log('⚠️ 拓扑图或攻击可视化未初始化')
+    return
+  }
+
+  console.log('🎯 开始 Fabric.js 攻击路径可视化')
+
+  // 如果没有指定目标，寻找合适的目标
+  if (!target) {
+    const devices = Object.values(topology.devices)
+    target = devices.find(d =>
+      d !== attacker &&
+      d.deviceData.name !== '攻击节点' &&
+      (d.deviceData.type === 'web' || d.deviceData.type === 'server')
+    )
+  }
+
+  if (!target) {
+    console.log('⚠️ 未找到合适的攻击目标')
+    return
+  }
+
+  // 创建增强的攻击序列动画
+  if (attackVisualization.createAttackSequence) {
+    // 找到所有可能的目标
+    const allTargets = Object.values(topology.devices).filter(d =>
+      d !== attacker && d.deviceData.name !== '攻击节点'
+    )
+
+    attackVisualization.createAttackSequence(attacker, allTargets.slice(0, 3), 'auto')
+
+    // 开始连续扫描
+    if (allTargets.length > 0) {
+      attackVisualization.startContinuousScanning(allTargets, 'main-scan')
+    }
+
+    // 开始网络流量模拟
+    const allNodes = Object.values(topology.devices)
+    if (allNodes.length > 1) {
+      attackVisualization.startNetworkTraffic(allNodes, 'background-traffic')
+    }
+  } else if (attackVisualization.createAttackPath) {
+    // 回退到单个攻击路径
+    attackVisualization.createAttackPath(attacker, target)
+  }
+
   if (!topology || !attackVisualization) return
 
   // 如果没有指定目标，则寻找可能的目标
@@ -860,192 +1100,11 @@ function updateNodeStatus(node, status) {
   topology.canvas.requestRenderAll()
 }
 
-// 前端模拟攻击流程（当后端通信失败时使用）
-async function simulateFrontendAttack(attackData) {
-  logInfo('系统', '使用前端模拟攻击流程')
+// 前端模拟攻击流程已移除，现在使用 Fabric.js 动画系统
 
-  // 记录详细日志
-  logDebug('攻击智能体', '正在扫描网络拓扑结构...')
-  await simulateDelay(1000)
+// 钓鱼攻击功能已移除，现在使用 Fabric.js 动画系统
 
-  logDebug('攻击智能体', '识别到潜在目标：内部网络服务器、数据库服务器')
-  await simulateDelay(800)
-
-  logDebug('攻击智能体', '分析防火墙规则和网络隔离策略...')
-  await simulateDelay(1200)
-
-  logDebug('攻击智能体', '确定最佳攻击路径：外部防火墙 → Web服务器 → 内部防火墙 → 数据库服务器')
-  await simulateDelay(500)
-
-  // 在拓扑图上可视化攻击路径
-  visualizeAttackPath(attackData.attacker)
-
-  // 选择第一个目标（例如Web服务器）
-  const firstTarget = Object.values(topology.devices).find(d =>
-    d.deviceData.name.includes('Web') || d.deviceType === 'web'
-  )
-
-  if (!firstTarget) {
-    logWarning('攻击智能体', '未找到合适的初始目标，尝试选择其他目标')
-    // 选择任意一个非攻击者的设备作为目标
-    const anyTarget = Object.values(topology.devices).find(d =>
-      d !== attackData.attacker && d.deviceData.name !== '攻击节点'
-    )
-
-    if (!anyTarget) {
-      throw new Error('无法找到任何攻击目标')
-    }
-
-    // 执行钓鱼攻击
-    await executePhishingAttack(attackData.attacker, anyTarget)
-  } else {
-    // 执行第一阶段攻击：钓鱼攻击Web服务器管理员
-    await executePhishingAttack(attackData.attacker, firstTarget)
-
-    // 更新节点状态为已攻陷
-    updateNodeStatus(firstTarget, 'compromised')
-
-    // 等待一段时间后执行第二阶段攻击
-    await simulateDelay(3000)
-
-    // 寻找数据库服务器作为第二阶段目标
-    const secondTarget = Object.values(topology.devices).find(d =>
-      d.deviceData.name.includes('数据库') || d.deviceType === 'db'
-    )
-
-    if (secondTarget) {
-      // 执行第二阶段攻击：利用Web服务器漏洞攻击数据库
-      logInfo('攻击智能体', `开始第二阶段攻击：从已攻陷的Web服务器横向移动到数据库服务器`)
-
-      // 添加到关键事件
-      addAttackEvent(`开始横向移动：从Web服务器向数据库服务器发起攻击`)
-
-      // 模拟攻击结果
-      await simulateDelay(2000)
-
-      // 记录攻击结果
-      const success = Math.random() > 0.3 // 70%的成功率
-
-      if (success) {
-        logSuccess('攻击智能体', `成功攻陷数据库服务器`)
-        addAttackEvent(`横向移动成功：数据库服务器已被攻陷`)
-
-        // 更新节点状态为已攻陷
-        updateNodeStatus(secondTarget, 'compromised')
-      } else {
-        logError('攻击智能体', `攻击数据库服务器失败：内部防火墙阻止了连接`)
-        addAttackEvent(`横向移动失败：内部防火墙阻止了从Web服务器到数据库服务器的连接`)
-      }
-    }
-  }
-}
-
-// 执行钓鱼攻击
-async function executePhishingAttack(attacker, target, attackType = 'phishing') {
-  // 记录日志
-  logInfo('攻击', `${attacker.deviceData.name} 开始对 ${target.deviceData.name} 发起钓鱼攻击`)
-
-  // 添加详细日志
-  logDebug('钓鱼攻击', `正在收集目标 ${target.deviceData.name} 的信息...`)
-  await simulateDelay(800)
-
-  logDebug('钓鱼攻击', `生成针对目标的定制化钓鱼邮件...`)
-  await simulateDelay(1000)
-
-  // 添加到关键事件
-  addAttackEvent(`${attacker.deviceData.name} 向 ${target.deviceData.name} 发送钓鱼邮件`)
-
-  // 显示钓鱼攻击可视化
-  selectedPhishingTarget.value = target
-  currentAttackType.value = attackType
-  showPhishingAttackVisualization.value = true
-
-  // 在拓扑图上可视化攻击路径
-  visualizeAttackPath(attacker, target)
-
-  // 使用钓鱼服务执行攻击
-  const result = await PhishingService.simulatePhishingAttack({
-    attacker,
-    target,
-    attackType
-  })
-
-  // 记录攻击结果
-  if (result.success) {
-    logSuccess('钓鱼攻击', `成功对 ${target.deviceData.name} 发起钓鱼攻击`)
-    addAttackEvent(`钓鱼攻击成功：${target.deviceData.name} 的凭据已被窃取`)
-
-    // 添加详细日志
-    logDebug('钓鱼攻击', `获取到目标凭据：${target.deviceData.name}的管理员账号`)
-    await simulateDelay(500)
-
-    logDebug('钓鱼攻击', `尝试使用获取的凭据登录目标系统...`)
-    await simulateDelay(800)
-
-    logDebug('钓鱼攻击', `成功登录目标系统，获取控制权限`)
-
-    // 更新节点状态为已攻陷
-    updateNodeStatus(target, 'compromised')
-  } else {
-    logError('钓鱼攻击', `对 ${target.deviceData.name} 的钓鱼攻击失败`)
-    addAttackEvent(`钓鱼攻击失败：${target.deviceData.name} 识别出了钓鱼邮件`)
-
-    // 添加详细日志
-    logDebug('钓鱼攻击', `目标未点击钓鱼链接，攻击失败`)
-  }
-
-  return result
-}
-
-// 模拟延迟
-function simulateDelay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-// 开始攻击模拟
-async function startAttackSimulation() {
-  try {
-    logInfo('系统', '开始攻击模拟...')
-    
-    // 查找攻击者节点
-    const attacker = Object.values(topology.devices || {}).find(d => 
-      d.deviceData?.name?.includes('攻击') || 
-      d.deviceType === 'attacker' ||
-      d.deviceData?.name === '攻击者'
-    )
-    
-    if (!attacker) {
-      // 如果没有攻击者，创建一个虚拟攻击者
-      logWarning('系统', '未找到攻击者节点，将模拟外部攻击')
-      
-      // 创建攻击数据
-      const attackData = {
-        attacker: { deviceData: { name: '外部攻击者' } },
-        attackType: 'auto',
-        target: 'network'
-      }
-      
-      // 执行自动攻击
-      await handleAttack(attackData)
-    } else {
-      logInfo('系统', `找到攻击者: ${attacker.deviceData.name}`)
-      
-      // 创建攻击数据
-      const attackData = {
-        attacker: attacker,
-        attackType: 'auto',
-        target: 'network'
-      }
-      
-      // 执行自动攻击
-      await handleAttack(attackData)
-    }
-    
-  } catch (error) {
-    console.error('启动攻击模拟失败:', error)
-    logError('系统', `启动攻击模拟失败: ${error.message}`)
-  }
-}
+// 攻击模拟功能已移除，现在使用 Fabric.js 动画系统
 
 // 处理防火墙保存事件
 function handleFirewallSave(firewallData) {
@@ -1153,6 +1212,14 @@ async function generateScenario() {
     // 清空当前拓扑图
     topology.clear()
 
+    // 🔄 重置节点状态 - 在生成场景时自动重置所有节点状态
+    console.log('🔄 生成场景时自动重置节点状态...')
+    if (eventMonitorRef.value) {
+      // 调用 EventMonitor 的重置方法
+      eventMonitorRef.value.resetAllNodeStatus()
+      logInfo('系统', '已重置所有节点状态')
+    }
+
     // 显示加载动画
     const loadingEl = document.getElementById('topology-loading')
     if (loadingEl) {
@@ -1173,6 +1240,14 @@ async function generateScenario() {
 
       // 强制更新所有设备的视觉状态
       TopologyGenerator.forceUpdateDevicesVisualState(topology)
+
+      // 🔄 生成场景成功后，再次刷新节点状态以确保与容器状态同步
+      if (eventMonitorRef.value) {
+        setTimeout(() => {
+          eventMonitorRef.value.refreshNodeStatusFromContainers()
+          logInfo('系统', '已同步容器状态到节点状态')
+        }, 2000) // 等待2秒让容器完全启动
+      }
 
       // 显示成功消息
       logSuccess('系统', '场景生成成功')
@@ -1381,6 +1456,111 @@ function getDeviceTypeName(type) {
 
   return typeMap[type] || type
 }
+
+// 处理节点状态重置
+const handleNodesStatusReset = () => {
+  console.log('🔄 处理节点状态重置事件')
+
+  // 重置拓扑图中所有节点的视觉状态
+  if (window.topologyFabricCanvas) {
+    const canvas = window.topologyFabricCanvas
+    const objects = canvas.getObjects()
+
+    objects.forEach(obj => {
+      if (obj.deviceData) {
+        // 重置节点的视觉状态
+        obj.set({
+          stroke: '#ffffff',
+          strokeWidth: 1,
+          strokeDashArray: null,
+          opacity: 1,
+          filters: []
+        })
+
+        // 重置设备数据状态
+        if (obj.deviceData) {
+          obj.deviceData.status = 'normal'
+          obj.deviceData.compromised = false
+          obj.deviceData.attackLevel = 0
+        }
+      }
+    })
+
+    canvas.requestRenderAll()
+    console.log('✅ 拓扑图节点状态已重置')
+  }
+}
+
+// 处理节点状态刷新
+const handleNodesStatusRefreshed = (networkNodes) => {
+  console.log('🔄 处理节点状态刷新事件', networkNodes)
+
+  // 根据刷新后的状态更新拓扑图节点
+  if (window.topologyFabricCanvas && networkNodes) {
+    const canvas = window.topologyFabricCanvas
+    const objects = canvas.getObjects()
+
+    objects.forEach(obj => {
+      if (obj.deviceData && obj.deviceData.name) {
+        // 查找对应的网络节点状态
+        const nodeStatus = Object.values(networkNodes).find(node =>
+          node.name === obj.deviceData.name ||
+          node.id === obj.deviceData.id
+        )
+
+        if (nodeStatus) {
+          // 根据状态更新节点视觉效果
+          updateNodeVisualStatus(obj, nodeStatus.status)
+
+          // 更新设备数据
+          obj.deviceData.status = nodeStatus.status
+          obj.deviceData.compromised = nodeStatus.compromised
+          obj.deviceData.attackLevel = nodeStatus.attackLevel
+        }
+      }
+    })
+
+    canvas.requestRenderAll()
+    console.log('✅ 拓扑图节点状态已刷新')
+  }
+}
+
+// 更新节点视觉状态
+const updateNodeVisualStatus = (node, status) => {
+  switch (status) {
+    case 'normal':
+      node.set({
+        stroke: '#ffffff',
+        strokeWidth: 1,
+        strokeDashArray: null,
+        opacity: 1,
+        filters: []
+      })
+      break
+    case 'compromised':
+      node.set({
+        stroke: '#ff0000',
+        strokeWidth: 3,
+        strokeDashArray: [5, 5],
+        opacity: 1
+      })
+      break
+    case 'under_attack':
+      node.set({
+        stroke: '#ff6600',
+        strokeWidth: 2,
+        opacity: 1
+      })
+      break
+    case 'failed':
+      node.set({
+        stroke: '#ff0000',
+        strokeWidth: 1,
+        opacity: 0.7
+      })
+      break
+  }
+}
 </script>
 
 <style scoped>
@@ -1471,7 +1651,8 @@ function getDeviceTypeName(type) {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1; /* 设置为最低层，确保不会覆盖拓扑图 */
+  z-index: 1;
+  /* 设置为最低层，确保不会覆盖拓扑图 */
   background: transparent;
 }
 </style>

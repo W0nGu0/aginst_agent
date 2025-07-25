@@ -13,4 +13,5 @@ COPY rsyslog.conf /etc/rsyslog.conf
 
 EXPOSE 514/udp
 
-CMD ["rsyslogd", "-n"] 
+# 清理可能存在的 PID 文件并启动 rsyslog
+CMD ["sh", "-c", "rm -f /run/rsyslogd.pid && rsyslogd -n"]

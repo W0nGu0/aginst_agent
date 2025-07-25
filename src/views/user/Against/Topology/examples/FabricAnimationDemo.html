@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric.js 攻击动画演示</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .canvas-container {
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: rgba(30, 30, 47, 0.5);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-info { background: #2196F3; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Fabric.js 攻击动画演示</h1>
+        
+        <div class="info">
+            <h3>演示说明</h3>
+            <p>这个演示展示了如何使用 Fabric.js 原生动画功能实现网络攻击可视化效果，替代复杂的 GSAP+SVG+Canvas 混合方案。</p>
+            <p><strong>优势：</strong> 统一坐标系、更好性能、更简单维护</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="createNodes()">创建网络节点</button>
+            <button class="btn btn-info" onclick="demonstrateAttackPath()">攻击路径动画</button>
+            <button class="btn btn-warning" onclick="demonstrateScanning()">扫描动画</button>
+            <button class="btn btn-info" onclick="demonstrateDataTheft()">数据窃取动画</button>
+            <button class="btn btn-primary" onclick="demonstrateThinking()">加载动画</button>
+            <button class="btn btn-primary" onclick="demonstrateSuccess()">成功动画</button>
+            <button class="btn btn-success" onclick="demonstrateFullAttackSequence()">完整攻击序列</button>
+            <button class="btn btn-warning" onclick="demonstrateContinuousScanning()">连续扫描</button>
+            <button class="btn btn-info" onclick="demonstrateNetworkTraffic()">网络流量</button>
+            <button class="btn btn-danger" onclick="clearCanvas()">清除画布</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="demo-canvas" width="1000" height="600"></canvas>
+        </div>
+
+        <div class="info">
+            <h3>技术特点</h3>
+            <ul>
+                <li><strong>统一坐标系：</strong>所有动画都在同一个 Canvas 坐标系内</li>
+                <li><strong>原生动画：</strong>使用 fabric.js 内置的 animate() 方法</li>
+                <li><strong>丰富缓动：</strong>支持多种缓动函数（easeOutCubic, easeInOutQuad 等）</li>
+                <li><strong>高性能：</strong>单一渲染层，避免多层渲染开销</li>
+                <li><strong>易维护：</strong>统一的 API，代码更简洁</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 Fabric.js 画布
+        const canvas = new fabric.Canvas('demo-canvas', {
+            backgroundColor: 'rgba(30, 30, 47, 0.8)'
+        });
+
+        let nodes = [];
+        let effects = [];
+
+        // 创建网络节点
+        function createNodes() {
+            clearCanvas();
+            
+            // 创建攻击者节点
+            const attacker = new fabric.Circle({
+                left: 150,
+                top: 300,
+                radius: 30,
+                fill: '#ff4444',
+                stroke: '#fff',
+                strokeWidth: 2,
+                selectable: false
+            });
+            
+            const attackerLabel = new fabric.Text('攻击者', {
+                left: 150,
+                top: 350,
+                fontSize: 14,
+                fill: '#fff',
+                textAlign: 'center',
+                originX: 'center',
+                selectable: false
+            });
+
+            // 创建目标节点
+            const targets = [
+                { x: 400, y: 200, type: 'Web服务器', color: '#03a9f4' },
+                { x: 600, y: 300, type: '数据库', color: '#3f51b5' },
+                { x: 800, y: 400, type: '文件服务器', color: '#607d8b' }
+            ];
+
+            targets.forEach((target, index) => {
+                const node = new fabric.Circle({
+                    left: target.x,
+                    top: target.y,
+                    radius: 25,
+                    fill: target.color,
+                    stroke: '#fff',
+                    strokeWidth: 2,
+                    selectable: false
+                });
+                
+                const label = new fabric.Text(target.type, {
+                    left: target.x,
+                    top: target.y + 40,
+                    fontSize: 12,
+                    fill: '#fff',
+                    textAlign: 'center',
+                    originX: 'center',
+                    selectable: false
+                });
+
+                canvas.add(node);
+                canvas.add(label);
+                nodes.push({ node, label, type: 'target' });
+            });
+
+            canvas.add(attacker);
+            canvas.add(attackerLabel);
+            nodes.push({ node: attacker, label: attackerLabel, type: 'attacker' });
+            
+            canvas.renderAll();
+        }
+
+        // 演示攻击路径动画
+        function demonstrateAttackPath() {
+            if (nodes.length === 0) createNodes();
+            
+            const attacker = nodes.find(n => n.type === 'attacker').node;
+            const target = nodes.find(n => n.type === 'target').node;
+            
+            const attackerCenter = attacker.getCenterPoint();
+            const targetCenter = target.getCenterPoint();
+            
+            // 创建攻击路径线
+            const attackLine = new fabric.Line([
+                attackerCenter.x, attackerCenter.y,
+                attackerCenter.x, attackerCenter.y
+            ], {
+                stroke: '#ff4444',
+                strokeWidth: 4,
+                strokeDashArray: [10, 5],
+                selectable: false
+            });
+            
+            canvas.add(attackLine);
+            effects.push(attackLine);
+            
+            // 动画扩展到目标
+            attackLine.animate({
+                x2: targetCenter.x,
+                y2: targetCenter.y
+            }, {
+                duration: 2000,
+                easing: fabric.util.ease.easeOutCubic,
+                onChange: () => canvas.renderAll(),
+                onComplete: () => {
+                    // 创建数据包动画
+                    createPacketAnimation(attackerCenter, targetCenter);
+                    
+                    // 延迟移除攻击路径
+                    setTimeout(() => {
+                        canvas.remove(attackLine);
+                        canvas.renderAll();
+                    }, 1000);
+                }
+            });
+        }
+
+        // 创建数据包动画
+        function createPacketAnimation(start, end) {
+            const packet = new fabric.Circle({
+                left: start.x,
+                top: start.y,
+                radius: 8,
+                fill: '#ff6b6b',
+                selectable: false,
+                originX: 'center',
+                originY: 'center'
+            });
+            
+            canvas.add(packet);
+            effects.push(packet);
+            
+            packet.animate({
+                left: end.x,
+                top: end.y
+            }, {
+                duration: 1000,
+                easing: fabric.util.ease.easeInOutQuad,
+                onChange: () => canvas.renderAll(),
+                onComplete: () => {
+                    createImpactEffect(end);
+                    canvas.remove(packet);
+                    canvas.renderAll();
+                }
+            });
+        }
+
+        // 创建撞击效果
+        function createImpactEffect(position) {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const impact = new fabric.Circle({
+                        left: position.x,
+                        top: position.y,
+                        radius: 2,
+                        fill: 'transparent',
+                        stroke: '#ff4444',
+                        strokeWidth: 2,
+                        selectable: false,
+                        originX: 'center',
+                        originY: 'center'
+                    });
+                    
+                    canvas.add(impact);
+                    
+                    impact.animate({
+                        radius: 15 + i * 5,
+                        opacity: 0
+                    }, {
+                        duration: 600,
+                        easing: fabric.util.ease.easeOutQuad,
+                        onChange: () => canvas.renderAll(),
+                        onComplete: () => {
+                            canvas.remove(impact);
+                            canvas.renderAll();
+                        }
+                    });
+                }, i * 100);
+            }
+        }
+
+        // 演示扫描动画 - 增强版
+        function demonstrateScanning() {
+            if (nodes.length === 0) createNodes();
+
+            const target = nodes.find(n => n.type === 'target').node;
+            const center = target.getCenterPoint();
+
+            // 创建多层扫描脉冲
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const pulse = new fabric.Circle({
+                        left: center.x,
+                        top: center.y,
+                        radius: 5,
+                        fill: 'transparent',
+                        stroke: i === 0 ? '#3b82f6' : i === 1 ? '#10b981' : '#f59e0b',
+                        strokeWidth: 3,
+                        selectable: false,
+                        originX: 'center',
+                        originY: 'center',
+                        opacity: 0.8
+                    });
+
+                    canvas.add(pulse);
+                    effects.push(pulse);
+
+                    pulse.animate({
+                        radius: 60 + i * 10,
+                        opacity: 0
+                    }, {
+                        duration: 2000,
+                        easing: fabric.util.ease.easeOutQuad,
+                        onChange: () => canvas.renderAll(),
+                        onComplete: () => {
+                            canvas.remove(pulse);
+                            canvas.renderAll();
+                        }
+                    });
+                }, i * 300);
+            }
+
+            // 添加扫描文字提示
+            const scanText = new fabric.Text('扫描中...', {
+                left: center.x,
+                top: center.y - 80,
+                fontSize: 14,
+                fill: '#3b82f6',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                originX: 'center',
+                selectable: false,
+                opacity: 0
+            });
+
+            canvas.add(scanText);
+
+            // 文字淡入淡出
+            scanText.animate({ opacity: 1 }, {
+                duration: 500,
+                onChange: () => canvas.renderAll(),
+                onComplete: () => {
+                    setTimeout(() => {
+                        scanText.animate({ opacity: 0 }, {
+                            duration: 500,
+                            onChange: () => canvas.renderAll(),
+                            onComplete: () => {
+                                canvas.remove(scanText);
+                                canvas.renderAll();
+                            }
+                        });
+                    }, 2000);
+                }
+            });
+        }
+
+        // 演示数据窃取动画
+        function demonstrateDataTheft() {
+            if (nodes.length === 0) createNodes();
+            
+            const attacker = nodes.find(n => n.type === 'attacker').node;
+            const target = nodes.find(n => n.type === 'target').node;
+            
+            const attackerCenter = attacker.getCenterPoint();
+            const targetCenter = target.getCenterPoint();
+            
+            // 创建多个数据包
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const dataPacket = new fabric.Rect({
+                        left: targetCenter.x,
+                        top: targetCenter.y,
+                        width: 12,
+                        height: 8,
+                        fill: '#4ade80',
+                        selectable: false,
+                        originX: 'center',
+                        originY: 'center'
+                    });
+                    
+                    canvas.add(dataPacket);
+                    
+                    dataPacket.animate({
+                        left: attackerCenter.x,
+                        top: attackerCenter.y
+                    }, {
+                        duration: 800,
+                        easing: fabric.util.ease.easeInOutQuad,
+                        onChange: () => canvas.renderAll(),
+                        onComplete: () => {
+                            canvas.remove(dataPacket);
+                            canvas.renderAll();
+                        }
+                    });
+                }, i * 300);
+            }
+        }
+
+        // 演示加载动画
+        function demonstrateThinking() {
+            if (nodes.length === 0) createNodes();
+
+            const attacker = nodes.find(n => n.type === 'attacker').node;
+            const center = attacker.getCenterPoint();
+
+            // 创建加载圆环背景
+            const loadingBg = new fabric.Circle({
+                left: center.x,
+                top: center.y - 60,
+                radius: 18,
+                fill: 'transparent',
+                stroke: 'rgba(255, 255, 255, 0.3)',
+                strokeWidth: 3,
+                selectable: false,
+                originX: 'center',
+                originY: 'center',
+                opacity: 0
+            });
+
+            // 创建加载进度圆环
+            const loadingProgress = new fabric.Circle({
+                left: center.x,
+                top: center.y - 60,
+                radius: 18,
+                fill: 'transparent',
+                stroke: '#4CAF50',
+                strokeWidth: 3,
+                strokeDashArray: [20, 100], // 创建间隙效果
+                selectable: false,
+                originX: 'center',
+                originY: 'center',
+                opacity: 0,
+                angle: 0
+            });
+
+            // 创建中心加载图标
+            const loadingIcon = new fabric.Text('⚙️', {
+                left: center.x,
+                top: center.y - 60,
+                fontSize: 16,
+                selectable: false,
+                originX: 'center',
+                originY: 'center',
+                opacity: 0
+            });
+
+            canvas.add(loadingBg);
+            canvas.add(loadingProgress);
+            canvas.add(loadingIcon);
+
+            // 淡入动画
+            fabric.util.animate({
+                startValue: 0,
+                endValue: 1,
+                duration: 300,
+                onChange: (value) => {
+                    loadingBg.set('opacity', value);
+                    loadingProgress.set('opacity', value);
+                    loadingIcon.set('opacity', value);
+                    canvas.renderAll();
+                }
+            });
+
+            // 旋转动画 - 圆环
+            const rotateProgress = () => {
+                loadingProgress.animate('angle', loadingProgress.angle + 360, {
+                    duration: 1000,
+                    easing: fabric.util.ease.easeInOutQuad,
+                    onChange: () => canvas.renderAll(),
+                    onComplete: () => {
+                        if (loadingProgress.opacity > 0) {
+                            rotateProgress(); // 继续旋转
+                        }
+                    }
+                });
+            };
+
+            // 旋转动画 - 中心图标
+            const rotateIcon = () => {
+                loadingIcon.animate('angle', loadingIcon.angle + 180, {
+                    duration: 800,
+                    easing: fabric.util.ease.easeInOutQuad,
+                    onChange: () => canvas.renderAll(),
+                    onComplete: () => {
+                        if (loadingIcon.opacity > 0) {
+                            rotateIcon(); // 继续旋转
+                        }
+                    }
+                });
+            };
+
+            // 开始旋转
+            setTimeout(() => {
+                rotateProgress();
+                rotateIcon();
+            }, 300);
+
+            // 延迟淡出
+            setTimeout(() => {
+                fabric.util.animate({
+                    startValue: 1,
+                    endValue: 0,
+                    duration: 500,
+                    onChange: (value) => {
+                        loadingBg.set('opacity', value);
+                        loadingProgress.set('opacity', value);
+                        loadingIcon.set('opacity', value);
+                        canvas.renderAll();
+                    },
+                    onComplete: () => {
+                        canvas.remove(loadingBg);
+                        canvas.remove(loadingProgress);
+                        canvas.remove(loadingIcon);
+                        canvas.renderAll();
+                    }
+                });
+            }, 3000);
+        }
+
+        // 演示成功动画
+        function demonstrateSuccess() {
+            if (nodes.length === 0) createNodes();
+            
+            const attacker = nodes.find(n => n.type === 'attacker').node;
+            const center = attacker.getCenterPoint();
+            
+            const successIcon = new fabric.Text('✅', {
+                left: center.x,
+                top: center.y - 40,
+                fontSize: 30,
+                selectable: false,
+                originX: 'center',
+                originY: 'center',
+                opacity: 0,
+                scaleX: 0.5,
+                scaleY: 0.5
+            });
+            
+            canvas.add(successIcon);
+            
+            // 弹出动画
+            successIcon.animate({
+                opacity: 1,
+                scaleX: 1.2,
+                scaleY: 1.2
+            }, {
+                duration: 300,
+                easing: fabric.util.ease.easeOutBack,
+                onChange: () => canvas.renderAll(),
+                onComplete: () => {
+                    // 缩回正常大小
+                    successIcon.animate({
+                        scaleX: 1,
+                        scaleY: 1
+                    }, {
+                        duration: 200,
+                        onChange: () => canvas.renderAll()
+                    });
+                }
+            });
+            
+            // 延迟淡出
+            setTimeout(() => {
+                successIcon.animate({
+                    opacity: 0,
+                    top: center.y - 60
+                }, {
+                    duration: 500,
+                    onChange: () => canvas.renderAll(),
+                    onComplete: () => {
+                        canvas.remove(successIcon);
+                        canvas.renderAll();
+                    }
+                });
+            }, 2000);
+        }
+
+        // 演示完整攻击序列
+        function demonstrateFullAttackSequence() {
+            if (nodes.length === 0) createNodes();
+
+            const attacker = nodes.find(n => n.type === 'attacker').node;
+            const targets = nodes.filter(n => n.type === 'target').map(n => n.node);
+
+            let currentStep = 0;
+            const steps = [
+                { name: '侦察阶段', action: () => demonstrateThinking() },
+                { name: '扫描阶段', action: () => demonstrateScanning() },
+                { name: '攻击阶段', action: () => demonstrateAttackPath() },
+                { name: '数据窃取', action: () => demonstrateDataTheft() },
+                { name: '攻击成功', action: () => demonstrateSuccess() }
+            ];
+
+            function executeNextStep() {
+                if (currentStep < steps.length) {
+                    console.log(`执行: ${steps[currentStep].name}`);
+                    steps[currentStep].action();
+                    currentStep++;
+                    setTimeout(executeNextStep, 3000); // 每3秒执行下一步
+                } else {
+                    console.log('攻击序列完成');
+                    setTimeout(() => {
+                        console.log('开始新一轮攻击...');
+                        currentStep = 0;
+                        executeNextStep(); // 循环执行
+                    }, 2000);
+                }
+            }
+
+            executeNextStep();
+        }
+
+        // 演示连续扫描
+        function demonstrateContinuousScanning() {
+            if (nodes.length === 0) createNodes();
+
+            const targets = nodes.filter(n => n.type === 'target').map(n => n.node);
+            let currentTarget = 0;
+
+            function scanNextTarget() {
+                if (targets.length === 0) return;
+
+                const target = targets[currentTarget];
+                const center = target.getCenterPoint();
+
+                // 创建扫描波
+                const scanWave = new fabric.Circle({
+                    left: center.x,
+                    top: center.y,
+                    radius: 3,
+                    fill: 'transparent',
+                    stroke: '#10b981',
+                    strokeWidth: 2,
+                    selectable: false,
+                    originX: 'center',
+                    originY: 'center',
+                    opacity: 0.9
+                });
+
+                canvas.add(scanWave);
+
+                scanWave.animate({
+                    radius: 40,
+                    opacity: 0
+                }, {
+                    duration: 1000,
+                    easing: fabric.util.ease.easeOutQuad,
+                    onChange: () => canvas.renderAll(),
+                    onComplete: () => {
+                        canvas.remove(scanWave);
+                        canvas.renderAll();
+
+                        // 扫描下一个目标
+                        currentTarget = (currentTarget + 1) % targets.length;
+                        setTimeout(scanNextTarget, 500);
+                    }
+                });
+            }
+
+            scanNextTarget();
+        }
+
+        // 演示网络流量
+        function demonstrateNetworkTraffic() {
+            if (nodes.length === 0) createNodes();
+
+            const allNodes = nodes.map(n => n.node);
+
+            function createTrafficPacket() {
+                const source = allNodes[Math.floor(Math.random() * allNodes.length)];
+                const target = allNodes[Math.floor(Math.random() * allNodes.length)];
+
+                if (source === target) return;
+
+                const sourceCenter = source.getCenterPoint();
+                const targetCenter = target.getCenterPoint();
+
+                const packet = new fabric.Circle({
+                    left: sourceCenter.x,
+                    top: sourceCenter.y,
+                    radius: 3,
+                    fill: Math.random() > 0.5 ? '#4ade80' : '#60a5fa',
+                    selectable: false,
+                    originX: 'center',
+                    originY: 'center'
+                });
+
+                canvas.add(packet);
+
+                packet.animate({
+                    left: targetCenter.x,
+                    top: targetCenter.y
+                }, {
+                    duration: 1500 + Math.random() * 1000,
+                    easing: fabric.util.ease.easeInOutQuad,
+                    onChange: () => canvas.renderAll(),
+                    onComplete: () => {
+                        canvas.remove(packet);
+                        canvas.renderAll();
+                    }
+                });
+            }
+
+            // 每隔一段时间创建新的流量包
+            const trafficInterval = setInterval(() => {
+                createTrafficPacket();
+                if (Math.random() > 0.7) createTrafficPacket(); // 有时创建多个包
+            }, 800);
+
+            // 10秒后停止
+            setTimeout(() => {
+                clearInterval(trafficInterval);
+                console.log('网络流量演示结束');
+            }, 10000);
+        }
+
+        // 清除画布
+        function clearCanvas() {
+            canvas.clear();
+            canvas.setBackgroundColor('rgba(30, 30, 47, 0.8)', canvas.renderAll.bind(canvas));
+            nodes = [];
+            effects = [];
+        }
+
+        // 初始化时创建节点
+        createNodes();
+    </script>
+</body>
+</html>

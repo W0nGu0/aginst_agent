@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节点映射测试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-panel {
+            background: rgba(30, 30, 47, 0.8);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .mapping-table th,
+        .mapping-table td {
+            border: 1px solid #444;
+            padding: 12px;
+            text-align: left;
+        }
+        .mapping-table th {
+            background: #333;
+            font-weight: bold;
+        }
+        .mapping-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .status-found { color: #4CAF50; }
+        .status-not-found { color: #f44336; }
+        .status-partial { color: #ff9800; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-info { background: #2196F3; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        
+        .log-output {
+            background: #000;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        
+        .info-box {
+            background: rgba(33, 150, 243, 0.1);
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: rgba(255, 152, 0, 0.1);
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 节点映射测试工具</h1>
+        
+        <div class="info-box">
+            <h3>📋 工具说明</h3>
+            <p>此工具用于测试后端节点ID与前端拓扑设备的映射关系，确保动画能正确找到对应的节点。</p>
+        </div>
+
+        <div class="test-panel">
+            <h3>🎮 测试控制</h3>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="testAllMappings()">测试所有映射</button>
+                <button class="btn btn-info" onclick="testBackendNodes()">测试后端节点</button>
+                <button class="btn btn-info" onclick="listFrontendDevices()">列出前端设备</button>
+                <button class="btn btn-warning" onclick="simulateAttackLog()">模拟攻击日志</button>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>📊 节点映射表</h3>
+            <table class="mapping-table" id="mapping-table">
+                <thead>
+                    <tr>
+                        <th>后端节点ID</th>
+                        <th>预期前端设备名称</th>
+                        <th>实际找到的设备</th>
+                        <th>映射状态</th>
+                        <th>设备类型</th>
+                    </tr>
+                </thead>
+                <tbody id="mapping-tbody">
+                    <!-- 动态填充 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="test-panel">
+            <h3>📋 测试日志</h3>
+            <div class="log-output" id="log-output">
+                <div style="color: #4CAF50;">[系统] 节点映射测试工具已启动</div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ 注意事项</h3>
+            <ul>
+                <li>确保已在主页面创建了拓扑图</li>
+                <li>后端节点ID必须与实际发送的日志一致</li>
+                <li>前端设备名称区分大小写</li>
+                <li>如果映射失败，请检查设备名称是否正确</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 后端实际使用的节点ID和对应的前端设备名称
+        const nodeMapping = {
+            'internet': ['攻击者', '攻击节点'],
+            'firewall': ['内部防火墙', '外部防火墙', '防火墙'],
+            'target_host': ['PC-1', 'PC-2'],
+            'pc-user': ['PC-1', 'PC-2'],
+            'internal-server': ['服务器', 'WordPress网站', 'Apache_web服务器'],
+            'internal-db': ['数据库', 'PostgreSQL'],
+            'internal-file': ['文件服务器'],
+            'dmz-web': ['WordPress网站', 'Apache_web服务器'],
+            'dmz-dns': ['DNS服务器'],
+            'dmz-mail': ['邮件服务器'],
+            'vpn': ['VPN网关']
+        };
+
+        // 模拟拓扑设备（实际应用中这些来自真实的拓扑）
+        const mockTopologyDevices = [
+            { name: '攻击者', type: 'pc', ip: '199.203.100.10' },
+            { name: '攻击节点', type: 'pc', ip: '199.203.100.11' },
+            { name: '内部防火墙', type: 'firewall', ip: '192.168.200.254' },
+            { name: '外部防火墙', type: 'firewall', ip: '199.203.100.2' },
+            { name: 'PC-1', type: 'pc', ip: '192.168.100.9' },
+            { name: 'PC-2', type: 'pc', ip: '192.168.100.34' },
+            { name: '数据库', type: 'db', ip: '192.168.200.23' },
+            { name: 'PostgreSQL', type: 'db', ip: '192.168.214.10' },
+            { name: '文件服务器', type: 'file', ip: '192.168.200.6' },
+            { name: '服务器', type: 'server', ip: '192.168.66.20' },
+            { name: 'WordPress网站', type: 'web', ip: '172.16.100.10' },
+            { name: 'Apache_web服务器', type: 'web', ip: '172.16.100.11' },
+            { name: 'DNS服务器', type: 'dns', ip: '172.16.100.53' },
+            { name: '邮件服务器', type: 'mail', ip: '172.16.100.25' },
+            { name: 'VPN网关', type: 'vpn', ip: '192.168.110.5' }
+        ];
+
+        // 模拟节点查找函数（与TopologyView.vue中的逻辑一致）
+        function findTopologyNode(nodeId) {
+            log(`🔍 查找节点: ${nodeId}`);
+            
+            const possibleNames = nodeMapping[nodeId] || [nodeId];
+            log(`  可能的设备名称: ${possibleNames.join(', ')}`);
+            
+            // 优先精确匹配
+            let foundDevice = mockTopologyDevices.find(device => {
+                return possibleNames.some(name => device.name === name);
+            });
+            
+            // 如果精确匹配失败，尝试包含匹配
+            if (!foundDevice) {
+                foundDevice = mockTopologyDevices.find(device => {
+                    return possibleNames.some(name => 
+                        device.name.includes(name) || name.includes(device.name)
+                    );
+                });
+            }
+            
+            if (foundDevice) {
+                log(`  ✅ 找到设备: ${foundDevice.name} (${foundDevice.type})`);
+            } else {
+                log(`  ❌ 未找到设备`);
+            }
+            
+            return foundDevice;
+        }
+
+        // 日志输出函数
+        function log(message) {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // 测试所有映射
+        function testAllMappings() {
+            log('🚀 开始测试所有节点映射...');
+            
+            const tbody = document.getElementById('mapping-tbody');
+            tbody.innerHTML = '';
+            
+            Object.keys(nodeMapping).forEach(nodeId => {
+                const expectedNames = nodeMapping[nodeId];
+                const foundDevice = findTopologyNode(nodeId);
+                
+                const row = document.createElement('tr');
+                
+                let status, statusClass;
+                if (foundDevice) {
+                    if (expectedNames.includes(foundDevice.name)) {
+                        status = '✅ 精确匹配';
+                        statusClass = 'status-found';
+                    } else {
+                        status = '⚠️ 部分匹配';
+                        statusClass = 'status-partial';
+                    }
+                } else {
+                    status = '❌ 未找到';
+                    statusClass = 'status-not-found';
+                }
+                
+                row.innerHTML = `
+                    <td>${nodeId}</td>
+                    <td>${expectedNames.join(', ')}</td>
+                    <td>${foundDevice ? `${foundDevice.name} (${foundDevice.ip})` : '-'}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td>${foundDevice ? foundDevice.type : '-'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            log('✅ 节点映射测试完成');
+        }
+
+        // 测试后端节点
+        function testBackendNodes() {
+            log('🔍 测试后端实际使用的节点ID...');
+            
+            const backendNodes = [
+                'internet', 'firewall', 'target_host', 'pc-user', 
+                'internal-server', 'internal-db', 'internal-file',
+                'dmz-web', 'dmz-dns', 'dmz-mail', 'vpn'
+            ];
+            
+            backendNodes.forEach(nodeId => {
+                const found = findTopologyNode(nodeId);
+                if (!found) {
+                    log(`⚠️ 后端节点 ${nodeId} 无法映射到前端设备`);
+                }
+            });
+            
+            log('✅ 后端节点测试完成');
+        }
+
+        // 列出前端设备
+        function listFrontendDevices() {
+            log('📋 列出所有前端拓扑设备...');
+            
+            mockTopologyDevices.forEach(device => {
+                log(`  📱 ${device.name} (${device.type}) - ${device.ip}`);
+            });
+            
+            log(`✅ 共 ${mockTopologyDevices.length} 个设备`);
+        }
+
+        // 模拟攻击日志
+        function simulateAttackLog() {
+            log('🎬 模拟攻击日志和动画触发...');
+            
+            const sampleLogs = [
+                {
+                    message: '[侦察阶段] 开始对防火墙进行端口扫描',
+                    attack_info: {
+                        stage: 'reconnaissance',
+                        technique: 'port_scan',
+                        source_node: 'internet',
+                        target_node: 'firewall'
+                    }
+                },
+                {
+                    message: '[利用阶段] 目标用户点击了钓鱼邮件链接',
+                    attack_info: {
+                        stage: 'exploitation',
+                        technique: 'credential_theft',
+                        target_node: 'target_host'
+                    }
+                },
+                {
+                    message: '[行动目标] 开始窃取数据库中的敏感数据',
+                    attack_info: {
+                        stage: 'actions_on_objectives',
+                        technique: 'data_theft',
+                        source_node: 'internal-db',
+                        target_node: 'internet'
+                    }
+                }
+            ];
+            
+            sampleLogs.forEach((logEntry, index) => {
+                setTimeout(() => {
+                    log(`📝 处理日志: ${logEntry.message}`);
+                    
+                    const { source_node, target_node } = logEntry.attack_info;
+                    
+                    if (source_node) {
+                        const sourceDevice = findTopologyNode(source_node);
+                        if (!sourceDevice) {
+                            log(`  ❌ 源节点 ${source_node} 映射失败`);
+                        }
+                    }
+                    
+                    if (target_node) {
+                        const targetDevice = findTopologyNode(target_node);
+                        if (!targetDevice) {
+                            log(`  ❌ 目标节点 ${target_node} 映射失败`);
+                        }
+                    }
+                    
+                    // 模拟触发动画事件
+                    const event = new CustomEvent('topology-animation', {
+                        detail: {
+                            type: 'attack_step',
+                            attackInfo: logEntry.attack_info,
+                            log: logEntry
+                        }
+                    });
+                    
+                    document.dispatchEvent(event);
+                    log(`  🎬 已触发动画事件: ${logEntry.attack_info.stage}`);
+                    
+                }, index * 2000);
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            log('🔧 节点映射测试工具初始化完成');
+            
+            // 监听动画事件（用于调试）
+            document.addEventListener('topology-animation', (event) => {
+                const { attackInfo } = event.detail;
+                log(`🎯 收到动画事件: ${attackInfo.stage} - ${attackInfo.technique}`);
+            });
+            
+            // 自动运行一次映射测试
+            setTimeout(testAllMappings, 1000);
+        });
+    </script>
+</body>
+</html>

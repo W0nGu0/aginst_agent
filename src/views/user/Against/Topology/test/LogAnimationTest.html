@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志动画测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-panel {
+            background: rgba(30, 30, 47, 0.8);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .log-display {
+            background: #000;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #333;
+        }
+        .log-info { border-left-color: #3b82f6; }
+        .log-success { border-left-color: #10b981; }
+        .log-warning { border-left-color: #f59e0b; }
+        .log-error { border-left-color: #dc2626; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-info { background: #2196F3; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        
+        .stage-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 日志动画测试系统</h1>
+        
+        <div class="stage-info">
+            <h3>当前攻击阶段: <span id="current-stage">未开始</span></h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p>进度: <span id="progress-text">0%</span></p>
+        </div>
+
+        <div class="test-panel">
+            <h3>🎮 测试控制</h3>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="startFullAttackSequence()">完整攻击序列</button>
+                <button class="btn btn-info" onclick="testReconnaissance()">侦察阶段</button>
+                <button class="btn btn-info" onclick="testWeaponization()">武器化阶段</button>
+                <button class="btn btn-info" onclick="testDelivery()">投递阶段</button>
+                <button class="btn btn-warning" onclick="testExploitation()">利用阶段</button>
+                <button class="btn btn-warning" onclick="testInstallation()">安装阶段</button>
+                <button class="btn btn-warning" onclick="testCommandControl()">命令控制</button>
+                <button class="btn btn-primary" onclick="testActions()">行动目标</button>
+                <button class="btn btn-danger" onclick="clearLogs()">清除日志</button>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>📋 模拟日志输出</h3>
+            <div class="log-display" id="log-display">
+                <div class="log-entry log-info">
+                    <strong>[系统]</strong> 日志动画测试系统已启动
+                </div>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>📊 动画事件统计</h3>
+            <div id="animation-stats">
+                <p>触发的动画事件: <span id="event-count">0</span></p>
+                <p>当前活跃动画: <span id="active-animations">0</span></p>
+                <p>最后触发时间: <span id="last-trigger">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventCount = 0;
+        let currentProgress = 0;
+        let attackSequenceRunning = false;
+
+        // 攻击阶段定义
+        const attackStages = {
+            reconnaissance: { name: '侦察阶段', color: '#3b82f6' },
+            weaponization: { name: '武器化阶段', color: '#10b981' },
+            delivery: { name: '投递阶段', color: '#f59e0b' },
+            exploitation: { name: '利用阶段', color: '#dc2626' },
+            installation: { name: '安装阶段', color: '#8b5cf6' },
+            command_and_control: { name: '命令控制阶段', color: '#6366f1' },
+            actions_on_objectives: { name: '行动目标阶段', color: '#059669' }
+        };
+
+        // 模拟日志条目
+        const sampleLogs = {
+            reconnaissance: [
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '[侦察阶段] 开始对目标网络进行端口扫描',
+                    attack_info: {
+                        stage: 'reconnaissance',
+                        technique: 'port_scan',
+                        source_node: 'internet',
+                        target_node: 'firewall',
+                        status: 'starting',
+                        progress: 10
+                    }
+                },
+                {
+                    level: 'info',
+                    source: '扫描器',
+                    message: '发现防火墙开放端口: 80, 443, 22',
+                    attack_info: {
+                        stage: 'reconnaissance',
+                        technique: 'port_scan',
+                        target_node: 'firewall',
+                        status: 'in_progress',
+                        progress: 25
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '攻击智能体',
+                    message: '侦察阶段完成，收集到目标网络拓扑信息',
+                    attack_info: {
+                        stage: 'reconnaissance',
+                        technique: 'info_gathering',
+                        status: 'completed',
+                        progress: 30
+                    }
+                }
+            ],
+            weaponization: [
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '[武器化阶段] 开始生成针对性钓鱼邮件',
+                    attack_info: {
+                        stage: 'weaponization',
+                        technique: 'phishing_email',
+                        status: 'starting',
+                        progress: 35
+                    }
+                },
+                {
+                    level: 'info',
+                    source: '武器生成器',
+                    message: '正在分析目标员工社交媒体信息...',
+                    attack_info: {
+                        stage: 'weaponization',
+                        technique: 'phishing_email',
+                        status: 'in_progress',
+                        progress: 45
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '攻击智能体',
+                    message: '钓鱼邮件生成完成，包含恶意附件',
+                    attack_info: {
+                        stage: 'weaponization',
+                        technique: 'phishing_email',
+                        status: 'completed',
+                        progress: 50
+                    }
+                }
+            ],
+            delivery: [
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '[投递阶段] 开始发送钓鱼邮件到目标员工',
+                    attack_info: {
+                        stage: 'delivery',
+                        technique: 'email_delivery',
+                        source_node: 'internet',
+                        target_node: 'target_host',
+                        status: 'starting',
+                        progress: 55
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '邮件服务器',
+                    message: '钓鱼邮件已成功投递到目标邮箱',
+                    attack_info: {
+                        stage: 'delivery',
+                        technique: 'email_delivery',
+                        target_node: 'target_host',
+                        status: 'completed',
+                        progress: 60
+                    }
+                }
+            ],
+            exploitation: [
+                {
+                    level: 'warning',
+                    source: '攻击智能体',
+                    message: '[利用阶段] 目标用户点击了钓鱼邮件链接',
+                    attack_info: {
+                        stage: 'exploitation',
+                        technique: 'credential_theft',
+                        target_node: 'target_host',
+                        status: 'starting',
+                        progress: 65
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '攻击智能体',
+                    message: '成功窃取用户凭据，获得初始访问权限',
+                    attack_info: {
+                        stage: 'exploitation',
+                        technique: 'credential_theft',
+                        target_node: 'target_host',
+                        status: 'completed',
+                        progress: 70
+                    }
+                }
+            ],
+            installation: [
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '[安装阶段] 在目标系统安装后门程序',
+                    attack_info: {
+                        stage: 'installation',
+                        technique: 'backdoor_install',
+                        target_node: 'target_host',
+                        status: 'starting',
+                        progress: 75
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '攻击智能体',
+                    message: '后门安装成功，建立持久化访问',
+                    attack_info: {
+                        stage: 'installation',
+                        technique: 'persistence_mechanism',
+                        target_node: 'target_host',
+                        status: 'completed',
+                        progress: 80
+                    }
+                }
+            ],
+            command_and_control: [
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '[命令控制] 建立C2通信信道',
+                    attack_info: {
+                        stage: 'command_and_control',
+                        technique: 'c2_communication',
+                        source_node: 'internet',
+                        target_node: 'target_host',
+                        status: 'starting',
+                        progress: 85
+                    }
+                },
+                {
+                    level: 'info',
+                    source: '攻击智能体',
+                    message: '开始横向移动，探测内网其他系统',
+                    attack_info: {
+                        stage: 'command_and_control',
+                        technique: 'lateral_movement',
+                        source_node: 'target_host',
+                        target_node: 'internal-db',
+                        status: 'in_progress',
+                        progress: 90
+                    }
+                }
+            ],
+            actions_on_objectives: [
+                {
+                    level: 'warning',
+                    source: '攻击智能体',
+                    message: '[行动目标] 开始窃取敏感数据',
+                    attack_info: {
+                        stage: 'actions_on_objectives',
+                        technique: 'data_theft',
+                        source_node: 'internal-db',
+                        target_node: 'internet',
+                        status: 'starting',
+                        progress: 95
+                    }
+                },
+                {
+                    level: 'success',
+                    source: '攻击智能体',
+                    message: '攻击目标达成！成功窃取客户数据库',
+                    attack_info: {
+                        stage: 'actions_on_objectives',
+                        technique: 'system_compromise',
+                        target_node: 'internal-db',
+                        status: 'completed',
+                        progress: 100
+                    }
+                }
+            ]
+        };
+
+        // 添加日志条目到显示区域
+        function addLogEntry(log) {
+            const logDisplay = document.getElementById('log-display');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${log.level}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `
+                <strong>[${timestamp}] [${log.source}]</strong> ${log.message}
+                ${log.attack_info ? `<br><small>阶段: ${log.attack_info.stage} | 技术: ${log.attack_info.technique} | 进度: ${log.attack_info.progress}%</small>` : ''}
+            `;
+            
+            logDisplay.appendChild(logEntry);
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+            
+            // 触发动画事件
+            triggerAnimationEvent(log);
+            
+            // 更新进度
+            if (log.attack_info && log.attack_info.progress) {
+                updateProgress(log.attack_info.stage, log.attack_info.progress);
+            }
+        }
+
+        // 触发动画事件
+        function triggerAnimationEvent(log) {
+            eventCount++;
+            
+            // 创建自定义事件
+            const event = new CustomEvent('topology-animation', {
+                detail: {
+                    type: 'attack_step',
+                    attackInfo: log.attack_info,
+                    log: log
+                }
+            });
+            
+            // 触发事件
+            document.dispatchEvent(event);
+            
+            // 更新统计信息
+            updateStats();
+            
+            console.log('🎬 触发动画事件:', log);
+        }
+
+        // 更新进度显示
+        function updateProgress(stage, progress) {
+            const stageElement = document.getElementById('current-stage');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            if (attackStages[stage]) {
+                stageElement.textContent = attackStages[stage].name;
+                stageElement.style.color = attackStages[stage].color;
+            }
+            
+            progressFill.style.width = progress + '%';
+            progressText.textContent = progress + '%';
+            currentProgress = progress;
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('event-count').textContent = eventCount;
+            document.getElementById('last-trigger').textContent = new Date().toLocaleTimeString();
+            // 模拟活跃动画数量
+            document.getElementById('active-animations').textContent = Math.floor(Math.random() * 5) + 1;
+        }
+
+        // 测试函数
+        function testReconnaissance() {
+            sampleLogs.reconnaissance.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1000);
+            });
+        }
+
+        function testWeaponization() {
+            sampleLogs.weaponization.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1500);
+            });
+        }
+
+        function testDelivery() {
+            sampleLogs.delivery.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1000);
+            });
+        }
+
+        function testExploitation() {
+            sampleLogs.exploitation.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1200);
+            });
+        }
+
+        function testInstallation() {
+            sampleLogs.installation.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1500);
+            });
+        }
+
+        function testCommandControl() {
+            sampleLogs.command_and_control.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 2000);
+            });
+        }
+
+        function testActions() {
+            sampleLogs.actions_on_objectives.forEach((log, index) => {
+                setTimeout(() => addLogEntry(log), index * 1500);
+            });
+        }
+
+        // 完整攻击序列
+        function startFullAttackSequence() {
+            if (attackSequenceRunning) {
+                addLogEntry({
+                    level: 'warning',
+                    source: '系统',
+                    message: '攻击序列已在运行中...'
+                });
+                return;
+            }
+            
+            attackSequenceRunning = true;
+            clearLogs();
+            
+            addLogEntry({
+                level: 'info',
+                source: '系统',
+                message: '🚀 开始完整攻击序列演示'
+            });
+            
+            let delay = 1000;
+            
+            // 依次执行各个阶段
+            Object.keys(sampleLogs).forEach((stage, stageIndex) => {
+                sampleLogs[stage].forEach((log, logIndex) => {
+                    setTimeout(() => {
+                        addLogEntry(log);
+                        
+                        // 检查是否是最后一个日志
+                        if (stageIndex === Object.keys(sampleLogs).length - 1 && 
+                            logIndex === sampleLogs[stage].length - 1) {
+                            setTimeout(() => {
+                                addLogEntry({
+                                    level: 'success',
+                                    source: '系统',
+                                    message: '🎉 完整攻击序列演示完成！'
+                                });
+                                attackSequenceRunning = false;
+                            }, 2000);
+                        }
+                    }, delay);
+                    delay += 1500;
+                });
+                delay += 1000; // 阶段间额外延迟
+            });
+        }
+
+        // 清除日志
+        function clearLogs() {
+            const logDisplay = document.getElementById('log-display');
+            logDisplay.innerHTML = '<div class="log-entry log-info"><strong>[系统]</strong> 日志已清除</div>';
+            
+            // 重置进度
+            updateProgress('', 0);
+            document.getElementById('current-stage').textContent = '未开始';
+            document.getElementById('current-stage').style.color = 'white';
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            addLogEntry({
+                level: 'success',
+                source: '系统',
+                message: '📡 日志动画测试系统已就绪，可以开始测试'
+            });
+            
+            // 监听动画事件（用于调试）
+            document.addEventListener('topology-animation', (event) => {
+                console.log('🎯 动画事件已触发:', event.detail);
+            });
+        });
+    </script>
+</body>
+</html>

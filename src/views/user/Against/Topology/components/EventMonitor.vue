@@ -573,10 +573,10 @@ export default {
       // 添加到事件列表
       this.events.push(event);
 
-      // 限制事件数量，避免内存占用过多
-      if (this.events.length > 50) {
-        this.events.shift();
-      }
+      // 移除事件数量限制，保留所有关键事件和系统日志
+      // if (this.events.length > 50) {
+      //   this.events.shift();
+      // }
 
       // 如果之前在底部，则在下一个渲染周期滚动到底部
       if (wasAtBottom) {
@@ -1014,6 +1014,96 @@ export default {
 
         console.log(`节点状态更新: ${targetNode} -> ${node.status} (${node.attackLevel}%)`);
       }
+    },
+
+    // 新增：重置所有节点状态
+    resetAllNodeStatus() {
+      console.log('🔄 重置所有节点状态...');
+      Object.keys(this.networkNodes).forEach(nodeId => {
+        const node = this.networkNodes[nodeId];
+        node.status = 'normal';
+        node.compromised = false;
+        node.attackLevel = 0;
+        node.lastActivity = null;
+        node.attackHistory = [];
+      });
+
+      // 触发拓扑图状态更新
+      this.$emit('nodes-status-reset');
+      console.log('✅ 所有节点状态已重置');
+    },
+
+    // 新增：检查并刷新节点状态（基于实际容器状态）
+    async refreshNodeStatusFromContainers() {
+      console.log('🔍 检查容器状态并刷新节点状态...');
+
+      try {
+        // 调用后端API获取容器状态
+        const response = await fetch('/api/topology', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'status',
+            template: 'company-topology' // 使用正确的模板名称
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📊 容器状态数据:', data);
+
+          // 根据容器状态更新节点状态
+          if (data.running_services) {
+            data.running_services.forEach(service => {
+              const nodeId = this.mapServiceToNodeId(service.name);
+              if (nodeId && this.networkNodes[nodeId]) {
+                // 如果容器正在运行，且节点之前被标记为compromised，则重置状态
+                if (this.networkNodes[nodeId].status === 'compromised' ||
+                    this.networkNodes[nodeId].status === 'under_attack') {
+                  console.log(`🔄 重置节点状态: ${nodeId} (容器 ${service.name} 正在运行)`);
+                  this.networkNodes[nodeId].status = 'normal';
+                  this.networkNodes[nodeId].compromised = false;
+                  this.networkNodes[nodeId].attackLevel = 0;
+                }
+              }
+            });
+          }
+
+          // 处理失败的服务
+          if (data.failed_services) {
+            data.failed_services.forEach(service => {
+              const nodeId = this.mapServiceToNodeId(service.name);
+              if (nodeId && this.networkNodes[nodeId]) {
+                console.log(`❌ 标记节点为失败状态: ${nodeId} (容器 ${service.name} 失败)`);
+                this.networkNodes[nodeId].status = 'failed';
+                this.networkNodes[nodeId].compromised = false;
+                this.networkNodes[nodeId].attackLevel = 0;
+              }
+            });
+          }
+
+          // 触发拓扑图更新
+          this.$emit('nodes-status-refreshed', this.networkNodes);
+          console.log('✅ 节点状态刷新完成');
+        }
+      } catch (error) {
+        console.error('❌ 刷新节点状态失败:', error);
+      }
+    },
+
+    // 新增：将服务名映射到节点ID
+    mapServiceToNodeId(serviceName) {
+      const serviceMapping = {
+        'web-server': 'dmz-web',
+        'dns-server': 'dmz-dns',
+        'database': 'internal-db',
+        'file-server': 'internal-file',
+        'firewall': 'firewall',
+        'workstation': 'internal-pc'
+      };
+      return serviceMapping[serviceName] || serviceName;
     },
 
     // 新增：记录攻击路径
