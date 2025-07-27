@@ -1,0 +1,144 @@
+{
+  "api_gateway": {
+    "name": "Medical API Gateway",
+    "version": "1.0.0",
+    "environment": "production",
+    "debug_mode": true,
+    "port": 5000
+  },
+  "database": {
+    "host": "medical-database",
+    "port": 5432,
+    "database": "api_gateway_db",
+    "username": "api_gateway_user",
+    "password": "gateway_db_pass_123",
+    "ssl_mode": "disable",
+    "connection_pool": {
+      "min_connections": 5,
+      "max_connections": 50,
+      "timeout": 30
+    }
+  },
+  "authentication": {
+    "jwt_secret": "api_gateway_secret_key_12345",
+    "jwt_expiration": 3600,
+    "refresh_token_expiration": 86400,
+    "password_hash_algorithm": "md5",
+    "session_timeout": 1800
+  },
+  "api_keys": {
+    "internal_api": "med_api_key_12345_secret",
+    "external_service": "ext_service_token_abcdef",
+    "admin_api": "admin_api_super_secret_key",
+    "backup_service": "backup_api_key_xyz789",
+    "monitoring_service": "monitor_api_key_abc123"
+  },
+  "services": {
+    "his": {
+      "endpoint": "http://his-server:80",
+      "timeout": 30,
+      "retry_count": 3,
+      "health_check": "/health"
+    },
+    "pacs": {
+      "endpoint": "http://pacs-server:80",
+      "timeout": 60,
+      "retry_count": 2,
+      "health_check": "/api/status"
+    },
+    "lis": {
+      "endpoint": "http://lis-server:80",
+      "timeout": 30,
+      "retry_count": 3,
+      "health_check": "/api/health"
+    },
+    "medical_database": {
+      "endpoint": "http://medical-database:5432",
+      "timeout": 10,
+      "retry_count": 5,
+      "health_check": "/status"
+    }
+  },
+  "security": {
+    "cors_enabled": true,
+    "cors_origins": ["*"],
+    "rate_limiting": {
+      "enabled": false,
+      "requests_per_minute": 1000,
+      "burst_size": 100
+    },
+    "input_validation": {
+      "enabled": false,
+      "max_request_size": "10MB",
+      "allowed_file_types": ["jpg", "png", "pdf", "dcm"]
+    },
+    "ssl": {
+      "enabled": true,
+      "certificate_path": "/etc/nginx/ssl/api.crt",
+      "private_key_path": "/etc/nginx/ssl/api.key",
+      "verify_client": false,
+      "protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"]
+    },
+    "firewall": {
+      "enabled": false,
+      "whitelist_ips": [],
+      "blacklist_ips": []
+    }
+  },
+  "logging": {
+    "level": "DEBUG",
+    "file_path": "/var/api/logs/api_gateway.log",
+    "max_file_size": "100MB",
+    "backup_count": 5,
+    "log_sensitive_data": true,
+    "log_requests": true,
+    "log_responses": true
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_endpoint": "/metrics",
+    "health_endpoint": "/health",
+    "status_endpoint": "/status",
+    "prometheus_enabled": false
+  },
+  "cache": {
+    "enabled": true,
+    "type": "redis",
+    "host": "localhost",
+    "port": 6379,
+    "password": "redis_pass_123",
+    "database": 0,
+    "ttl": 300
+  },
+  "external_integrations": {
+    "payment_gateway": {
+      "endpoint": "https://api.payment.com",
+      "api_key": "payment_live_key_12345",
+      "webhook_secret": "payment_webhook_secret_abc"
+    },
+    "email_service": {
+      "endpoint": "https://api.sendgrid.com",
+      "api_key": "sendgrid_api_key_example_12345",
+      "from_email": "noreply@company.com"
+    },
+    "sms_service": {
+      "endpoint": "https://api.twilio.com",
+      "account_sid": "twilio_account_sid_example",
+      "auth_token": "twilio_auth_token_secret"
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "retention_days": 30,
+    "encryption_enabled": false,
+    "backup_location": "/var/api/backups",
+    "backup_password": "backup_pass_weak_123"
+  },
+  "development": {
+    "debug_endpoints_enabled": true,
+    "test_mode": false,
+    "mock_external_services": false,
+    "bypass_authentication": false
+  }
+}

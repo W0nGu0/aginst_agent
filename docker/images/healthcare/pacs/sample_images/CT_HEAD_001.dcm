@@ -1,0 +1,35 @@
+# 模拟DICOM文件 - CT头部扫描
+# 这是一个示例DICOM文件，包含基本的DICOM头信息
+
+DICOM_HEADER_START
+Patient_ID: P001
+Patient_Name: 张三
+Study_Date: 20240127
+Study_Time: 120000
+Modality: CT
+Study_Description: 头部CT扫描
+Series_Number: 1
+Image_Number: 1
+Slice_Thickness: 5.0
+Pixel_Spacing: 0.5,0.5
+Image_Position: -100.0,-100.0,0.0
+Image_Orientation: 1,0,0,0,1,0
+Rows: 512
+Columns: 512
+Bits_Allocated: 16
+Bits_Stored: 12
+High_Bit: 11
+Pixel_Representation: 0
+Window_Center: 40
+Window_Width: 400
+Rescale_Intercept: -1024
+Rescale_Slope: 1
+DICOM_HEADER_END
+
+# 模拟像素数据
+PIXEL_DATA_START
+[二进制像素数据会在这里，这是一个文本模拟]
+CT扫描显示头部结构正常，未发现异常病变。
+脑组织密度均匀，脑室系统无扩张。
+骨质结构完整，无骨折征象。
+PIXEL_DATA_END

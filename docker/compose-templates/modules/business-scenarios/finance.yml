@@ -1,0 +1,72 @@
+# 金融业务场景模块 - 银行/金融机构环境
+
+services:
+  # 核心银行系统
+  core-banking-system:
+    build: ../images/finance/core-banking
+    container_name: core-banking
+    hostname: cbs.bank.local
+    environment:
+      - BANK_NAME=中央银行
+      - ACCOUNT_SYSTEM=enabled
+      - TRANSACTION_PROCESSING=real_time
+      - SWIFT_INTERFACE=enabled
+      - REGULATORY_REPORTING=enabled
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.15
+    ports:
+      - "8095:80"
+      - "8446:443"
+    volumes:
+      - banking_data:/var/banking/data
+      - transaction_logs:/var/banking/transactions
+    labels:
+      - "vulnerability.sql_injection=account_lookup"
+      - "vulnerability.weak_encryption=transaction_data"
+
+  # ATM管理系统
+  atm-management:
+    build: ../images/finance/atm-mgmt
+    container_name: atm-mgmt
+    hostname: atm-mgmt.bank.local
+    environment:
+      - ATM_NETWORK=enabled
+      - CASH_MANAGEMENT=enabled
+      - REMOTE_MONITORING=enabled
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.16
+    ports:
+      - "8096:80"
+    volumes:
+      - atm_data:/var/atm/data
+    labels:
+      - "vulnerability.default_credentials=admin:admin"
+      - "vulnerability.unencrypted_comms=atm_protocol"
+
+  # 交易员工作站
+  trader-workstation:
+    build: ../images/finance/trader-ws
+    container_name: trader-ws
+    hostname: trader-01.bank.local
+    environment:
+      - USER_ROLE=trader
+      - TRADING_SYSTEM_ACCESS=full
+      - MARKET_DATA_ACCESS=real_time
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.50
+    ports:
+      - "5904:5900"
+    volumes:
+      - trader_data:/home/trader/data
+    labels:
+      - "vulnerability.privileged_access=trading_systems"
+      - "vulnerability.market_manipulation=order_injection"
+
+volumes:
+  banking_data:
+  transaction_logs:
+  atm_data:
+  trader_data:

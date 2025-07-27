@@ -1039,6 +1039,214 @@ class FabricAttackVisualization {
       delay += 3000; // 每个目标间隔3秒
     });
   }
+
+  /**
+   * APT侦察动画 - 长期、隐蔽的侦察过程
+   * @param {fabric.Object} targetNode - 目标节点
+   * @param {Object} options - 动画选项
+   */
+  createAPTReconnaissanceAnimation(targetNode, options = {}) {
+    const config = {
+      duration: 5000,
+      pulseColor: '#8b5cf6', // 紫色，表示APT
+      stealthMode: true,
+      ...options
+    }
+
+    // 创建隐蔽的扫描脉冲
+    const center = targetNode.getCenterPoint()
+
+    // 多层隐蔽扫描
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        this.createStealthPulse(center, config.pulseColor, i * 10 + 20)
+      }, i * 1500)
+    }
+
+    // 添加数据收集指示器
+    this.createDataCollectionIndicator(targetNode)
+  }
+
+  /**
+   * APT后门制作动画
+   * @param {fabric.Object} sourceNode - 源节点
+   */
+  createAPTBackdoorCreationAnimation(sourceNode) {
+    const center = sourceNode.getCenterPoint()
+
+    // 创建复杂的制作过程动画
+    const backdoorIcon = new fabric.Text('🔧', {
+      left: center.x,
+      top: center.y - 30,
+      fontSize: 20,
+      fill: '#dc2626',
+      selectable: false,
+      evented: false
+    })
+
+    this.canvas.add(backdoorIcon)
+    this.attackEffects.push(backdoorIcon)
+
+    // 旋转动画表示制作过程
+    backdoorIcon.animate('angle', 360, {
+      duration: 3000,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 制作完成后显示成功标识
+        backdoorIcon.set({ text: '🎯', fill: '#059669' })
+        this.canvas.renderAll()
+
+        setTimeout(() => {
+          this.canvas.remove(backdoorIcon)
+          this.canvas.renderAll()
+        }, 2000)
+      }
+    })
+  }
+
+  /**
+   * 医疗载荷制作动画
+   * @param {fabric.Object} sourceNode - 源节点
+   */
+  createMedicalPayloadAnimation(sourceNode) {
+    const center = sourceNode.getCenterPoint()
+
+    // 医疗相关的图标动画
+    const medicalIcon = new fabric.Text('🏥', {
+      left: center.x - 15,
+      top: center.y - 30,
+      fontSize: 18,
+      fill: '#2563eb',
+      selectable: false,
+      evented: false
+    })
+
+    const malwareIcon = new fabric.Text('🦠', {
+      left: center.x + 15,
+      top: center.y - 30,
+      fontSize: 18,
+      fill: '#dc2626',
+      selectable: false,
+      evented: false
+    })
+
+    this.canvas.add(medicalIcon, malwareIcon)
+    this.attackEffects.push(medicalIcon, malwareIcon)
+
+    // 融合动画
+    medicalIcon.animate('left', center.x, {
+      duration: 2000,
+      onChange: () => this.canvas.renderAll()
+    })
+
+    malwareIcon.animate('left', center.x, {
+      duration: 2000,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 融合完成，显示医疗恶意软件
+        this.canvas.remove(medicalIcon, malwareIcon)
+
+        const fusedIcon = new fabric.Text('⚕️💀', {
+          left: center.x - 15,
+          top: center.y - 30,
+          fontSize: 16,
+          fill: '#7c2d12',
+          selectable: false,
+          evented: false
+        })
+
+        this.canvas.add(fusedIcon)
+        this.attackEffects.push(fusedIcon)
+
+        setTimeout(() => {
+          this.canvas.remove(fusedIcon)
+          this.canvas.renderAll()
+        }, 3000)
+      }
+    })
+  }
+
+  /**
+   * 创建隐蔽脉冲动画
+   * @param {Object} center - 中心点
+   * @param {string} color - 颜色
+   * @param {number} radius - 半径
+   */
+  createStealthPulse(center, color, radius) {
+    const pulse = new fabric.Circle({
+      left: center.x - radius,
+      top: center.y - radius,
+      radius: radius,
+      fill: 'transparent',
+      stroke: color,
+      strokeWidth: 1,
+      opacity: 0.3,
+      selectable: false,
+      evented: false
+    })
+
+    this.canvas.add(pulse)
+    this.attackEffects.push(pulse)
+
+    // 隐蔽的脉冲动画
+    pulse.animate('radius', radius + 20, {
+      duration: 2000,
+      onChange: () => {
+        pulse.set({
+          left: center.x - pulse.radius,
+          top: center.y - pulse.radius
+        })
+        this.canvas.renderAll()
+      },
+      onComplete: () => {
+        this.canvas.remove(pulse)
+        this.canvas.renderAll()
+      }
+    })
+
+    pulse.animate('opacity', 0, {
+      duration: 2000
+    })
+  }
+
+  /**
+   * 创建数据收集指示器
+   * @param {fabric.Object} targetNode - 目标节点
+   */
+  createDataCollectionIndicator(targetNode) {
+    const center = targetNode.getCenterPoint()
+
+    const dataIcon = new fabric.Text('📊', {
+      left: center.x + 25,
+      top: center.y - 25,
+      fontSize: 14,
+      opacity: 0,
+      selectable: false,
+      evented: false
+    })
+
+    this.canvas.add(dataIcon)
+    this.attackEffects.push(dataIcon)
+
+    // 淡入动画
+    dataIcon.animate('opacity', 0.8, {
+      duration: 1000,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 持续一段时间后淡出
+        setTimeout(() => {
+          dataIcon.animate('opacity', 0, {
+            duration: 1000,
+            onChange: () => this.canvas.renderAll(),
+            onComplete: () => {
+              this.canvas.remove(dataIcon)
+              this.canvas.renderAll()
+            }
+          })
+        }, 3000)
+      }
+    })
+  }
 }
 
 export default FabricAttackVisualization;

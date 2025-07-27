@@ -41,6 +41,14 @@ export function handleReconnaissanceAnimation(technique, sourceNode, targetNode,
       }
       break
       
+    case 'apt_reconnaissance':
+    case 'APT侦察':
+      // APT特有的长期侦察动画
+      if (targetNode) {
+        attackVisualization.createAPTReconnaissanceAnimation(targetNode)
+      }
+      break
+
     default:
       // 默认扫描动画
       if (targetNode) {
@@ -78,7 +86,23 @@ export function handleWeaponizationAnimation(technique, sourceNode, targetNode, 
         attackVisualization.createThinkingAnimation(sourceNode, 3)
       }
       break
-      
+
+    case 'apt_backdoor_creation':
+    case 'APT后门制作':
+      // APT特有的复杂后门制作动画
+      if (sourceNode) {
+        attackVisualization.createAPTBackdoorCreationAnimation(sourceNode)
+      }
+      break
+
+    case 'medical_payload_crafting':
+    case '医疗载荷制作':
+      // 针对医疗系统的专用载荷制作
+      if (sourceNode) {
+        attackVisualization.createMedicalPayloadAnimation(sourceNode)
+      }
+      break
+
     default:
       if (sourceNode) {
         attackVisualization.createThinkingAnimation(sourceNode, 2)

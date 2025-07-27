@@ -1,0 +1,274 @@
+# 医疗业务场景模块 - 在现有网络基础上添加医疗行业特有系统
+# 这个模块会与base-infrastructure.yml合并使用
+
+services:
+  # HIS系统 - 医院信息系统（核心业务系统）
+  his-server:
+    build: ../images/healthcare/his
+    container_name: his-server
+    hostname: his.hospital.local
+    environment:
+      - HOSPITAL_NAME=中心医院
+      - PATIENT_DB=patients_database
+      - MEDICAL_RECORDS=enabled
+      - BILLING_SYSTEM=enabled
+      - DEPARTMENT_SYSTEM=enabled
+      - USER_ROLES=doctor,nurse,admin,pharmacist,technician
+      - DB_CONNECTION=postgresql://his_user:his_pass123@medical-database:5432/his_db
+      - ENCRYPTION_ENABLED=false  # 预设漏洞：数据传输未加密
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.10
+    ports:
+      - "8090:80"
+      - "8443:443"
+    volumes:
+      - his_data:/var/his/data
+      - medical_records:/var/his/records
+    depends_on:
+      - medical-database
+    # 预设漏洞：HIS系统存在SQL注入和弱认证
+    labels:
+      - "vulnerability.sql_injection=patient_search"
+      - "vulnerability.weak_auth=default_passwords"
+      - "vulnerability.session_fixation=login_session"
+      - "vulnerability.privilege_escalation=admin_panel"
+
+  # PACS系统 - 医学影像存档系统
+  pacs-server:
+    build: ../images/healthcare/pacs
+    container_name: pacs-server
+    hostname: pacs.hospital.local
+    environment:
+      - MEDICAL_IMAGES=enabled
+      - DICOM_SUPPORT=enabled
+      - IMAGE_STORAGE=10TB
+      - BACKUP_SYSTEM=enabled
+      - DICOM_PORT=11112
+      - WEB_VIEWER_PORT=8091
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.11
+    ports:
+      - "8091:80"
+      - "11112:11112"  # DICOM端口
+      - "8104:104"     # DICOM C-STORE
+    volumes:
+      - pacs_images:/var/pacs/images
+      - pacs_backup:/var/pacs/backup
+      - pacs_temp:/var/pacs/temp
+    # 预设漏洞：PACS系统DICOM协议未认证，影像数据可直接访问
+    labels:
+      - "vulnerability.dicom_unauth=anonymous_access"
+      - "vulnerability.directory_traversal=image_viewer"
+      - "vulnerability.file_disclosure=patient_images"
+
+  # LIS系统 - 实验室信息系统
+  lis-server:
+    build: ../images/healthcare/lis
+    container_name: lis-server
+    hostname: lis.hospital.local
+    environment:
+      - LAB_RESULTS=enabled
+      - PATHOLOGY_REPORTS=enabled
+      - BLOOD_BANK=enabled
+      - MICROBIOLOGY=enabled
+      - CHEMISTRY_LAB=enabled
+      - RESULT_INTERFACE=hl7
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.12
+    ports:
+      - "8092:80"
+      - "8502:502"  # HL7接口
+    volumes:
+      - lis_data:/var/lis/data
+      - lis_reports:/var/lis/reports
+    # 预设漏洞：LIS系统存在未授权访问和数据泄露
+    labels:
+      - "vulnerability.unauth_access=lab_results"
+      - "vulnerability.data_exposure=patient_lab_data"
+      - "vulnerability.hl7_injection=result_interface"
+
+  # 医生工作站 - 高权限用户终端
+  doctor-workstation-1:
+    build: ../images/healthcare/workstation
+    container_name: doctor-ws-1
+    hostname: doctor-ws-01.hospital.local
+    environment:
+      - USER_ROLE=doctor
+      - DEPARTMENT=内科
+      - USERNAME=dr_zhang
+      - PASSWORD=Doctor123!  # 预设漏洞：弱密码
+      - EMAIL=zhang.doctor@hospital.com
+      - ACCESS_LEVEL=high
+      - PATIENT_ACCESS=full
+      - SYSTEM_ACCESS=his,pacs,lis
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.20
+    ports:
+      - "5901:5900"  # VNC端口
+      - "3389:3389"  # RDP端口
+    volumes:
+      - doctor_ws1_data:/home/doctor/data
+    # 预设漏洞：工作站存在多个安全问题
+    labels:
+      - "vulnerability.weak_password=Doctor123!"
+      - "vulnerability.auto_login=enabled"
+      - "vulnerability.unpatched_os=CVE-2023-1234"
+      - "vulnerability.shared_folders=patient_data"
+
+  # 护士工作站 - 中等权限用户终端
+  nurse-workstation:
+    build: ../images/healthcare/workstation
+    container_name: nurse-ws-1
+    hostname: nurse-ws-01.hospital.local
+    environment:
+      - USER_ROLE=nurse
+      - DEPARTMENT=急诊科
+      - USERNAME=nurse_wang
+      - PASSWORD=Nurse2024  # 预设漏洞：简单密码
+      - EMAIL=wang.nurse@hospital.com
+      - ACCESS_LEVEL=medium
+      - PATIENT_ACCESS=limited
+      - SYSTEM_ACCESS=his,basic_pacs
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.30
+    ports:
+      - "5902:5900"
+      - "3390:3389"
+    volumes:
+      - nurse_ws1_data:/home/nurse/data
+    # 预设漏洞：护士站安全配置较弱
+    labels:
+      - "vulnerability.weak_password=Nurse2024"
+      - "vulnerability.usb_autorun=enabled"
+      - "vulnerability.browser_vulns=outdated_browser"
+
+  # 管理员工作站 - 最高权限终端
+  admin-workstation:
+    build: ../images/healthcare/workstation
+    container_name: admin-ws-1
+    hostname: admin-ws-01.hospital.local
+    environment:
+      - USER_ROLE=admin
+      - DEPARTMENT=IT部门
+      - USERNAME=admin_chen
+      - PASSWORD=admin123  # 预设漏洞：默认密码
+      - EMAIL=chen.admin@hospital.com
+      - ACCESS_LEVEL=admin
+      - SYSTEM_ACCESS=all
+      - DOMAIN_ADMIN=true
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.40
+    ports:
+      - "5903:5900"
+      - "3391:3389"
+    volumes:
+      - admin_ws1_data:/home/admin/data
+      - admin_tools:/home/admin/tools
+    # 预设漏洞：管理员工作站是重点攻击目标
+    labels:
+      - "vulnerability.default_password=admin123"
+      - "vulnerability.admin_tools_exposed=management_console"
+      - "vulnerability.credential_storage=plaintext_passwords"
+      - "vulnerability.remote_access=unrestricted_rdp"
+
+  # 医疗数据库服务器 - 核心数据存储
+  medical-database:
+    build: ../images/healthcare/database
+    container_name: medical-db
+    hostname: meddb.hospital.local
+    environment:
+      - DB_TYPE=postgresql
+      - POSTGRES_DB=medical_db
+      - POSTGRES_USER=med_admin
+      - POSTGRES_PASSWORD=MedDB2024!
+      - PATIENT_RECORDS=50000
+      - ENCRYPTION=disabled  # 预设漏洞：数据库未加密
+      - BACKUP_SCHEDULE=daily
+      - COMPLIANCE=HIPAA
+    networks:
+      db_segment:
+        ipv4_address: 192.168.214.10
+    ports:
+      - "5432:5432"
+    volumes:
+      - medical_db_data:/var/lib/postgresql/data
+      - medical_db_backup:/var/backup
+      - medical_db_logs:/var/log/postgresql
+    # 预设漏洞：数据库存在严重安全问题
+    labels:
+      - "vulnerability.weak_db_password=MedDB2024!"
+      - "vulnerability.unencrypted_data=patient_records"
+      - "vulnerability.backup_exposure=unencrypted_backups"
+      - "vulnerability.log_injection=sql_logs"
+
+  # 医疗文件服务器 - 文档和报告存储
+  medical-file-server:
+    build: ../images/healthcare/file-server
+    container_name: medical-files
+    hostname: files.hospital.local
+    environment:
+      - FILE_TYPES=documents,images,reports,policies
+      - STORAGE_CAPACITY=5TB
+      - ACCESS_CONTROL=basic  # 预设漏洞：访问控制较弱
+      - AUDIT_LOGGING=disabled
+      - SHARE_PERMISSIONS=permissive
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.60
+    ports:
+      - "445:445"    # SMB
+      - "2049:2049"  # NFS
+      - "21:21"      # FTP
+    volumes:
+      - medical_files:/var/medical/files
+      - medical_documents:/var/medical/documents
+      - medical_reports:/var/medical/reports
+    # 预设漏洞：文件服务器安全配置不当
+    labels:
+      - "vulnerability.smb_null_session=anonymous_access"
+      - "vulnerability.ftp_anonymous=enabled"
+      - "vulnerability.weak_file_permissions=world_readable"
+      - "vulnerability.backup_files_exposed=.bak_files"
+
+# 医疗业务相关的数据卷
+volumes:
+  his_data:
+    driver: local
+  medical_records:
+    driver: local
+  pacs_images:
+    driver: local
+  pacs_backup:
+    driver: local
+  pacs_temp:
+    driver: local
+  lis_data:
+    driver: local
+  lis_reports:
+    driver: local
+  doctor_ws1_data:
+    driver: local
+  nurse_ws1_data:
+    driver: local
+  admin_ws1_data:
+    driver: local
+  admin_tools:
+    driver: local
+  medical_db_data:
+    driver: local
+  medical_db_backup:
+    driver: local
+  medical_db_logs:
+    driver: local
+  medical_files:
+    driver: local
+  medical_documents:
+    driver: local
+  medical_reports:
+    driver: local

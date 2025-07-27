@@ -1,0 +1,49 @@
+# 勒索软件攻击模块 - 模拟勒索软件攻击场景
+
+services:
+  # 勒索软件C2服务器
+  ransomware-c2:
+    build: ../images/ransomware/c2-server
+    container_name: ransomware-c2
+    hostname: payment-portal.onion
+    environment:
+      - RANSOMWARE_FAMILY=MedicalCrypt
+      - ENCRYPTION_KEY=random_generated
+      - PAYMENT_PORTAL=enabled
+      - TOR_HIDDEN_SERVICE=enabled
+      - RANSOM_AMOUNT=50000
+    networks:
+      internet:
+        ipv4_address: 199.203.100.70
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "9050:9050"  # Tor proxy
+    volumes:
+      - ransomware_keys:/var/ransomware/keys
+      - payment_logs:/var/ransomware/payments
+    labels:
+      - "vulnerability.payment_tracking=bitcoin_addresses"
+
+  # 勒索软件分发服务器
+  ransomware-distribution:
+    build: ../images/ransomware/distribution
+    container_name: ransomware-dist
+    environment:
+      - PAYLOAD_TYPE=medical_targeted
+      - DISTRIBUTION_METHOD=email_attachment,drive_by_download
+      - EVASION_TECHNIQUES=sandbox_detection,av_evasion
+    networks:
+      internet:
+        ipv4_address: 199.203.100.71
+    ports:
+      - "8081:80"
+    volumes:
+      - ransomware_payloads:/var/ransomware/payloads
+    labels:
+      - "vulnerability.malware_distribution=undetected_payloads"
+
+volumes:
+  ransomware_keys:
+  payment_logs:
+  ransomware_payloads:

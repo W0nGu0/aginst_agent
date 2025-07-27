@@ -1,0 +1,143 @@
+# APT攻击模块 - 在现有网络基础上添加APT攻击目标
+# 这个模块会与base-infrastructure.yml合并使用
+# 注意：这些是容易被APT攻击的目标系统，不是攻击者的基础设施
+
+services:
+  # 软件更新服务器 - APT攻击常见的供应链目标
+  software-update-server:
+    build: ../images/apt-targets/update-server
+    container_name: software-update-server
+    hostname: updates.company.local
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=updateadmin
+      - PASSWORD=update123  # 预设漏洞：弱密码
+      - DEPARTMENT=IT运维
+      - ROLE=软件更新管理员
+      - HOST_TYPE=UPDATE-SERVER
+      - EMAIL=updates@acmecorp.com
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.50
+    ports:
+      - "8090:80"
+      - "8443:443"
+    volumes:
+      - update_packages:/var/updates/packages
+      - update_logs:/var/updates/logs
+    # 预设漏洞：软件更新服务器常见漏洞
+    labels:
+      - "vulnerability.weak_auth=update123"
+      - "vulnerability.directory_traversal=/packages/../config/"
+      - "vulnerability.file_upload=unrestricted_upload"
+      - "vulnerability.code_injection=update_script"
+
+  # 开发环境服务器 - APT攻击常见的薄弱环节
+  dev-environment:
+    build: ../images/apt-targets/dev-server
+    container_name: dev-environment
+    hostname: dev.company.local
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=developer
+      - PASSWORD=dev123  # 预设漏洞：开发环境弱密码
+      - DEPARTMENT=研发部
+      - ROLE=开发环境管理员
+      - HOST_TYPE=DEV-SERVER
+      - EMAIL=dev@acmecorp.com
+      - GIT_REPO=enabled
+      - DEBUG_MODE=true  # 预设漏洞：调试模式开启
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.51
+    ports:
+      - "8091:80"
+      - "8022:22"   # SSH
+      - "9000:9000" # 开发工具端口
+    volumes:
+      - dev_code:/var/dev/code
+      - dev_secrets:/var/dev/secrets  # 预设漏洞：敏感信息存储
+    # 预设漏洞：开发环境常见安全问题
+    labels:
+      - "vulnerability.weak_ssh_key=default_keys"
+      - "vulnerability.exposed_git=.git_directory"
+      - "vulnerability.hardcoded_secrets=config_files"
+      - "vulnerability.debug_info_disclosure=stack_traces"
+
+  # 第三方API网关 - 供应链攻击入口点
+  api-gateway:
+    build: ../images/apt-targets/api-gateway
+    container_name: api-gateway
+    hostname: api.company.local
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=apiadmin
+      - PASSWORD=api@2024  # 预设漏洞：可预测密码
+      - DEPARTMENT=IT运维
+      - ROLE=API网关管理员
+      - HOST_TYPE=API-GATEWAY
+      - EMAIL=api@acmecorp.com
+    networks:
+      mdz_segment:
+        ipv4_address: 172.16.100.60
+    ports:
+      - "8092:80"
+      - "8444:443"
+    volumes:
+      - api_logs:/var/api/logs
+    # 预设漏洞：API网关常见安全问题
+    labels:
+      - "vulnerability.api_key_exposure=config_files"
+      - "vulnerability.injection_attacks=parameter_injection"
+      - "vulnerability.auth_bypass=token_validation"
+
+  # 备份服务器 - APT攻击的高价值目标
+  backup-server:
+    build: ../images/apt-targets/backup-server
+    container_name: backup-server
+    hostname: backup.company.local
+    environment:
+      - COMPANY=ACME_CORP
+      - USERNAME=backupadmin
+      - PASSWORD=backup2024  # 预设漏洞：弱密码
+      - DEPARTMENT=IT运维
+      - ROLE=备份管理员
+      - HOST_TYPE=BACKUP-SERVER
+      - EMAIL=backup@acmecorp.com
+      - BACKUP_ENCRYPTION=disabled  # 预设漏洞：备份未加密
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.52
+    ports:
+      - "8093:80"
+      - "8445:445"  # SMB共享
+    volumes:
+      - backup_data:/var/backup/data
+      - backup_logs:/var/backup/logs
+    # 预设漏洞：备份服务器常见安全问题
+    labels:
+      - "vulnerability.weak_smb_config=anonymous_access"
+      - "vulnerability.unencrypted_backups=sensitive_data"
+      - "vulnerability.exposed_credentials=backup_scripts"
+      - "vulnerability.privilege_escalation=backup_service"
+
+# 新增网络（如果需要的话，否则使用现有网络）
+# networks:
+#   # 所有网络都使用base-infrastructure.yml中定义的网络
+
+# APT攻击目标相关的数据卷
+volumes:
+  update_packages:
+    driver: local
+  update_logs:
+    driver: local
+  dev_code:
+    driver: local
+  dev_secrets:
+    driver: local
+  api_logs:
+    driver: local
+  backup_data:
+    driver: local
+  backup_logs:
+    driver: local

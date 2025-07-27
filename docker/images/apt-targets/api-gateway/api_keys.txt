@@ -1,0 +1,54 @@
+# API网关密钥文件 - 包含敏感信息（预设漏洞）
+
+# 内部API密钥
+INTERNAL_API_KEY=med_api_key_12345_secret
+INTERNAL_API_SECRET=med_api_secret_abcdef_67890
+
+# 外部服务API密钥
+EXTERNAL_SERVICE_TOKEN=ext_service_token_abcdef_12345
+PARTNER_API_KEY=partner_api_key_secret_67890
+
+# 管理员API密钥
+ADMIN_API_KEY=admin_api_super_secret_key
+ADMIN_API_SECRET=admin_api_secret_xyz789
+
+# JWT密钥
+JWT_SECRET_KEY=api_gateway_secret_key_12345
+JWT_REFRESH_SECRET=jwt_refresh_secret_abc123
+
+# 数据库连接密钥
+DB_ENCRYPTION_KEY=gateway_db_encrypt_key_2024
+DB_CONNECTION_PASSWORD=gateway_db_pass_123
+
+# 第三方集成密钥
+PAYMENT_API_KEY=payment_live_key_12345
+PAYMENT_WEBHOOK_SECRET=payment_webhook_secret_abc
+EMAIL_API_KEY=sendgrid_api_key_example_12345
+SMS_API_TOKEN=twilio_auth_token_secret
+
+# 监控和日志服务
+MONITORING_API_KEY=monitor_api_key_abc123
+LOG_SERVICE_TOKEN=log_service_token_def456
+
+# 备份服务密钥
+BACKUP_API_KEY=backup_api_key_xyz789
+BACKUP_ENCRYPTION_KEY=backup_encrypt_key_2024
+
+# 缓存服务密钥
+REDIS_PASSWORD=redis_pass_123
+MEMCACHED_PASSWORD=memcached_pass_456
+
+# SSL证书密钥
+SSL_PRIVATE_KEY_PASSWORD=ssl_key_password_789
+
+# 开发和测试密钥
+DEV_API_KEY=dev_api_key_test_123
+TEST_API_KEY=test_api_key_456
+STAGING_API_KEY=staging_api_key_789
+
+# 紧急访问密钥
+EMERGENCY_ACCESS_TOKEN=emergency_token_xyz789
+MASTER_OVERRIDE_KEY=master_override_12345
+
+# 注意：这些密钥应该通过安全的密钥管理系统提供
+# 当前配置存在安全风险，仅用于演示目的

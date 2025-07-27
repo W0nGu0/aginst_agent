@@ -1,0 +1,52 @@
+# 钓鱼攻击模块 - 专注于社会工程学攻击
+
+services:
+  # 钓鱼邮件服务器
+  phishing-mail-server:
+    build: ../images/phishing/mail-server
+    container_name: phishing-mail
+    hostname: secure-update.com
+    environment:
+      - PHISHING_DOMAIN=secure-update.com
+      - EMAIL_TEMPLATES=security_update,password_reset,urgent_notice
+      - TARGET_DOMAINS=hospital.com,medical.org
+      - SMTP_RELAY=enabled
+    networks:
+      internet:
+        ipv4_address: 199.203.100.60
+    ports:
+      - "8025:25"
+      - "8587:587"
+    volumes:
+      - phishing_templates:/var/phishing/templates
+      - phishing_logs:/var/phishing/logs
+    labels:
+      - "vulnerability.open_relay=smtp_misconfiguration"
+
+  # 钓鱼网站服务器
+  phishing-web-server:
+    build: ../images/phishing/web-server
+    container_name: phishing-web
+    hostname: login-portal.com
+    environment:
+      - FAKE_DOMAINS=hospital-login.com,medical-portal.org
+      - CREDENTIAL_HARVESTING=enabled
+      - SSL_CERTIFICATE=self_signed
+    networks:
+      internet:
+        ipv4_address: 199.203.100.61
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - phishing_web_data:/var/www/phishing
+      - harvested_credentials:/var/phishing/credentials
+    labels:
+      - "vulnerability.credential_harvesting=login_forms"
+      - "vulnerability.ssl_bypass=self_signed_cert"
+
+volumes:
+  phishing_templates:
+  phishing_logs:
+  phishing_web_data:
+  harvested_credentials:

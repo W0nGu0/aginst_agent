@@ -1,0 +1,50 @@
+# API密钥文件 - 包含敏感信息（预设漏洞）
+# 警告：此文件包含生产环境密钥，请勿泄露
+
+# 医疗系统API密钥
+MEDICAL_API_KEY=med_api_key_12345_secret
+MEDICAL_API_SECRET=med_api_secret_abcdef_67890
+
+# 数据库连接密钥
+DB_ENCRYPTION_KEY=db_encrypt_key_super_secret_2024
+DB_BACKUP_KEY=backup_encryption_key_xyz789
+
+# 第三方服务API密钥
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_REGION=us-east-1
+
+# 支付网关密钥
+PAYMENT_GATEWAY_KEY=pg_live_key_sk_test_12345
+PAYMENT_WEBHOOK_SECRET=whsec_payment_webhook_secret
+
+# 邮件服务密钥
+SENDGRID_API_KEY=SG.sendgrid_api_key_example_12345
+SMTP_PASSWORD=smtp_password_secret_123
+
+# 云存储密钥
+AZURE_STORAGE_KEY=azure_storage_key_example_abcdef
+GOOGLE_CLOUD_KEY=google_cloud_service_key_json_content
+
+# 监控和日志服务
+DATADOG_API_KEY=datadog_api_key_12345
+SENTRY_DSN=https://sentry_dsn_example@sentry.io/project
+
+# JWT和会话密钥
+JWT_SECRET_KEY=jwt_super_secret_key_for_tokens_2024
+SESSION_SECRET=session_secret_key_for_cookies_xyz
+
+# 外部API集成
+EXTERNAL_SERVICE_TOKEN=ext_service_token_abcdef_12345
+PARTNER_API_KEY=partner_api_key_secret_67890
+
+# 备份和同步密钥
+BACKUP_ENCRYPTION_PASSWORD=backup_pass_super_secret_2024
+SYNC_SERVICE_KEY=sync_service_key_example_abc123
+
+# 开发环境特殊密钥
+DEV_MASTER_KEY=dev_master_key_override_all_security
+DEBUG_TOKEN=debug_token_full_access_12345
+
+# 注意：这些密钥在生产环境中应该通过环境变量或密钥管理服务提供
+# 当前配置仅用于开发和测试目的

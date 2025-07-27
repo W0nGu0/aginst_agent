@@ -53,17 +53,55 @@
       </h2>
 
       <div class="glass-panel p-8">
+        <!-- 快速选择区域 -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-4 text-base-content">快速场景配置</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 攻击类型选择 -->
+            <div>
+              <label class="block text-sm font-medium text-base-content/80 mb-2">攻击类型</label>
+              <select v-model="selectedAttackType"
+                class="w-full bg-base-300/50 text-base-content rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 border border-white/10">
+                <option value="">请选择攻击类型</option>
+                <option value="apt">APT高级持续威胁</option>
+                <option value="phishing">钓鱼攻击</option>
+                <option value="ransomware">勒索软件攻击</option>
+                <option value="insider_threat">内部威胁</option>
+              </select>
+            </div>
+
+            <!-- 业务场景选择 -->
+            <div>
+              <label class="block text-sm font-medium text-base-content/80 mb-2">业务场景</label>
+              <select v-model="selectedBusinessScenario"
+                class="w-full bg-base-300/50 text-base-content rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 border border-white/10">
+                <option value="">请选择业务场景</option>
+                <option value="healthcare">医疗机构</option>
+                <option value="finance">金融机构</option>
+                <option value="education">教育机构</option>
+                <option value="manufacturing">制造企业</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 自然语言描述区域 -->
         <div class="relative">
+          <label class="block text-sm font-medium text-base-content/80 mb-2">场景描述（可选）</label>
           <textarea v-model="scenePrompt"
-            class="w-full h-36 bg-base-300/50 text-base-content rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder-base-content/40 border border-white/10"
-            placeholder="描述您想要的攻防场景，例如：'企业内网服务器被植入后门，需要进行应急响应与溯源分析...'"></textarea>
+            class="w-full h-32 bg-base-300/50 text-base-content rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder-base-content/40 border border-white/10"
+            :placeholder="getPlaceholderText()"></textarea>
 
           <div class="mt-4 flex justify-between items-center">
             <div class="text-sm text-base-content/60">
-              <span>AI将为您定制专业攻防场景</span>
+              <span v-if="selectedAttackType && selectedBusinessScenario">
+                将生成 {{ getAttackTypeName() }} 的 {{ getBusinessScenarioName() }} 场景
+              </span>
+              <span v-else>请选择攻击类型和业务场景，或直接描述您的需求</span>
             </div>
 
-            <button @click="generateScene" class="btn btn-primary" :disabled="isLoading || !scenePrompt.trim()">
+            <button @click="generateScene" class="btn btn-primary"
+              :disabled="isLoading || (!scenePrompt.trim() && (!selectedAttackType || !selectedBusinessScenario))">
               <span>{{ isLoading ? '生成中' : '场景生成' }}</span>
               <svg v-if="!isLoading" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor">
@@ -137,6 +175,26 @@ const scrollContainer = ref(null)
 const scrollPosition = ref(0)
 const scrollSpeed = 0.5 // 滚动速度，数值越大滚动越快
 const scrollInterval = ref(null)
+
+// 新增：场景配置选项
+const selectedAttackType = ref('')
+const selectedBusinessScenario = ref('')
+
+// 攻击类型映射
+const attackTypeMap = {
+  'apt': 'APT高级持续威胁',
+  'phishing': '钓鱼攻击',
+  'ransomware': '勒索软件攻击',
+  'insider_threat': '内部威胁'
+}
+
+// 业务场景映射
+const businessScenarioMap = {
+  'healthcare': '医疗机构',
+  'finance': '金融机构',
+  'education': '教育机构',
+  'manufacturing': '制造企业'
+}
 
 // 场景提示 - 添加更多卡片
 const scenePrompts = [
@@ -277,22 +335,118 @@ function navigateToSceneDetail() {
   }, 1500)
 }
 
+// 获取攻击类型名称
+function getAttackTypeName() {
+  return attackTypeMap[selectedAttackType.value] || selectedAttackType.value
+}
+
+// 获取业务场景名称
+function getBusinessScenarioName() {
+  return businessScenarioMap[selectedBusinessScenario.value] || selectedBusinessScenario.value
+}
+
+// 获取占位符文本
+function getPlaceholderText() {
+  if (selectedAttackType.value && selectedBusinessScenario.value) {
+    return `描述具体的 ${getAttackTypeName()} 攻击场景，例如：攻击者如何渗透 ${getBusinessScenarioName()} 的网络系统...`
+  }
+  return '描述您想要的攻防场景，例如：医疗机构遭受APT攻击，攻击者通过钓鱼邮件获得初始访问权限...'
+}
+
 // 生成场景
-function generateScene() {
-  if (!scenePrompt.value.trim()) return
+async function generateScene() {
+  // 验证输入
+  if (!scenePrompt.value.trim() && (!selectedAttackType.value || !selectedBusinessScenario.value)) {
+    return
+  }
 
   isLoading.value = true
 
-  // 存储当前场景提示
-  appStore.setCurrentScene({
-    title: scenePrompt.value,
-    type: 'custom'
-  })
+  try {
+    // 如果用户选择了快速配置，直接使用选择的参数
+    if (selectedAttackType.value && selectedBusinessScenario.value) {
+      // 调用场景生成服务
+      const response = await fetch('/api/scenario/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          attack_type: selectedAttackType.value,
+          business_scenario: selectedBusinessScenario.value,
+          description: scenePrompt.value.trim(),
+          custom_config: {}
+        })
+      })
 
-  // 模拟场景生成过程
-  setTimeout(() => {
-    router.push('/topology')
-  }, 2000)
+      const result = await response.json()
+
+      if (result.success) {
+        // 存储生成的场景信息
+        appStore.setCurrentScene({
+          title: `${getAttackTypeName()} - ${getBusinessScenarioName()}`,
+          type: 'generated',
+          attackType: selectedAttackType.value,
+          businessScenario: selectedBusinessScenario.value,
+          description: scenePrompt.value,
+          scenarioData: result.data
+        })
+
+        // 跳转到拓扑页面
+        router.push('/against')
+      } else {
+        console.error('场景生成失败:', result.message)
+        // 这里可以添加错误提示
+      }
+    } else {
+      // 如果只有自然语言描述，需要先解析提示词
+      const parseResponse = await fetch('/api/scenario/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: scenePrompt.value
+        })
+      })
+
+      const parseResult = await parseResponse.json()
+
+      if (parseResult.success) {
+        // 使用解析结果生成场景
+        const generateResponse = await fetch('/api/scenario/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            attack_type: parseResult.attack_type,
+            business_scenario: parseResult.business_scenario,
+            description: scenePrompt.value,
+            custom_config: parseResult.custom_config || {}
+          })
+        })
+
+        const generateResult = await generateResponse.json()
+
+        if (generateResult.success) {
+          appStore.setCurrentScene({
+            title: scenePrompt.value,
+            type: 'parsed',
+            description: scenePrompt.value,
+            scenarioData: generateResult.data
+          })
+
+          router.push('/against')
+        }
+      }
+    }
+  } catch (error) {
+    console.error('场景生成过程中出错:', error)
+    // 这里可以添加错误提示
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 获取随机颜色
