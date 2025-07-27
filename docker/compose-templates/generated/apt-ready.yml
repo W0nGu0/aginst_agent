@@ -1,0 +1,290 @@
+services:
+  # 核心基础设施 - 使用已构建的镜像
+  cnt-sql:
+    image: compose-templates-cnt-sql:latest
+    container_name: cnt-sql
+    environment:
+    - MYSQL_ROOT_PASSWORD=rootpass
+    - MYSQL_DATABASE=testdb
+    - MYSQL_USER=testuser
+    - MYSQL_PASSWORD=testpass
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.23
+    ports:
+    - 3307:3307
+    labels:
+    - vulnerability.weak_password=testpass
+    - vulnerability.sql_injection=enabled
+
+  cnt-files:
+    image: compose-templates-cnt-files:latest
+    container_name: cnt-files
+    environment:
+    - USERNAME=fileadmin
+    - PASSWORD=file123
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.6
+    ports:
+    - 8091:80
+    labels:
+    - vulnerability.file_upload=unrestricted
+    - vulnerability.directory_traversal=enabled
+
+  cnt-syslog:
+    image: compose-templates-cnt-syslog:latest
+    container_name: cnt-syslog
+    environment:
+    - USERNAME=syslogadmin
+    - PASSWORD=syslog123
+    networks:
+      siem_segment:
+        ipv4_address: 192.168.66.20
+    ports:
+    - 514:514/udp
+    labels:
+    - vulnerability.log_injection=enabled
+
+  # 用户工作站
+  ws-ubuntu-1:
+    image: compose-templates-ws-ubuntu-cnt1:latest
+    container_name: ws-ubuntu-1
+    environment:
+    - USERNAME=alice
+    - PASSWORD=alice123
+    - ROLE=employee
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.9
+    ports:
+    - 5001:5000
+    labels:
+    - vulnerability.weak_password=alice123
+    - vulnerability.user_workstation=enabled
+
+  ws-ubuntu-2:
+    image: compose-templates-ws-ubuntu-cnt2:latest
+    container_name: ws-ubuntu-2
+    environment:
+    - USERNAME=bob
+    - PASSWORD=bob123
+    - ROLE=admin
+    networks:
+      user_segment:
+        ipv4_address: 192.168.100.10
+    ports:
+    - 5002:5000
+    labels:
+    - vulnerability.admin_access=enabled
+    - vulnerability.privilege_escalation=possible
+
+  # 攻击者机器
+  attacker:
+    image: ubuntu:20.04
+    container_name: attacker
+    hostname: attacker-machine
+    environment:
+    - DEBIAN_FRONTEND=noninteractive
+    command: >
+      bash -c "apt-get update && 
+               apt-get install -y nmap netcat curl wget python3 python3-pip openssh-client &&
+               pip3 install requests &&
+               tail -f /dev/null"
+    networks:
+      internet:
+        ipv4_address: 199.203.100.11
+    tty: true
+
+  # DMZ服务器
+  dmz-web:
+    image: compose-templates-cnt-dmz-apache1:latest
+    container_name: dmz-web
+    environment:
+    - USERNAME=webadmin
+    - PASSWORD=web123
+    networks:
+      dmz_segment:
+        ipv4_address: 172.16.100.10
+    ports:
+    - 8092:80
+    labels:
+    - vulnerability.web_server=apache
+    - vulnerability.exposed_service=public
+
+  # 防火墙
+  firewall:
+    image: compose-templates-cnt-fw:latest
+    container_name: firewall
+    privileged: true
+    environment:
+    - USERNAME=fwadmin
+    - PASSWORD=fw123
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.254
+      dmz_segment:
+        ipv4_address: 172.16.100.254
+      internet:
+        ipv4_address: 199.203.100.2
+    labels:
+    - vulnerability.firewall_bypass=possible
+    - vulnerability.weak_rules=enabled
+
+  # VPN服务器
+  vpn-server:
+    image: compose-templates-vpn:latest
+    container_name: vpn-server
+    privileged: true
+    environment:
+    - USERNAME=vpnadmin
+    - PASSWORD=vpn123
+    networks:
+      internet:
+        ipv4_address: 199.203.100.10
+    ports:
+    - 1194:1194/udp
+    - 7505:7505
+    labels:
+    - vulnerability.vpn_weak_auth=enabled
+    - vulnerability.certificate_issues=self_signed
+
+  # 数据库服务器
+  database:
+    image: compose-templates-cnt-db:latest
+    container_name: database
+    environment:
+    - POSTGRES_PASSWORD=dbpass
+    - USERNAME=dbadmin
+    - PASSWORD=db123
+    networks:
+      db_segment:
+        ipv4_address: 192.168.214.10
+    ports:
+    - 5433:5432
+    labels:
+    - vulnerability.weak_db_password=dbpass
+    - vulnerability.unencrypted_data=enabled
+
+  # 软件更新服务器 (APT目标)
+  update-server:
+    image: apt-update-server:latest
+    container_name: update-server
+    hostname: updates.company.local
+    environment:
+    - USERNAME=updateadmin
+    - PASSWORD=update123
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.50
+    ports:
+    - 8093:80
+    - 8443:443
+    labels:
+    - vulnerability.weak_auth=update123
+    - vulnerability.directory_traversal=enabled
+    - vulnerability.file_upload=unrestricted_upload
+
+  # 医疗数据库
+  medical-db:
+    image: medical-database:latest
+    container_name: medical-db
+    hostname: meddb.hospital.local
+    environment:
+    - POSTGRES_DB=medical_db
+    - POSTGRES_USER=meduser
+    - POSTGRES_PASSWORD=MedDB2024!
+    networks:
+      medical_segment:
+        ipv4_address: 192.168.101.20
+    ports:
+    - 5434:5432
+    labels:
+    - vulnerability.weak_db_password=MedDB2024!
+    - vulnerability.unencrypted_data=patient_records
+
+  # 医疗文件服务器
+  medical-files:
+    image: generated-medical-file-server:latest
+    container_name: medical-files
+    hostname: files.hospital.local
+    environment:
+    - FILE_TYPES=documents,images,reports
+    - ACCESS_CONTROL=basic
+    networks:
+      medical_segment:
+        ipv4_address: 192.168.101.30
+    ports:
+    - 8094:80
+    - 2222:22
+    labels:
+    - vulnerability.weak_file_permissions=world_readable
+    - vulnerability.ssh_weak_auth=enabled
+
+  # WordPress DMZ
+  dmz-wordpress:
+    image: compose-templates-cnt-dmz-wp1:latest
+    container_name: dmz-wordpress
+    environment:
+    - USERNAME=wpadmin
+    - PASSWORD=wp123
+    networks:
+      dmz_segment:
+        ipv4_address: 172.16.100.20
+    ports:
+    - 8095:80
+    labels:
+    - vulnerability.wordpress=outdated
+    - vulnerability.weak_admin=wp123
+
+  # DNS服务器
+  dns-server:
+    image: compose-templates-cnt-dmz-dns:latest
+    container_name: dns-server
+    privileged: true
+    environment:
+    - USERNAME=dnsadmin
+    - PASSWORD=dns123
+    networks:
+      dmz_segment:
+        ipv4_address: 172.16.100.53
+    labels:
+    - vulnerability.dns_poisoning=enabled
+    - vulnerability.zone_transfer=unrestricted
+
+networks:
+  server_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.200.0/24
+  user_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+  dmz_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.100.0/24
+  db_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.214.0/24
+  medical_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.101.0/24
+  siem_segment:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.66.0/24
+  internet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 199.203.100.0/24

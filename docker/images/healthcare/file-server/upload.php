@@ -1,5 +1,5 @@
 <?php
-// File Upload with Multiple Vulnerabilities
+// Simple File Upload with Vulnerabilities
 session_start();
 
 if (!isset($_SESSION['authenticated'])) {
@@ -10,15 +10,11 @@ if (!isset($_SESSION['authenticated'])) {
 if (isset($_POST['upload'])) {
     $target_dir = "/var/medical-files/temp/";
     $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-    $uploadOk = 1;
-    
+
     // No file type validation - allows any file upload
-    // No size limit
-    // No filename sanitization
-    
     if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
         $message = "File " . basename($_FILES["fileToUpload"]["name"]) . " uploaded successfully.";
-        
+
         // Execute uploaded files if they are scripts
         $file_extension = pathinfo($target_file, PATHINFO_EXTENSION);
         if ($file_extension == 'php') {

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>医院信息系统 - HIS</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #2c3e50; color: white; padding: 20px; }
+        .menu { background: #34495e; padding: 10px; }
+        .menu a { color: white; text-decoration: none; margin-right: 20px; }
+        .content { padding: 20px; }
+        .patient-card { border: 1px solid #ddd; margin: 10px; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>医院信息系统 (HIS)</h1>
+        <p>欢迎使用中心医院信息管理系统</p>
+    </div>
+    
+    <div class="menu">
+        <a href="/patients">患者管理</a>
+        <a href="/appointments">预约管理</a>
+        <a href="/records">病历管理</a>
+        <a href="/admin">系统管理</a>
+    </div>
+    
+    <div class="content">
+        <h2>系统概览</h2>
+        <p>当前在线用户: {{ users }}</p>
+        <p>今日门诊: {{ appointments }}</p>
+        <p>系统状态: 正常运行</p>
+        
+        <h3>快速访问</h3>
+        <div class="patient-card">
+            <h4>患者查询</h4>
+            <form action="/search" method="get">
+                <input type="text" name="patient_id" placeholder="输入患者ID">
+                <button type="submit">查询</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
