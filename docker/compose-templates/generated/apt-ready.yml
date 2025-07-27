@@ -112,42 +112,81 @@ services:
     - vulnerability.web_server=apache
     - vulnerability.exposed_service=public
 
-  # 防火墙
-  firewall:
+  # 边界防火墙 (Internet <-> DMZ)
+  border-firewall:
     image: compose-templates-cnt-fw:latest
-    container_name: firewall
+    container_name: border-firewall
     privileged: true
     environment:
     - USERNAME=fwadmin
     - PASSWORD=fw123
+    - FIREWALL_TYPE=border
     networks:
-      server_segment:
-        ipv4_address: 192.168.200.254
-      dmz_segment:
-        ipv4_address: 172.16.100.254
       internet:
         ipv4_address: 199.203.100.2
+      dmz_segment:
+        ipv4_address: 172.16.100.254
     labels:
     - vulnerability.firewall_bypass=possible
     - vulnerability.weak_rules=enabled
 
-  # VPN服务器
-  vpn-server:
-    image: compose-templates-vpn:latest
-    container_name: vpn-server
+  # 内网防火墙 (DMZ <-> Internal)
+  internal-firewall:
+    image: compose-templates-cnt-fw:latest
+    container_name: internal-firewall
     privileged: true
     environment:
-    - USERNAME=vpnadmin
-    - PASSWORD=vpn123
+    - USERNAME=fwadmin2
+    - PASSWORD=fw456
+    - FIREWALL_TYPE=internal
     networks:
-      internet:
-        ipv4_address: 199.203.100.10
-    ports:
-    - 1194:1194/udp
-    - 7505:7505
+      dmz_segment:
+        ipv4_address: 172.16.100.253
+      server_segment:
+        ipv4_address: 192.168.200.254
+      user_segment:
+        ipv4_address: 192.168.100.254
     labels:
-    - vulnerability.vpn_weak_auth=enabled
-    - vulnerability.certificate_issues=self_signed
+    - vulnerability.firewall_bypass=possible
+    - vulnerability.weak_rules=enabled
+
+  # 数据库防火墙 (Internal <-> DB)
+  db-firewall:
+    image: compose-templates-cnt-fw:latest
+    container_name: db-firewall
+    privileged: true
+    environment:
+    - USERNAME=dbfwadmin
+    - PASSWORD=dbfw789
+    - FIREWALL_TYPE=database
+    networks:
+      server_segment:
+        ipv4_address: 192.168.200.253
+      db_segment:
+        ipv4_address: 192.168.214.254
+      medical_segment:
+        ipv4_address: 192.168.101.254
+    labels:
+    - vulnerability.firewall_bypass=possible
+    - vulnerability.weak_rules=enabled
+
+  # VPN服务器 (暂时禁用，需要特殊配置)
+  # vpn-server:
+  #   image: compose-templates-vpn:latest
+  #   container_name: vpn-server
+  #   privileged: true
+  #   environment:
+  #   - USERNAME=vpnadmin
+  #   - PASSWORD=vpn123
+  #   networks:
+  #     internet:
+  #       ipv4_address: 199.203.100.10
+  #   ports:
+  #   - 1194:1194/udp
+  #   - 7505:7505
+  #   labels:
+  #   - vulnerability.vpn_weak_auth=enabled
+  #   - vulnerability.certificate_issues=self_signed
 
   # 数据库服务器
   database:
@@ -245,9 +284,18 @@ services:
     environment:
     - USERNAME=dnsadmin
     - PASSWORD=dns123
+    command: >
+      bash -c "mkdir -p /run/named &&
+               chown bind:bind /run/named &&
+               mkdir -p /usr/share/dns &&
+               echo '. 3600000 NS a.root-servers.net.' > /usr/share/dns/root.hints &&
+               /usr/sbin/named -g -u bind"
     networks:
       dmz_segment:
         ipv4_address: 172.16.100.53
+    ports:
+    - 53:53/udp
+    - 53:53/tcp
     labels:
     - vulnerability.dns_poisoning=enabled
     - vulnerability.zone_transfer=unrestricted
