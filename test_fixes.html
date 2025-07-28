@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复验证测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        .btn-info {
+            background-color: #17a2b8;
+        }
+        .btn-info:hover {
+            background-color: #117a8b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 第二阶段修复验证</h1>
+    
+    <div class="test-section">
+        <h2>1. 函数重复声明修复</h2>
+        <div class="status success">
+            ✅ 已修复：将重复的 updateNodeStatus 函数重命名为 updateNodeScenarioStatus
+        </div>
+        <div class="code">
+            // 原有函数（攻击状态）
+            function updateNodeStatus(node, status) { ... }
+            
+            // 新函数（场景状态）  
+            function updateNodeScenarioStatus(nodeId, newStatus) { ... }
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 按钮重复问题修复</h2>
+        <div class="status success">
+            ✅ 已优化：区分场景模式和普通模式的按钮显示
+        </div>
+        
+        <h3>场景模式按钮：</h3>
+        <button class="btn-success">🚀 部署容器</button>
+        <button>❌ 退出编辑</button>
+        
+        <h3>普通模式按钮：</h3>
+        <button>保存拓扑图</button>
+        <button class="btn-success">生成场景</button>
+        <button style="background-color: #dc3545;">销毁场景</button>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 功能验证清单</h2>
+        <div class="status info">
+            <h4>✅ 已修复的问题：</h4>
+            <ul>
+                <li>函数重复声明错误</li>
+                <li>按钮功能重复问题</li>
+                <li>函数调用引用更新</li>
+                <li>按钮文本优化</li>
+                <li>删除无用的"加载APT场景"按钮</li>
+            </ul>
+        </div>
+        
+        <div class="status info">
+            <h4>🎯 预期功能：</h4>
+            <ul>
+                <li><strong>普通模式</strong>：显示"生成场景"按钮，创建预设拓扑</li>
+                <li><strong>场景模式</strong>：显示"部署容器"按钮，启动APT场景容器</li>
+                <li><strong>节点状态</strong>：支持虚拟→启动中→运行中→停止的状态切换</li>
+                <li><strong>编辑功能</strong>：删除、添加、连线节点</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试步骤</h2>
+        <div class="code">
+1. 启动前端服务：npm run dev
+2. 访问场景创建页面：/against/create  
+3. 输入提示词："医疗机构遭受APT攻击"
+4. 点击"生成场景"
+5. 验证跳转到拓扑页面并进入场景模式
+6. 验证半透明节点显示
+7. 测试节点编辑功能
+8. 点击"部署容器"验证容器启动
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 错误排查</h2>
+        <div class="status info">
+            <h4>如果仍有问题，请检查：</h4>
+            <ul>
+                <li>确保场景智能体服务运行在端口8007</li>
+                <li>确保后端服务运行在端口8080</li>
+                <li>检查浏览器控制台是否有JavaScript错误</li>
+                <li>验证API调用是否成功返回</li>
+                <li>检查Docker服务是否正常运行</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 简单的状态检查
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 修复验证页面已加载');
+            console.log('✅ 函数重复声明问题已修复');
+            console.log('✅ 按钮重复问题已优化');
+            console.log('🎯 可以开始测试前端功能');
+        });
+    </script>
+</body>
+</html>

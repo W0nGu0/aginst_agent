@@ -363,83 +363,33 @@ async function generateScene() {
   isLoading.value = true
 
   try {
-    // 如果用户选择了快速配置，直接使用选择的参数
-    if (selectedAttackType.value && selectedBusinessScenario.value) {
-      // 调用场景生成服务
-      const response = await fetch('/api/scenario/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          attack_type: selectedAttackType.value,
-          business_scenario: selectedBusinessScenario.value,
-          description: scenePrompt.value.trim(),
-          custom_config: {}
-        })
+    // 调用场景智能体进行综合处理
+    const response = await fetch('/api/scenario/process_request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt: scenePrompt.value.trim() || getPlaceholderText()
       })
+    })
 
-      const result = await response.json()
+    const result = await response.json()
 
-      if (result.success) {
-        // 存储生成的场景信息
-        appStore.setCurrentScene({
-          title: `${getAttackTypeName()} - ${getBusinessScenarioName()}`,
-          type: 'generated',
-          attackType: selectedAttackType.value,
-          businessScenario: selectedBusinessScenario.value,
-          description: scenePrompt.value,
-          scenarioData: result.data
-        })
+    if (result.status === 'success') {
+      // 将场景数据存储到sessionStorage，供拓扑页面使用
+      sessionStorage.setItem('scenarioData', JSON.stringify({
+        prompt: scenePrompt.value.trim(),
+        agentOutput: result.data.agent_output,
+        timestamp: Date.now(),
+        selectedAttackType: selectedAttackType.value,
+        selectedBusinessScenario: selectedBusinessScenario.value
+      }))
 
-        // 跳转到拓扑页面
-        router.push('/against')
-      } else {
-        console.error('场景生成失败:', result.message)
-        // 这里可以添加错误提示
-      }
+      // 跳转到拓扑页面，带上场景模式参数
+      router.push('/topology?mode=scenario')
     } else {
-      // 如果只有自然语言描述，需要先解析提示词
-      const parseResponse = await fetch('/api/scenario/parse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: scenePrompt.value
-        })
-      })
-
-      const parseResult = await parseResponse.json()
-
-      if (parseResult.success) {
-        // 使用解析结果生成场景
-        const generateResponse = await fetch('/api/scenario/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            attack_type: parseResult.attack_type,
-            business_scenario: parseResult.business_scenario,
-            description: scenePrompt.value,
-            custom_config: parseResult.custom_config || {}
-          })
-        })
-
-        const generateResult = await generateResponse.json()
-
-        if (generateResult.success) {
-          appStore.setCurrentScene({
-            title: scenePrompt.value,
-            type: 'parsed',
-            description: scenePrompt.value,
-            scenarioData: generateResult.data
-          })
-
-          router.push('/against')
-        }
-      }
+      throw new Error(result.message || '场景生成失败')
     }
   } catch (error) {
     console.error('场景生成过程中出错:', error)

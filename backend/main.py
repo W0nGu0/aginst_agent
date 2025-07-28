@@ -467,6 +467,127 @@ async def execute_random_social_attack(req: dict):
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 
+# 场景智能体相关API
+@api_router.get("/scenario/parse_apt_scenario")
+async def parse_apt_scenario():
+    """
+    解析APT场景，返回拓扑结构信息
+    """
+    logger.info("收到APT场景解析请求")
+
+    try:
+        # 场景智能体的URL
+        scenario_agent_url = "http://localhost:8007/parse_apt_scenario"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(scenario_agent_url, timeout=30.0)
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info("APT场景解析成功")
+
+            return result
+
+    except httpx.HTTPStatusError as e:
+        error_msg = f"场景智能体HTTP错误: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"场景智能体连接错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+    except Exception as e:
+        error_msg = f"APT场景解析失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+class ScenarioAnalysisRequest(BaseModel):
+    prompt: str = Field(description="用户输入的场景描述")
+
+@api_router.post("/scenario/analyze_prompt")
+async def analyze_scenario_prompt(req: ScenarioAnalysisRequest):
+    """
+    分析用户输入的场景提示词
+    """
+    logger.info(f"收到场景提示词分析请求: {req.prompt[:100]}...")
+
+    try:
+        # 场景智能体的URL
+        scenario_agent_url = "http://localhost:8007/analyze_prompt"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                scenario_agent_url,
+                json={"prompt": req.prompt},
+                timeout=30.0
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info("场景提示词分析成功")
+
+            return result
+
+    except httpx.HTTPStatusError as e:
+        error_msg = f"场景智能体HTTP错误: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"场景智能体连接错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+    except Exception as e:
+        error_msg = f"场景提示词分析失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@api_router.post("/scenario/process_request")
+async def process_scenario_request(req: ScenarioAnalysisRequest):
+    """
+    综合处理场景请求：分析提示词 -> 生成场景 -> 返回拓扑数据
+    """
+    logger.info(f"收到综合场景处理请求: {req.prompt[:100]}...")
+
+    try:
+        # 场景智能体的URL
+        scenario_agent_url = "http://localhost:8007/process_scenario_request"
+
+        logger.info(f"开始调用场景智能体: {scenario_agent_url}")
+        logger.info(f"请求内容: {req.prompt}")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                scenario_agent_url,
+                json={"prompt": req.prompt},
+                timeout=180.0  # 增加超时时间到3分钟
+            )
+
+            logger.info(f"场景智能体响应状态码: {response.status_code}")
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info("综合场景处理成功")
+            logger.info(f"响应数据长度: {len(str(result))} 字符")
+
+            return result
+
+    except httpx.HTTPStatusError as e:
+        error_msg = f"场景智能体HTTP错误: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"场景智能体连接错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+    except httpx.TimeoutException as e:
+        error_msg = f"场景智能体请求超时: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=504, detail=error_msg)
+    except Exception as e:
+        error_msg = f"综合场景处理失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
 # Register router
 app.include_router(api_router)
 

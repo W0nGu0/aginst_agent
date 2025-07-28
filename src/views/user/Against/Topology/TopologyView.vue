@@ -3,16 +3,82 @@
     <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
       <!-- 左侧控制面板 -->
       <div class="bg-base-100 rounded-lg p-4 border border-base-300/30 mb-6">
-        <h2 class="text-xl font-semibold mb-4 flex items-center">
-          <span class="text-primary mr-2">#</span>设备库
-        </h2>
+        <!-- 场景模式控制 -->
+        <div v-if="isScenarioMode" class="mb-6 p-4 bg-info/10 rounded-lg border border-info/30">
+          <h3 class="text-lg font-semibold mb-3 flex items-center">
+            <span class="text-info mr-2">🎯</span>场景编辑模式
+          </h3>
 
-        <div class="device-grid">
-          <div v-for="(color, type) in deviceTypes" :key="type" class="device-item" @click="createDevice(type)">
-            <div class="device-icon" :style="`background-color: ${color}`">
-              <img :src="getDeviceIcon(type)" class="w-6 h-6" alt="">
+          <!-- 编辑工具栏 -->
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button
+              @click="deleteSelectedNode"
+              class="btn btn-sm btn-error"
+              :disabled="!topology?.getActiveObject()"
+            >
+              🗑️ 删除节点
+            </button>
+            <button
+              @click="startConnectingNodes"
+              class="btn btn-sm btn-warning"
+              :class="{ 'btn-active': isConnectingNodes }"
+            >
+              🔗 连接节点
+            </button>
+            <button
+              v-if="isConnectingNodes"
+              @click="stopConnectingNodes"
+              class="btn btn-sm btn-ghost"
+            >
+              ❌ 取消连接
+            </button>
+          </div>
+
+          <!-- 节点添加区域 -->
+          <div class="mb-4">
+            <h4 class="font-medium mb-2">添加节点:</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="nodeType in availableNodeTypes"
+                :key="nodeType.type"
+                @click="startAddingNode(nodeType)"
+                class="btn btn-sm btn-outline"
+                :class="{ 'btn-active': isAddingNode && selectedNodeType?.type === nodeType.type }"
+              >
+                {{ nodeType.name }}
+              </button>
             </div>
-            <div class="device-name">{{ getDeviceTypeName(type) }}</div>
+            <button
+              v-if="isAddingNode"
+              @click="stopAddingNode"
+              class="btn btn-sm btn-ghost mt-2 w-full"
+            >
+              ❌ 取消添加
+            </button>
+          </div>
+
+          <!-- 场景信息 -->
+          <div v-if="scenarioData" class="text-sm text-base-content/70">
+            <p><strong>场景:</strong> {{ scenarioData.metadata?.description || 'APT医疗场景' }}</p>
+            <p><strong>节点数:</strong> {{ scenarioData.nodes?.length || 0 }}</p>
+            <p><strong>虚拟节点:</strong> {{ virtualNodes.size }}</p>
+            <p><strong>运行节点:</strong> {{ runningNodes.size }}</p>
+          </div>
+        </div>
+
+        <!-- 普通设备库 -->
+        <div v-if="!isScenarioMode">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="text-primary mr-2">#</span>设备库
+          </h2>
+
+          <div class="device-grid">
+            <div v-for="(color, type) in deviceTypes" :key="type" class="device-item" @click="createDevice(type)">
+              <div class="device-icon" :style="`background-color: ${color}`">
+                <img :src="getDeviceIcon(type)" class="w-6 h-6" alt="">
+              </div>
+              <div class="device-name">{{ getDeviceTypeName(type) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -23,10 +89,30 @@
           <div>
             <span class="text-primary mr-2">#</span>网络拓扑图
           </div>
-          <div class="flex gap-2">
-            <button @click="saveTopology" class="btn btn-sm btn-primary">保存拓扑图</button>
-            <button @click="generateScenario" class="btn btn-sm btn-success">生成场景</button>
-            <button @click="destroyScenario" class="btn btn-sm btn-error">销毁场景</button>
+          <div class="flex gap-2 flex-wrap">
+            <!-- 场景模式按钮 -->
+            <template v-if="isScenarioMode">
+              <button
+                @click="generateScenario"
+                class="btn btn-sm btn-success"
+                :disabled="virtualNodes.size === 0"
+              >
+                🚀 部署容器
+              </button>
+              <button
+                @click="disableEditMode"
+                class="btn btn-sm btn-ghost"
+              >
+                ❌ 退出编辑
+              </button>
+            </template>
+
+            <!-- 普通模式按钮 -->
+            <template v-else>
+              <button @click="saveTopology" class="btn btn-sm btn-primary">保存拓扑图</button>
+              <button @click="generateScenario" class="btn btn-sm btn-success">生成场景</button>
+              <button @click="destroyScenario" class="btn btn-sm btn-error">销毁场景</button>
+            </template>
 
             <button @click="toggleFullScreen" class="btn btn-sm">全屏</button>
           </div>
@@ -98,6 +184,7 @@ import {
 } from './core/AttackStageAnimations'
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
+import ScenarioDataService from './services/ScenarioDataService'
 
 import AttackAgentService from './services/AttackAgentService'
 import AttackTaskService from './services/AttackTaskService'
@@ -144,6 +231,27 @@ const eventMonitorRef = ref(null)
 const currentAttackTaskId = ref('')
 const currentAttackTaskStatus = ref(null)
 
+// 场景模式状态
+const isScenarioMode = ref(false)
+const scenarioData = ref(null)
+const virtualNodes = ref(new Set())
+const runningNodes = ref(new Set())
+
+// 节点编辑状态
+const isEditMode = ref(false)
+const isAddingNode = ref(false)
+const isConnectingNodes = ref(false)
+const selectedNodeForConnection = ref(null)
+const selectedNodeType = ref(null)
+const availableNodeTypes = ref([
+  { type: 'workstation', name: '工作站', icon: '/icons/workstation.svg' },
+  { type: 'server', name: '服务器', icon: '/icons/server.svg' },
+  { type: 'database', name: '数据库', icon: '/icons/database.svg' },
+  { type: 'firewall', name: '防火墙', icon: '/icons/firewall.svg' },
+  { type: 'router', name: '路由器', icon: '/icons/router.svg' },
+  { type: 'switch', name: '交换机', icon: '/icons/switch.svg' }
+])
+
 
 
 // 计算属性
@@ -160,7 +268,45 @@ const selectedConnection = computed(() => {
 // 初始化拓扑图
 onMounted(async () => {
   await loadFabric()
-  initializeTopology()
+
+  // 检查是否是场景模式
+  const urlParams = new URLSearchParams(window.location.search)
+  const mode = urlParams.get('mode')
+
+  if (mode === 'scenario') {
+    // 尝试从sessionStorage获取场景数据
+    const scenarioDataStr = sessionStorage.getItem('scenarioData')
+    if (scenarioDataStr) {
+      try {
+        const storedData = JSON.parse(scenarioDataStr)
+        console.log('📋 检测到场景模式，加载场景数据:', storedData)
+
+        // 初始化拓扑图
+        initializeTopology()
+
+        // 等待拓扑图初始化完成后加载场景
+        setTimeout(async () => {
+          const success = await loadAptMedicalScenario()
+          if (success) {
+            enableEditMode()
+            logInfo('系统', `场景模式已激活: ${storedData.prompt}`)
+          }
+        }, 1000)
+
+        // 清理sessionStorage
+        sessionStorage.removeItem('scenarioData')
+      } catch (error) {
+        console.error('解析场景数据失败:', error)
+        initializeTopology()
+      }
+    } else {
+      console.warn('场景模式但未找到场景数据，使用普通模式')
+      initializeTopology()
+    }
+  } else {
+    // 普通模式
+    initializeTopology()
+  }
 
   // 添加攻击进度和完成事件监听
   window.addEventListener('attack-progress', handleAttackProgress)
@@ -1205,12 +1351,450 @@ function saveTopology() {
   logInfo('系统', '拓扑图已保存')
 }
 
+// 加载APT医疗场景数据
+async function loadAptMedicalScenario() {
+  try {
+    console.log('🔄 加载APT医疗场景数据...')
+    logInfo('系统', '正在加载APT医疗场景...')
+
+    // 从场景数据服务获取数据
+    const aptScenario = await ScenarioDataService.getAptMedicalScenario()
+
+    if (aptScenario && aptScenario.nodes) {
+      scenarioData.value = aptScenario
+      isScenarioMode.value = true
+
+      // 记录虚拟节点
+      virtualNodes.value.clear()
+      aptScenario.nodes.forEach(node => {
+        if (node.status === 'virtual') {
+          virtualNodes.value.add(node.id)
+        }
+      })
+
+      // 渲染半透明拓扑图
+      renderScenarioTopology(aptScenario)
+
+      logInfo('系统', `APT医疗场景加载成功，包含 ${aptScenario.nodes.length} 个节点`)
+      return true
+    } else {
+      throw new Error('场景数据格式错误')
+    }
+  } catch (error) {
+    console.error('加载APT医疗场景失败:', error)
+    logError('系统', `加载场景失败: ${error.message}`)
+    return false
+  }
+}
+
+// 渲染场景拓扑图（半透明模式）
+function renderScenarioTopology(scenarioTopology) {
+  if (!topology) return
+
+  try {
+    // 清空当前拓扑图
+    topology.clear()
+
+    console.log('🎨 渲染半透明场景拓扑图...')
+
+    // 添加节点
+    scenarioTopology.nodes.forEach(nodeData => {
+      const fabricNode = topology.createNode(
+        nodeData.type,
+        nodeData.x,
+        nodeData.y,
+        {
+          id: nodeData.id,
+          name: nodeData.displayName || nodeData.name,
+          // 半透明样式
+          fill: nodeData.fill,
+          stroke: nodeData.stroke,
+          strokeWidth: nodeData.strokeWidth || 2,
+          opacity: nodeData.opacity || 0.5,
+          strokeDashArray: nodeData.strokeDashArray || [5, 5],
+          // 场景数据
+          networks: nodeData.networks,
+          ipAddresses: nodeData.ipAddresses,
+          status: nodeData.status || 'virtual'
+        }
+      )
+
+      // 添加到画布
+      topology.canvas.add(fabricNode)
+    })
+
+    // 添加连接
+    scenarioTopology.connections.forEach(connData => {
+      const sourceNode = topology.findNodeById(connData.source)
+      const targetNode = topology.findNodeById(connData.target)
+
+      if (sourceNode && targetNode) {
+        const connection = topology.createConnection(
+          sourceNode,
+          targetNode,
+          {
+            stroke: connData.stroke,
+            strokeWidth: connData.strokeWidth || 2,
+            strokeDashArray: connData.strokeDashArray || [],
+            opacity: connData.opacity || 0.7,
+            network: connData.network
+          }
+        )
+
+        topology.canvas.add(connection)
+      }
+    })
+
+    // 重新渲染画布
+    topology.canvas.requestRenderAll()
+
+    logInfo('系统', '半透明拓扑图渲染完成')
+
+  } catch (error) {
+    console.error('渲染场景拓扑图失败:', error)
+    logError('系统', `渲染失败: ${error.message}`)
+  }
+}
+
+// 切换节点场景状态（虚拟 -> 实体）
+function updateNodeScenarioStatus(nodeId, newStatus) {
+  if (!topology) return
+
+  const node = topology.findNodeById(nodeId)
+  if (!node) return
+
+  // 更新节点样式
+  switch (newStatus) {
+    case 'running':
+      node.set({
+        opacity: 1.0,
+        strokeDashArray: [],
+        stroke: '#27ae60',
+        strokeWidth: 3
+      })
+      virtualNodes.value.delete(nodeId)
+      runningNodes.value.add(nodeId)
+      break
+    case 'starting':
+      node.set({
+        opacity: 0.8,
+        strokeDashArray: [3, 3],
+        stroke: '#f39c12',
+        strokeWidth: 3
+      })
+      break
+    case 'stopped':
+      node.set({
+        opacity: 0.6,
+        strokeDashArray: [5, 5],
+        stroke: '#e74c3c',
+        strokeWidth: 2
+      })
+      runningNodes.value.delete(nodeId)
+      break
+    case 'virtual':
+    default:
+      node.set({
+        opacity: 0.5,
+        strokeDashArray: [5, 5],
+        stroke: '#bdc3c7',
+        strokeWidth: 2
+      })
+      runningNodes.value.delete(nodeId)
+      virtualNodes.value.add(nodeId)
+      break
+  }
+
+  // 更新节点状态数据
+  if (node.nodeData) {
+    node.nodeData.status = newStatus
+  }
+
+  topology.canvas.requestRenderAll()
+}
+
+// 启用编辑模式
+function enableEditMode() {
+  isEditMode.value = true
+  logInfo('系统', '已启用拓扑编辑模式')
+}
+
+// 禁用编辑模式
+function disableEditMode() {
+  isEditMode.value = false
+  isAddingNode.value = false
+  isConnectingNodes.value = false
+  selectedNodeForConnection.value = null
+  logInfo('系统', '已禁用拓扑编辑模式')
+}
+
+// 删除选中的节点
+function deleteSelectedNode() {
+  if (!topology || !topology.getActiveObject()) {
+    logWarning('系统', '请先选择要删除的节点')
+    return
+  }
+
+  const selectedObject = topology.getActiveObject()
+
+  if (selectedObject.type === 'device' || selectedObject.nodeData) {
+    const nodeId = selectedObject.nodeData?.id || selectedObject.id
+
+    // 确认删除
+    if (confirm(`确定要删除节点 "${selectedObject.nodeData?.name || nodeId}" 吗？`)) {
+      // 删除相关连接
+      deleteNodeConnections(nodeId)
+
+      // 删除节点
+      topology.canvas.remove(selectedObject)
+
+      // 从虚拟节点集合中移除
+      virtualNodes.value.delete(nodeId)
+      runningNodes.value.delete(nodeId)
+
+      topology.canvas.requestRenderAll()
+      logInfo('系统', `已删除节点: ${selectedObject.nodeData?.name || nodeId}`)
+    }
+  } else {
+    logWarning('系统', '选中的对象不是节点')
+  }
+}
+
+// 删除节点的所有连接
+function deleteNodeConnections(nodeId) {
+  if (!topology) return
+
+  const objectsToRemove = []
+
+  topology.canvas.forEachObject((obj) => {
+    if (obj.type === 'line' && obj.connectionData) {
+      const connData = obj.connectionData
+      if (connData.source === nodeId || connData.target === nodeId) {
+        objectsToRemove.push(obj)
+      }
+    }
+  })
+
+  objectsToRemove.forEach(obj => {
+    topology.canvas.remove(obj)
+  })
+
+  if (objectsToRemove.length > 0) {
+    logInfo('系统', `已删除 ${objectsToRemove.length} 条相关连接`)
+  }
+}
+
+// 开始添加节点模式
+function startAddingNode(nodeType) {
+  isAddingNode.value = true
+  selectedNodeType.value = nodeType
+
+  // 设置画布点击监听
+  topology.canvas.on('mouse:down', handleCanvasClickForAddNode)
+
+  logInfo('系统', `开始添加 ${nodeType.name} 节点，请在画布上点击位置`)
+}
+
+// 处理画布点击添加节点
+function handleCanvasClickForAddNode(event) {
+  if (!isAddingNode.value || !selectedNodeType.value) return
+
+  const pointer = topology.canvas.getPointer(event.e)
+
+  // 创建新节点
+  const newNodeId = `node_${Date.now()}`
+  const newNode = topology.createNode(
+    selectedNodeType.value.type,
+    pointer.x,
+    pointer.y,
+    {
+      id: newNodeId,
+      name: `${selectedNodeType.value.name}_${Date.now()}`,
+      status: 'virtual',
+      fill: ScenarioDataService.getNodeColor(selectedNodeType.value.type),
+      stroke: '#bdc3c7',
+      strokeWidth: 2,
+      opacity: 0.5,
+      strokeDashArray: [5, 5]
+    }
+  )
+
+  // 添加到画布
+  topology.canvas.add(newNode)
+
+  // 添加到虚拟节点集合
+  virtualNodes.value.add(newNodeId)
+
+  // 结束添加模式
+  stopAddingNode()
+
+  topology.canvas.requestRenderAll()
+  logInfo('系统', `已添加新节点: ${newNode.nodeData.name}`)
+}
+
+// 停止添加节点模式
+function stopAddingNode() {
+  isAddingNode.value = false
+  selectedNodeType.value = null
+
+  // 移除画布点击监听
+  topology.canvas.off('mouse:down', handleCanvasClickForAddNode)
+}
+
+// 开始连接节点模式
+function startConnectingNodes() {
+  isConnectingNodes.value = true
+  selectedNodeForConnection.value = null
+
+  // 设置节点点击监听
+  topology.canvas.on('mouse:down', handleNodeClickForConnection)
+
+  logInfo('系统', '开始连接节点模式，请依次点击两个节点')
+}
+
+// 处理节点点击连接
+function handleNodeClickForConnection(event) {
+  if (!isConnectingNodes.value) return
+
+  const target = event.target
+  if (!target || (!target.nodeData && target.type !== 'device')) return
+
+  const nodeId = target.nodeData?.id || target.id
+
+  if (!selectedNodeForConnection.value) {
+    // 选择第一个节点
+    selectedNodeForConnection.value = target
+    target.set({ stroke: '#f39c12', strokeWidth: 4 })
+    topology.canvas.requestRenderAll()
+    logInfo('系统', `已选择第一个节点: ${target.nodeData?.name || nodeId}，请选择第二个节点`)
+  } else {
+    // 选择第二个节点，创建连接
+    if (selectedNodeForConnection.value === target) {
+      logWarning('系统', '不能连接同一个节点')
+      return
+    }
+
+    createConnection(selectedNodeForConnection.value, target)
+    stopConnectingNodes()
+  }
+}
+
+// 创建节点间连接
+function createConnection(sourceNode, targetNode) {
+  const sourceId = sourceNode.nodeData?.id || sourceNode.id
+  const targetId = targetNode.nodeData?.id || targetNode.id
+
+  // 检查是否已存在连接
+  let connectionExists = false
+  topology.canvas.forEachObject((obj) => {
+    if (obj.type === 'line' && obj.connectionData) {
+      const connData = obj.connectionData
+      if ((connData.source === sourceId && connData.target === targetId) ||
+          (connData.source === targetId && connData.target === sourceId)) {
+        connectionExists = true
+      }
+    }
+  })
+
+  if (connectionExists) {
+    logWarning('系统', '节点间已存在连接')
+    return
+  }
+
+  // 创建连接线
+  const connection = topology.createConnection(
+    sourceNode,
+    targetNode,
+    {
+      stroke: '#95a5a6',
+      strokeWidth: 2,
+      opacity: 0.7,
+      connectionData: {
+        id: `${sourceId}-${targetId}`,
+        source: sourceId,
+        target: targetId,
+        type: 'ethernet'
+      }
+    }
+  )
+
+  topology.canvas.add(connection)
+  topology.canvas.requestRenderAll()
+
+  logInfo('系统', `已创建连接: ${sourceNode.nodeData?.name || sourceId} -> ${targetNode.nodeData?.name || targetId}`)
+}
+
+// 停止连接节点模式
+function stopConnectingNodes() {
+  isConnectingNodes.value = false
+
+  // 恢复第一个节点的样式
+  if (selectedNodeForConnection.value) {
+    const node = selectedNodeForConnection.value
+    const status = node.nodeData?.status || 'virtual'
+    node.set({
+      stroke: ScenarioDataService.getNodeStrokeColor(status),
+      strokeWidth: status === 'virtual' ? 2 : 3
+    })
+    selectedNodeForConnection.value = null
+  }
+
+  // 移除节点点击监听
+  topology.canvas.off('mouse:down', handleNodeClickForConnection)
+
+  topology.canvas.requestRenderAll()
+}
+
+// 部署场景容器
+async function deployScenarioContainers() {
+  try {
+    logInfo('系统', '开始部署场景容器...')
+
+    // 调用后端启动apt-ready场景
+    const containerInfo = await TopologyService.startTopology('apt-ready')
+
+    if (containerInfo && containerInfo.running_services) {
+      // 更新节点状态为运行中
+      containerInfo.running_services.forEach(service => {
+        updateNodeScenarioStatus(service.name, 'running')
+        logInfo('系统', `容器 ${service.name} 已启动`)
+      })
+
+      // 更新失败的服务
+      if (containerInfo.failed_services) {
+        containerInfo.failed_services.forEach(service => {
+          updateNodeScenarioStatus(service.name, 'stopped')
+          logWarning('系统', `容器 ${service.name} 启动失败`)
+        })
+      }
+
+      logSuccess('系统', `场景容器部署完成，${containerInfo.running_services.length} 个容器运行中`)
+    } else {
+      throw new Error('容器启动失败，未返回有效信息')
+    }
+
+  } catch (error) {
+    console.error('部署场景容器失败:', error)
+    logError('系统', `容器部署失败: ${error.message}`)
+    throw error
+  }
+}
+
+// 创建预设拓扑图（普通模式）
+async function createPresetTopology() {
+  await TopologyGenerator.createCompanyTopology(topology, true)
+  logInfo('系统', '预设拓扑图创建完成')
+}
+
 // 生成场景 (调用后端并渲染拓扑)
 async function generateScenario() {
   if (!topology) return
   try {
-    // 清空当前拓扑图
-    topology.clear()
+    // 显示加载动画
+    const loadingEl = document.getElementById('topology-loading')
+    if (loadingEl) {
+      loadingEl.style.display = 'flex'
+    }
 
     // 🔄 重置节点状态 - 在生成场景时自动重置所有节点状态
     console.log('🔄 生成场景时自动重置节点状态...')
@@ -1220,55 +1804,62 @@ async function generateScenario() {
       logInfo('系统', '已重置所有节点状态')
     }
 
-    // 显示加载动画
-    const loadingEl = document.getElementById('topology-loading')
-    if (loadingEl) {
-      loadingEl.style.display = 'flex'
+    // 检查是否是场景模式
+    if (isScenarioMode.value && scenarioData.value) {
+      // 场景模式：启动容器，将虚拟节点变为实体
+      await deployScenarioContainers()
+    } else {
+      // 普通模式：创建预设拓扑图（半透明状态）
+      await TopologyGenerator.createCompanyTopology(topology, true)
     }
 
-    // 创建预设拓扑图（半透明状态）
-    await TopologyGenerator.createCompanyTopology(topology, true)
+    // 只在普通模式下执行容器启动
+    if (!isScenarioMode.value) {
+      logInfo('系统', '开始生成场景...')
 
-    logInfo('系统', '开始生成场景...')
+      try {
+        // 向后端请求启动预设的 docker-compose 文件
+        const containerInfo = await TopologyService.startTopology('company-topology')
 
-    try {
-      // 向后端请求启动预设的 docker-compose 文件
-      const containerInfo = await TopologyService.startTopology('company-topology')
+        // 更新设备状态
+        TopologyGenerator.updateDevicesWithContainerInfo(topology, containerInfo)
 
-      // 更新设备状态
-      TopologyGenerator.updateDevicesWithContainerInfo(topology, containerInfo)
+        // 强制更新所有设备的视觉状态
+        TopologyGenerator.forceUpdateDevicesVisualState(topology)
 
-      // 强制更新所有设备的视觉状态
-      TopologyGenerator.forceUpdateDevicesVisualState(topology)
+        // 🔄 生成场景成功后，再次刷新节点状态以确保与容器状态同步
+        if (eventMonitorRef.value) {
+          setTimeout(() => {
+            eventMonitorRef.value.refreshNodeStatusFromContainers()
+            logInfo('系统', '已同步容器状态到节点状态')
+          }, 2000) // 等待2秒让容器完全启动
+        }
 
-      // 🔄 生成场景成功后，再次刷新节点状态以确保与容器状态同步
-      if (eventMonitorRef.value) {
-        setTimeout(() => {
-          eventMonitorRef.value.refreshNodeStatusFromContainers()
-          logInfo('系统', '已同步容器状态到节点状态')
-        }, 2000) // 等待2秒让容器完全启动
+        // 显示成功消息
+        logSuccess('系统', '场景生成成功')
+      } catch (error) {
+        console.error('生成场景失败', error)
+        logError('系统', `生成场景失败: ${error.message}`)
+
+        // 如果是超时错误，尝试获取当前容器状态
+        if (error.name === 'AbortError') {
+          logWarning('系统', '请求超时，尝试获取当前容器状态...')
+        }
       }
-
-      // 显示成功消息
-      logSuccess('系统', '场景生成成功')
-    } catch (error) {
-      console.error('生成场景失败', error)
-      logError('系统', `生成场景失败: ${error.message}`)
-
-      // 如果是超时错误，尝试获取当前容器状态
-      if (error.name === 'AbortError') {
-        logWarning('系统', '请求超时，尝试获取当前容器状态...')
-      }
-    } finally {
-      // 隐藏加载动画
-      if (loadingEl) {
-        loadingEl.style.display = 'none'
-      }
+    } else {
+      // 场景模式下显示成功消息
+      logSuccess('系统', 'APT场景容器部署完成')
     }
-  } catch (e) {
-    console.error('生成场景失败', e)
-    logError('系统', `生成场景失败: ${e.message}`)
 
+  } catch (error) {
+    console.error('生成场景失败', error)
+    logError('系统', `生成场景失败: ${error.message}`)
+
+    // 如果是超时错误，尝试获取当前容器状态
+    if (error.name === 'AbortError') {
+      logWarning('系统', '请求超时，尝试获取当前容器状态...')
+    }
+  } finally {
     // 隐藏加载动画
     const loadingEl = document.getElementById('topology-loading')
     if (loadingEl) {
