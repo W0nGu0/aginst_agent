@@ -269,43 +269,62 @@ const selectedConnection = computed(() => {
 onMounted(async () => {
   await loadFabric()
 
-  // 检查是否是场景模式
-  const urlParams = new URLSearchParams(window.location.search)
-  const mode = urlParams.get('mode')
+  // 检查是否是场景模式 - 修复Vue Router hash模式下的参数解析
+  const fullUrl = window.location.href
+  const hashPart = window.location.hash
+  let mode = null
+
+  // 从hash中提取查询参数
+  if (hashPart.includes('?')) {
+    const queryString = hashPart.split('?')[1]
+    const urlParams = new URLSearchParams(queryString)
+    mode = urlParams.get('mode')
+  }
+
+  console.log('🔍 URL参数检查:')
+  console.log('   - 完整URL:', fullUrl)
+  console.log('   - Hash部分:', hashPart)
+  console.log('   - mode参数:', mode)
+
+  // 检查sessionStorage中的场景数据
+  const scenarioDataStr = sessionStorage.getItem('scenarioData')
+  console.log('🔍 SessionStorage检查:')
+  console.log('   - scenarioData存在:', !!scenarioDataStr)
+  console.log('   - scenarioData长度:', scenarioDataStr?.length || 0)
 
   if (mode === 'scenario') {
-    // 尝试从sessionStorage获取场景数据
-    const scenarioDataStr = sessionStorage.getItem('scenarioData')
+    console.log('✅ 检测到场景模式')
+
     if (scenarioDataStr) {
       try {
         const storedData = JSON.parse(scenarioDataStr)
-        console.log('📋 检测到场景模式，加载场景数据:', storedData)
+        console.log('📋 成功解析场景数据:')
+        console.log('   - 数据结构:', Object.keys(storedData))
+        console.log('   - prompt:', storedData.prompt)
+        console.log('   - agentOutput长度:', storedData.agentOutput?.length || 0)
 
-        // 初始化拓扑图
-        initializeTopology()
+        // 保存数据到全局变量，以便调试
+        window.currentScenarioData = storedData
+        console.log('💾 场景数据已保存到 window.currentScenarioData')
 
-        // 等待拓扑图初始化完成后加载场景
-        setTimeout(async () => {
-          const success = await loadDynamicScenario(storedData)
-          if (success) {
-            enableEditMode()
-            logInfo('系统', `场景模式已激活: ${storedData.prompt}`)
-          }
-        }, 1000)
+        // 场景模式：直接初始化场景拓扑，不使用通用的initializeTopology
+        await initializeScenarioTopology(storedData)
 
-        // 清理sessionStorage
+        // 清理sessionStorage（在成功加载后）
         sessionStorage.removeItem('scenarioData')
+        console.log('🧹 已清理sessionStorage中的场景数据')
       } catch (error) {
-        console.error('解析场景数据失败:', error)
-        initializeTopology()
+        console.error('❌ 解析场景数据失败:', error)
+        // 场景数据解析失败，回退到普通模式
+        initializeBasicTopology()
       }
     } else {
-      console.warn('场景模式但未找到场景数据，使用普通模式')
-      initializeTopology()
+      console.warn('⚠️ 场景模式但未找到场景数据，回退到普通模式')
+      initializeBasicTopology()
     }
   } else {
-    // 普通模式
-    initializeTopology()
+    console.log('📋 普通模式，初始化空拓扑图')
+    initializeBasicTopology()
   }
 
   // 添加攻击进度和完成事件监听
@@ -577,87 +596,150 @@ async function loadFabric() {
   return Promise.resolve()
 }
 
-// 初始化拓扑图
-function initializeTopology() {
+// 普通模式的基础拓扑图初始化（简化版）
+function initializeBasicTopology() {
   if (!fabricLoaded) {
     console.error('Fabric.js未加载，无法初始化拓扑图')
     return
   }
 
-  console.log('🚀 开始创建 NetworkTopology 实例...')
+  console.log('🚀 普通模式：创建基础拓扑图实例...')
 
   try {
     topology = new NetworkTopology({
       canvasId: 'network-topology'
     })
 
-    console.log('✅ NetworkTopology 实例创建成功:', topology)
+    console.log('✅ 普通模式：NetworkTopology 实例创建成功')
+    window.topology = topology
+
+    topology.initialize().then(() => {
+      console.log('✅ 普通模式：拓扑图初始化完成')
+
+      // 设置Fabric实例
+      const canvas = document.querySelector('#network-topology')
+      if (canvas && topology.canvas) {
+        canvas.__fabric = topology.canvas
+        canvas.fabric = topology.canvas
+        console.log('✅ 普通模式：Fabric 实例已附加到 DOM')
+      }
+
+      // 初始化攻击可视化
+      try {
+        attackVisualization = new FabricAttackVisualization(topology)
+        console.log('✅ 普通模式：Fabric攻击可视化初始化成功')
+      } catch (error) {
+        console.error('❌ 普通模式：Fabric攻击可视化初始化失败:', error)
+        attackVisualization = null
+      }
+
+      // 监听事件
+      topology.on('objectSelected', (data) => {
+        topologyStore.setSelectedObject(data.object)
+        if (data.object.type === 'device') {
+          handleDeviceClick(data.object)
+        }
+      })
+
+      // 初始化canvas store
+      topologyStore.setCanvas(topology.canvas)
+
+      // 触发初始化完成事件
+      const initEvent = new CustomEvent('topology-initialized', {
+        detail: {
+          topology: topology,
+          canvas: topology.canvas,
+          mode: 'basic',
+          timestamp: new Date()
+        }
+      })
+      document.dispatchEvent(initEvent)
+      console.log('🎉 普通模式：拓扑图初始化完成')
+
+    }).catch(err => {
+      console.error('❌ 普通模式：拓扑图初始化失败:', err)
+    })
+
+  } catch (error) {
+    console.error('❌ 普通模式：NetworkTopology 实例创建失败:', error)
+  }
+}
+
+// 专门用于场景模式的拓扑图初始化
+async function initializeScenarioTopology(storedData) {
+  console.log('🎯 场景模式：初始化场景拓扑图...')
+
+  if (!fabricLoaded) {
+    console.error('Fabric.js未加载，无法初始化拓扑图')
+    return
+  }
+
+  try {
+    // 1. 创建基础拓扑图实例
+    topology = new NetworkTopology({
+      canvasId: 'network-topology'
+    })
+    console.log('✅ 场景模式：NetworkTopology 实例创建成功')
 
     // 将 topology 对象暴露到全局，供调试使用
     window.topology = topology
 
-    topology.initialize().then(() => {
-      console.log('✅ 拓扑图初始化完成')
-      console.log('📊 Topology canvas:', topology.canvas)
+    // 2. 初始化基础组件
+    await topology.initialize()
+    console.log('✅ 场景模式：拓扑图基础组件初始化完成')
 
-      // 验证 Fabric.js 实例是否正确创建
-      const canvas = document.querySelector('#network-topology')
-      if (canvas && topology.canvas) {
-        console.log('🔗 将 Fabric 实例附加到 DOM 元素...')
-        // 手动设置 Fabric 实例到 DOM 元素
-        canvas.__fabric = topology.canvas
-        canvas.fabric = topology.canvas
-        console.log('✅ Fabric 实例已附加到 DOM')
-      }
+    // 3. 设置Fabric实例
+    const canvas = document.querySelector('#network-topology')
+    if (canvas && topology.canvas) {
+      canvas.__fabric = topology.canvas
+      canvas.fabric = topology.canvas
+      console.log('✅ 场景模式：Fabric 实例已附加到 DOM')
+    }
 
-    // 使用新的基于Fabric.js的攻击可视化系统
+    // 4. 初始化攻击可视化
     try {
       attackVisualization = new FabricAttackVisualization(topology)
-      console.log('✅ Fabric攻击可视化初始化成功')
+      console.log('✅ 场景模式：Fabric攻击可视化初始化成功')
     } catch (error) {
-      console.error('❌ Fabric攻击可视化初始化失败:', error)
+      console.error('❌ 场景模式：Fabric攻击可视化初始化失败:', error)
       attackVisualization = null
     }
 
-    // 监听事件
+    // 5. 监听事件
     topology.on('objectSelected', (data) => {
       topologyStore.setSelectedObject(data.object)
-
-      // 处理设备点击事件
       if (data.object.type === 'device') {
         handleDeviceClick(data.object)
       }
     })
 
-    // 初始化canvas
+    // 6. 初始化canvas store
     topologyStore.setCanvas(topology.canvas)
 
-    // 运行 Fabric.js 诊断
-    console.log('🔍 运行 Fabric.js 诊断...')
-    setTimeout(() => {
-      if (window.FabricDiagnostic) {
-        window.FabricDiagnostic.diagnose()
-        window.FabricDiagnostic.testFabricInstance()
-      }
-    }, 1000)
+    // 7. 立即加载场景数据（不等待）
+    console.log('🚀 场景模式：开始加载场景智能体数据...')
+    const success = await loadDynamicScenario(storedData)
+    if (success) {
+      enableEditMode()
+      logInfo('系统', `场景模式已激活: ${storedData.prompt}`)
+    }
 
-    // 触发拓扑图初始化完成事件，通知攻击可视化组件
+    // 8. 触发初始化完成事件
     const initEvent = new CustomEvent('topology-initialized', {
       detail: {
         topology: topology,
         canvas: topology.canvas,
+        mode: 'scenario',
         timestamp: new Date()
       }
     })
     document.dispatchEvent(initEvent)
-    console.log('🎉 拓扑图初始化完成事件已触发')
-
-    }).catch(err => {
-      console.error('❌ 拓扑图初始化失败:', err)
-    })
+    console.log('🎉 场景模式：拓扑图初始化完成事件已触发')
 
   } catch (error) {
-    console.error('❌ NetworkTopology 实例创建失败:', error)
+    console.error('❌ 场景模式：拓扑图初始化失败:', error)
+    // 回退到普通模式
+    initializeBasicTopology()
   }
 }
 
@@ -1355,12 +1437,21 @@ function saveTopology() {
 async function loadDynamicScenario(storedData) {
   try {
     console.log('🔄 加载动态场景数据...')
+    console.log('📊 输入数据结构:', Object.keys(storedData))
+    console.log('📄 agentOutput长度:', storedData.agentOutput?.length || 0)
     logInfo('系统', '正在解析场景数据...')
 
     // 解析agentOutput中的拓扑数据
     const scenarioTopology = parseScenarioTopology(storedData.agentOutput)
 
     if (scenarioTopology && scenarioTopology.nodes) {
+      console.log('✅ 场景拓扑解析成功')
+      console.log('📊 拓扑数据概览:', {
+        nodes: scenarioTopology.nodes?.length || 0,
+        networks: scenarioTopology.networks?.length || 0,
+        connections: scenarioTopology.connections?.length || 0
+      })
+
       scenarioData.value = scenarioTopology
       isScenarioMode.value = true
 
@@ -1369,19 +1460,27 @@ async function loadDynamicScenario(storedData) {
       scenarioTopology.nodes.forEach(node => {
         if (node.status === 'virtual') {
           virtualNodes.value.add(node.id)
+          console.log(`📍 记录虚拟节点: ${node.id}`)
         }
       })
 
+      console.log(`📊 虚拟节点总数: ${virtualNodes.value.size}`)
+
       // 渲染半透明拓扑图
+      console.log('🎨 开始渲染拓扑图...')
       renderScenarioTopology(scenarioTopology)
 
       logInfo('系统', `动态场景加载成功，包含 ${scenarioTopology.nodes.length} 个节点`)
+      console.log('✅ 动态场景加载完成')
       return true
     } else {
+      console.error('❌ 场景拓扑解析失败')
+      console.log('📊 解析结果:', scenarioTopology)
       throw new Error('场景数据格式错误或解析失败')
     }
   } catch (error) {
-    console.error('加载动态场景失败:', error)
+    console.error('❌ 加载动态场景失败:', error)
+    console.error('❌ 错误详情:', error.stack)
     logError('系统', `加载场景失败: ${error.message}`)
 
     // 如果动态解析失败，回退到预设场景
@@ -1390,25 +1489,90 @@ async function loadDynamicScenario(storedData) {
   }
 }
 
+// 获取节点颜色
+function getNodeColor(nodeType) {
+  const colorMap = {
+    'database': '#3498db',
+    'server': '#2ecc71',
+    'workstation': '#f39c12',
+    'router': '#9b59b6',
+    'firewall': '#e74c3c',
+    'switch': '#1abc9c',
+    'file_server': '#34495e',
+    'web_server': '#27ae60',
+    'mail_server': '#8e44ad',
+    'dns_server': '#16a085',
+    'medical_device': '#e67e22',
+    'medical_workstation': '#d35400',
+    'medical_server': '#c0392b'
+  }
+  return colorMap[nodeType] || '#95a5a6'
+}
+
+// 获取节点边框颜色
+function getNodeStrokeColor(status) {
+  const strokeMap = {
+    'virtual': '#bdc3c7',
+    'starting': '#f39c12',
+    'running': '#27ae60',
+    'stopped': '#e74c3c'
+  }
+  return strokeMap[status] || '#bdc3c7'
+}
+
+// 获取连接颜色
+function getConnectionColor(network) {
+  const colorMap = {
+    'server_segment': '#3498db',
+    'user_segment': '#2ecc71',
+    'dmz_segment': '#f39c12',
+    'medical_segment': '#e74c3c',
+    'internet': '#9b59b6'
+  }
+  return colorMap[network] || '#95a5a6'
+}
+
 // 解析场景拓扑数据
 function parseScenarioTopology(agentOutput) {
   try {
-    console.log('🔍 开始解析agentOutput:', agentOutput.substring(0, 200) + '...')
+    console.log('🔍 开始解析agentOutput:')
+    console.log('📄 agentOutput长度:', agentOutput.length)
+    console.log('📄 agentOutput前500字符:', agentOutput.substring(0, 500))
 
     // 方法1: 查找```json代码块中的JSON数据
     const jsonBlockMatch = agentOutput.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonBlockMatch) {
       const jsonStr = jsonBlockMatch[1].trim()
-      console.log('🎯 找到JSON代码块:', jsonStr.substring(0, 200) + '...')
+      console.log('🎯 找到JSON代码块:')
+      console.log('📊 JSON字符串长度:', jsonStr.length)
+      console.log('📊 JSON前200字符:', jsonStr.substring(0, 200) + '...')
 
       try {
         const parsedData = JSON.parse(jsonStr)
-        if (parsedData.topology || parsedData.nodes) {
-          console.log('✅ 成功解析JSON代码块中的拓扑数据')
-          return parsedData.topology || parsedData
+        console.log('✅ 成功解析JSON代码块')
+        console.log('📋 解析后的数据结构:', Object.keys(parsedData))
+
+        if (parsedData.topology) {
+          console.log('🎯 找到topology字段')
+          console.log('📊 topology包含的字段:', Object.keys(parsedData.topology))
+          console.log('📊 节点数量:', parsedData.topology.nodes?.length || 0)
+          console.log('📊 网络数量:', parsedData.topology.networks?.length || 0)
+          console.log('📊 连接数量:', parsedData.topology.connections?.length || 0)
+
+          // 直接返回场景智能体的原始topology数据
+          return parsedData.topology
+        } else if (parsedData.nodes) {
+          console.log('🎯 找到nodes字段，数据本身就是topology格式')
+          console.log('📊 节点数量:', parsedData.nodes?.length || 0)
+          console.log('📊 网络数量:', parsedData.networks?.length || 0)
+          console.log('📊 连接数量:', parsedData.connections?.length || 0)
+
+          // 直接返回场景智能体的原始数据
+          return parsedData
         }
       } catch (e) {
-        console.log('⚠️ JSON代码块解析失败，尝试其他方法')
+        console.error('❌ JSON代码块解析失败:', e)
+        console.log('⚠️ 尝试其他解析方法...')
       }
     }
 
@@ -1470,7 +1634,7 @@ function parseTextTopology(agentOutput) {
 
     let nodeMatch;
     while ((nodeMatch = nodePattern.exec(agentOutput)) !== null) {
-      const [fullMatch, nameAndId, typeInParens, typeAfter, network, ip] = nodeMatch;
+      const [, nameAndId, typeInParens, typeAfter, network, ip] = nodeMatch;
 
       // 解析节点名称和ID
       let nodeName = nameAndId.trim();
@@ -1609,74 +1773,206 @@ async function loadAptMedicalScenario() {
   }
 }
 
+// 节点类型映射函数 - 将场景节点类型映射到设备类型
+function mapNodeTypeToDeviceType(nodeType) {
+  const typeMap = {
+    'database': 'db',
+    'web_server': 'web',
+    'file_server': 'file',
+    'dns_server': 'dns',
+    'mail_server': 'mail',
+    'workstation': 'pc',
+    'attacker': 'pc',
+    'firewall': 'firewall',
+    'router': 'router',
+    'switch': 'switch',
+    'server': 'server',
+    'medical_server': 'server',
+    'vpn_server': 'vpn',
+    'proxy_server': 'proxy',
+    'load_balancer': 'load'
+  }
+  return typeMap[nodeType] || 'server' // 默认为服务器类型
+}
+
 // 渲染场景拓扑图（半透明模式）
-function renderScenarioTopology(scenarioTopology) {
-  if (!topology) return
+async function renderScenarioTopology(scenarioTopology) {
+  if (!topology) {
+    console.error('❌ topology对象未初始化')
+    return
+  }
 
   try {
+    console.log('🎨 开始渲染场景拓扑图...')
+    console.log('📊 场景数据结构:', Object.keys(scenarioTopology))
+    console.log('📊 节点数量:', scenarioTopology.nodes?.length || 0)
+    console.log('📊 网络数量:', scenarioTopology.networks?.length || 0)
+    console.log('📊 连接数量:', scenarioTopology.connections?.length || 0)
+
     // 清空当前拓扑图
     topology.clear()
-
-    console.log('🎨 渲染半透明场景拓扑图...')
+    console.log('🧹 已清空当前拓扑图')
 
     // 添加节点
-    scenarioTopology.nodes.forEach(nodeData => {
-      const fabricNode = topology.createNode(
-        nodeData.type,
-        nodeData.x,
-        nodeData.y,
-        {
-          id: nodeData.id,
-          name: nodeData.displayName || nodeData.name,
-          // 半透明样式
-          fill: nodeData.fill,
-          stroke: nodeData.stroke,
-          strokeWidth: nodeData.strokeWidth || 2,
-          opacity: nodeData.opacity || 0.5,
-          strokeDashArray: nodeData.strokeDashArray || [5, 5],
-          // 场景数据
-          networks: nodeData.networks,
-          ipAddresses: nodeData.ipAddresses,
-          status: nodeData.status || 'virtual'
-        }
-      )
+    if (scenarioTopology.nodes && scenarioTopology.nodes.length > 0) {
+      console.log('🔧 开始添加节点...')
 
-      // 添加到画布
-      topology.canvas.add(fabricNode)
-    })
+      // 使用 Promise.all 来等待所有节点创建完成
+      const nodePromises = scenarioTopology.nodes.map(async (nodeData, index) => {
+        console.log(`📍 处理节点 ${index + 1}/${scenarioTopology.nodes.length}:`, {
+          id: nodeData.id,
+          name: nodeData.name,
+          type: nodeData.type,
+          networks: nodeData.networks,
+          status: nodeData.status
+        })
+
+        // 计算节点位置（简单的网格布局）
+        const gridCols = Math.ceil(Math.sqrt(scenarioTopology.nodes.length))
+        const x = 100 + (index % gridCols) * 150
+        const y = 100 + Math.floor(index / gridCols) * 120
+
+        // 映射节点类型到设备类型
+        const deviceType = mapNodeTypeToDeviceType(nodeData.type)
+
+        // 获取主要IP地址
+        const primaryNetwork = nodeData.networks?.[0] || 'default_network'
+        const primaryIP = nodeData.ip_addresses?.[primaryNetwork] || '192.168.1.100'
+
+        // 使用现有的 createDevice 方法
+        const fabricNode = await topology.createDevice(deviceType, {
+          left: x,
+          top: y,
+          deviceData: {
+            name: nodeData.name,
+            ip: primaryIP,
+            description: `${nodeData.type} - ${nodeData.status || 'virtual'}`,
+            // 保存原始场景数据
+            scenarioData: {
+              id: nodeData.id,
+              networks: nodeData.networks,
+              ip_addresses: nodeData.ip_addresses,
+              status: nodeData.status || 'virtual',
+              ports: nodeData.ports,
+              environment: nodeData.environment,
+              labels: nodeData.labels
+            }
+          }
+        })
+
+        // 设置半透明样式
+        fabricNode.set({
+          opacity: 0.5,
+          strokeDashArray: [5, 5],
+          stroke: getNodeStrokeColor(nodeData.status || 'virtual')
+        })
+
+        console.log(`✅ 节点 ${nodeData.id} 已添加到画布`)
+        return fabricNode
+      })
+
+      // 等待所有节点创建完成
+      await Promise.all(nodePromises)
+      console.log('✅ 所有节点创建完成')
+    } else {
+      console.warn('⚠️ 没有找到节点数据')
+    }
 
     // 添加连接
-    scenarioTopology.connections.forEach(connData => {
-      const sourceNode = topology.findNodeById(connData.source)
-      const targetNode = topology.findNodeById(connData.target)
+    if (scenarioTopology.connections && scenarioTopology.connections.length > 0) {
+      console.log('🔗 开始添加连接...')
 
-      if (sourceNode && targetNode) {
-        const connection = topology.createConnection(
-          sourceNode,
-          targetNode,
-          {
-            stroke: connData.stroke,
-            strokeWidth: connData.strokeWidth || 2,
-            strokeDashArray: connData.strokeDashArray || [],
-            opacity: connData.opacity || 0.7,
-            network: connData.network
+      scenarioTopology.connections.forEach((connData, index) => {
+        console.log(`🔗 处理连接 ${index + 1}/${scenarioTopology.connections.length}:`, {
+          id: connData.id,
+          source: connData.source,
+          target: connData.target,
+          network: connData.network,
+          type: connData.type
+        })
+
+        const sourceNode = findDeviceByScenarioId(connData.source)
+        const targetNode = findDeviceByScenarioId(connData.target)
+
+        if (sourceNode && targetNode) {
+          // 使用现有的 addConnection 方法
+          const connection = topology.addConnection(
+            sourceNode,
+            targetNode,
+            connData.type || 'ethernet',
+            {
+              subnet: connData.network,
+              connectionType: connData.type || 'ethernet'
+            }
+          )
+
+          if (connection) {
+            // 设置半透明样式
+            connection.set({
+              stroke: getConnectionColor(connData.network),
+              strokeWidth: 2,
+              strokeDashArray: connData.type === 'wireless' ? [3, 3] : [5, 5],
+              opacity: 0.5
+            })
+            console.log(`✅ 连接 ${connData.source} -> ${connData.target} 已添加`)
           }
-        )
+        } else {
+          console.warn(`⚠️ 连接 ${connData.source} -> ${connData.target} 的节点未找到`)
+          console.warn('   sourceNode:', sourceNode?.deviceData?.name || '未找到')
+          console.warn('   targetNode:', targetNode?.deviceData?.name || '未找到')
+        }
+      })
 
-        topology.canvas.add(connection)
-      }
-    })
+      console.log('✅ 所有连接添加完成')
+    } else {
+      console.warn('⚠️ 没有找到连接数据')
+    }
+
+    // 添加网络信息到元数据
+    if (scenarioTopology.networks && scenarioTopology.networks.length > 0) {
+      console.log('🌐 处理网络信息...')
+      scenarioTopology.networks.forEach((networkData, index) => {
+        console.log(`🌐 网络 ${index + 1}:`, {
+          id: networkData.id,
+          name: networkData.name,
+          subnet: networkData.subnet,
+          type: networkData.type
+        })
+      })
+    } else {
+      console.warn('⚠️ 没有找到网络数据')
+    }
 
     // 重新渲染画布
     topology.canvas.requestRenderAll()
+    console.log('🎨 画布渲染完成')
 
+    console.log('✅ 场景拓扑图渲染完成')
     logInfo('系统', '半透明拓扑图渲染完成')
 
   } catch (error) {
-    console.error('渲染场景拓扑图失败:', error)
+    console.error('❌ 渲染场景拓扑图失败:', error)
+    console.error('❌ 错误详情:', error.stack)
     logError('系统', `渲染失败: ${error.message}`)
   }
 }
+
+// 根据场景节点ID查找fabric设备对象
+function findDeviceByScenarioId(scenarioId) {
+  if (!topology || !topology.devices) return null
+
+  // 遍历所有设备，查找匹配的场景ID
+  const devices = Object.values(topology.devices)
+  return devices.find(device => {
+    const scenarioData = device.deviceData?.scenarioData
+    return scenarioData && scenarioData.id === scenarioId
+  })
+}
+
+// 暴露函数到全局作用域以便调试
+window.renderScenarioTopology = renderScenarioTopology
+window.mapNodeTypeToDeviceType = mapNodeTypeToDeviceType
+window.findDeviceByScenarioId = findDeviceByScenarioId
 
 // 切换节点场景状态（虚拟 -> 实体）
 function updateNodeScenarioStatus(nodeId, newStatus) {

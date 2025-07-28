@@ -93,6 +93,103 @@ async def send_log_to_backend(level: str, source: str, message: str):
     except Exception as e:
         logger.error(f"发送日志到后端WebSocket失败: {e}")
 
+def extract_optimized_topology(raw_data):
+    """
+    从原始工具数据中提取优化的拓扑数据，去除冗余信息
+    """
+    try:
+        # 如果raw_data包含topology字段，直接使用
+        if isinstance(raw_data, dict) and "topology" in raw_data:
+            topology = raw_data["topology"]
+        else:
+            # 否则假设raw_data就是拓扑数据
+            topology = raw_data
+
+        # 优化节点数据 - 只保留必要字段
+        optimized_nodes = []
+        if "nodes" in topology:
+            for node in topology["nodes"]:
+                optimized_node = {
+                    "id": node.get("id"),
+                    "name": node.get("name"),
+                    "type": node.get("type"),
+                    "networks": node.get("networks", []),
+                    "ip_addresses": node.get("ip_addresses", {}),
+                    "status": node.get("status", "virtual")
+                }
+                # 只保留前3个端口（避免过多端口信息）
+                if "ports" in node and node["ports"]:
+                    optimized_node["ports"] = node["ports"][:3]
+
+                # 只保留前3个环境变量（避免过多环境信息）
+                if "environment" in node and node["environment"]:
+                    optimized_node["environment"] = node["environment"][:3]
+
+                # 只保留前3个标签
+                if "labels" in node and node["labels"]:
+                    optimized_node["labels"] = node["labels"][:3]
+
+                optimized_nodes.append(optimized_node)
+
+        # 优化网络数据
+        optimized_networks = []
+        if "networks" in topology:
+            for network in topology["networks"]:
+                optimized_networks.append({
+                    "id": network.get("id"),
+                    "name": network.get("name"),
+                    "subnet": network.get("subnet"),
+                    "type": network.get("type", "network_segment")
+                })
+
+        # 优化连接数据 - 去重并限制数量
+        optimized_connections = []
+        if "connections" in topology:
+            seen_connections = set()
+            for conn in topology["connections"]:
+                # 创建连接的唯一标识
+                conn_key = f"{conn.get('source')}-{conn.get('target')}"
+                reverse_key = f"{conn.get('target')}-{conn.get('source')}"
+
+                # 避免重复连接
+                if conn_key not in seen_connections and reverse_key not in seen_connections:
+                    optimized_connections.append({
+                        "id": conn.get("id"),
+                        "source": conn.get("source"),
+                        "target": conn.get("target"),
+                        "network": conn.get("network"),
+                        "type": conn.get("type", "ethernet")
+                    })
+                    seen_connections.add(conn_key)
+
+                # 限制连接数量，避免过多连接
+                if len(optimized_connections) >= 30:
+                    break
+
+        return {
+            "status": "success",
+            "scenario_name": raw_data.get("scenario_name", "apt-ready"),
+            "description": raw_data.get("description", "APT医疗场景 - 高级持续威胁攻击医疗机构"),
+            "topology": {
+                "nodes": optimized_nodes,
+                "networks": optimized_networks,
+                "connections": optimized_connections
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"优化拓扑数据失败: {e}")
+        # 返回一个最小的拓扑结构
+        return {
+            "status": "error",
+            "message": f"拓扑数据优化失败: {str(e)}",
+            "topology": {
+                "nodes": [],
+                "networks": [],
+                "connections": []
+            }
+        }
+
 # --- 业务场景和攻击方式关键词定义 ---
 BUSINESS_KEYWORDS = {
     "healthcare": [
@@ -516,9 +613,11 @@ async def process_scenario_request(request: PromptAnalysisRequest):
                         except:
                             pass
 
-        # 如果找到了原始工具数据，将其添加到Agent输出中
+        # 如果找到了原始工具数据，提取并优化拓扑数据
         if raw_tool_data:
-            agent_output += f"\n\n```json\n{json.dumps(raw_tool_data, ensure_ascii=False, indent=2)}\n```"
+            # 提取拓扑数据，去除冗余信息
+            optimized_data = extract_optimized_topology(raw_tool_data)
+            agent_output += f"\n\n```json\n{json.dumps(optimized_data, ensure_ascii=False, indent=2)}\n```"
 
         return {
             "status": "success",

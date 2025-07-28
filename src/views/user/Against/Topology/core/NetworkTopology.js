@@ -150,7 +150,9 @@ class NetworkTopology {
             name: deviceOptions.deviceData?.name || deviceOptions.name,
             ip: deviceOptions.deviceData?.ip || deviceOptions.ip,
             mac: deviceOptions.deviceData?.mac || this._generateRandomMAC(),
-            description: deviceOptions.deviceData?.description || ''
+            description: deviceOptions.deviceData?.description || '',
+            // 保留所有额外的deviceData属性
+            ...deviceOptions.deviceData
           }
         });
 
