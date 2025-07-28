@@ -559,7 +559,7 @@ async def process_scenario_request(req: ScenarioAnalysisRequest):
             response = await client.post(
                 scenario_agent_url,
                 json={"prompt": req.prompt},
-                timeout=180.0  # 增加超时时间到3分钟
+                timeout=300.0  # 增加超时时间到5分钟
             )
 
             logger.info(f"场景智能体响应状态码: {response.status_code}")

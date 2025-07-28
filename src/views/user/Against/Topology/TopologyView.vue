@@ -286,7 +286,7 @@ onMounted(async () => {
 
         // 等待拓扑图初始化完成后加载场景
         setTimeout(async () => {
-          const success = await loadAptMedicalScenario()
+          const success = await loadDynamicScenario(storedData)
           if (success) {
             enableEditMode()
             logInfo('系统', `场景模式已激活: ${storedData.prompt}`)
@@ -1351,11 +1351,233 @@ function saveTopology() {
   logInfo('系统', '拓扑图已保存')
 }
 
-// 加载APT医疗场景数据
+// 加载动态场景数据
+async function loadDynamicScenario(storedData) {
+  try {
+    console.log('🔄 加载动态场景数据...')
+    logInfo('系统', '正在解析场景数据...')
+
+    // 解析agentOutput中的拓扑数据
+    const scenarioTopology = parseScenarioTopology(storedData.agentOutput)
+
+    if (scenarioTopology && scenarioTopology.nodes) {
+      scenarioData.value = scenarioTopology
+      isScenarioMode.value = true
+
+      // 记录虚拟节点
+      virtualNodes.value.clear()
+      scenarioTopology.nodes.forEach(node => {
+        if (node.status === 'virtual') {
+          virtualNodes.value.add(node.id)
+        }
+      })
+
+      // 渲染半透明拓扑图
+      renderScenarioTopology(scenarioTopology)
+
+      logInfo('系统', `动态场景加载成功，包含 ${scenarioTopology.nodes.length} 个节点`)
+      return true
+    } else {
+      throw new Error('场景数据格式错误或解析失败')
+    }
+  } catch (error) {
+    console.error('加载动态场景失败:', error)
+    logError('系统', `加载场景失败: ${error.message}`)
+
+    // 如果动态解析失败，回退到预设场景
+    console.log('🔄 回退到预设APT医疗场景...')
+    return await loadAptMedicalScenario()
+  }
+}
+
+// 解析场景拓扑数据
+function parseScenarioTopology(agentOutput) {
+  try {
+    console.log('🔍 开始解析agentOutput:', agentOutput.substring(0, 200) + '...')
+
+    // 方法1: 查找```json代码块中的JSON数据
+    const jsonBlockMatch = agentOutput.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch) {
+      const jsonStr = jsonBlockMatch[1].trim()
+      console.log('🎯 找到JSON代码块:', jsonStr.substring(0, 200) + '...')
+
+      try {
+        const parsedData = JSON.parse(jsonStr)
+        if (parsedData.topology || parsedData.nodes) {
+          console.log('✅ 成功解析JSON代码块中的拓扑数据')
+          return parsedData.topology || parsedData
+        }
+      } catch (e) {
+        console.log('⚠️ JSON代码块解析失败，尝试其他方法')
+      }
+    }
+
+    // 方法2: 查找标准JSON格式的拓扑数据
+    const jsonMatch = agentOutput.match(/\{"status":\s*"success"[^}]*"topology":\s*\{[\s\S]*?\}\s*\}/);
+    if (jsonMatch) {
+      const jsonStr = jsonMatch[0]
+      console.log('🎯 找到标准JSON数据:', jsonStr.substring(0, 200) + '...')
+
+      try {
+        const parsedData = JSON.parse(jsonStr)
+        if (parsedData.topology) {
+          console.log('✅ 成功解析标准JSON拓扑数据')
+          return parsedData.topology
+        }
+      } catch (e) {
+        console.log('⚠️ 标准JSON解析失败')
+      }
+    }
+
+    // 方法3: 查找任何包含topology字段的JSON对象
+    const allJsonMatches = agentOutput.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+    if (allJsonMatches) {
+      for (const match of allJsonMatches) {
+        try {
+          const parsed = JSON.parse(match)
+          if (parsed.topology) {
+            console.log('✅ 在JSON对象中找到拓扑数据')
+            return parsed.topology
+          }
+        } catch (e) {
+          // 忽略解析错误，继续尝试下一个
+        }
+      }
+    }
+
+    // 如果没有找到JSON格式，尝试解析文本格式
+    console.log('⚠️ 未找到JSON格式，尝试解析文本格式...')
+    return parseTextTopology(agentOutput)
+
+  } catch (error) {
+    console.error('解析场景拓扑数据失败:', error)
+    return null
+  }
+}
+
+// 解析文本格式的拓扑数据
+function parseTextTopology(agentOutput) {
+  try {
+    console.log('🔍 开始解析文本格式拓扑数据...')
+
+    const nodes = []
+    const networks = []
+    const connections = []
+
+    // 解析节点信息 - 匹配新的格式
+    // 格式: 1. **节点名称 (节点ID)** 或 1. **节点名称** (类型)
+    const nodePattern = /\d+\.\s*\*\*([^*]+?)\s*(?:\(([^)]+)\))?\*\*[\s\S]*?(?:- 类型[：:]\s*([^\n]+))?[\s\S]*?(?:- 网络[：:]\s*([^\n]+))?[\s\S]*?(?:- IP地址[：:]\s*([^\n]+))?/g;
+
+    let nodeMatch;
+    while ((nodeMatch = nodePattern.exec(agentOutput)) !== null) {
+      const [fullMatch, nameAndId, typeInParens, typeAfter, network, ip] = nodeMatch;
+
+      // 解析节点名称和ID
+      let nodeName = nameAndId.trim();
+      let nodeId = typeInParens || nodeName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      let nodeType = typeAfter || typeInParens || 'unknown';
+
+      // 如果名称包含类型信息，提取它
+      if (nodeName.includes('(') && nodeName.includes(')')) {
+        const parts = nodeName.match(/^([^(]+)\s*\(([^)]+)\)$/);
+        if (parts) {
+          nodeName = parts[1].trim();
+          if (!typeAfter) nodeType = parts[2].trim();
+        }
+      }
+
+      // 清理数据
+      const cleanNetwork = network ? network.trim().replace(/`/g, '') : 'default_network';
+      const cleanIp = ip ? ip.trim().replace(/`/g, '') : '192.168.1.100';
+
+      nodes.push({
+        id: nodeId,
+        name: nodeName,
+        type: nodeType,
+        networks: [cleanNetwork],
+        ip_addresses: {
+          [cleanNetwork]: cleanIp
+        },
+        status: 'virtual'
+      });
+    }
+
+    // 解析网络信息 - 匹配新的格式
+    // 格式: - **网络名称**: 子网
+    const networkPattern = /- \*\*([^*]+)\*\*[：:]\s*([^\n]+)/g;
+    let networkMatch;
+    while ((networkMatch = networkPattern.exec(agentOutput)) !== null) {
+      const [, name, subnet] = networkMatch;
+      networks.push({
+        id: name.trim(),
+        name: name.trim(),
+        subnet: subnet.trim(),
+        type: 'network_segment'
+      });
+    }
+
+    // 如果没有找到网络，添加默认网络
+    if (networks.length === 0 && nodes.length > 0) {
+      const defaultNetworks = [
+        { id: 'server_segment', name: 'server_segment', subnet: '192.168.200.0/24', type: 'network_segment' },
+        { id: 'user_segment', name: 'user_segment', subnet: '192.168.100.0/24', type: 'network_segment' },
+        { id: 'dmz_segment', name: 'dmz_segment', subnet: '172.16.100.0/24', type: 'network_segment' },
+        { id: 'medical_segment', name: 'medical_segment', subnet: '192.168.101.0/24', type: 'network_segment' },
+        { id: 'internet', name: 'internet', subnet: '199.203.100.0/24', type: 'network_segment' }
+      ];
+      networks.push(...defaultNetworks);
+    }
+
+    // 生成基本的连接关系
+    if (nodes.length > 1) {
+      // 连接同一网络中的节点
+      const nodesByNetwork = {};
+      nodes.forEach(node => {
+        node.networks.forEach(network => {
+          if (!nodesByNetwork[network]) nodesByNetwork[network] = [];
+          nodesByNetwork[network].push(node);
+        });
+      });
+
+      Object.entries(nodesByNetwork).forEach(([network, networkNodes]) => {
+        for (let i = 0; i < networkNodes.length - 1; i++) {
+          for (let j = i + 1; j < networkNodes.length; j++) {
+            connections.push({
+              id: `${networkNodes[i].id}-${networkNodes[j].id}`,
+              source: networkNodes[i].id,
+              target: networkNodes[j].id,
+              network: network,
+              type: 'ethernet'
+            });
+          }
+        }
+      });
+    }
+
+    // 如果解析到了节点，返回拓扑数据
+    if (nodes.length > 0) {
+      console.log(`✅ 从文本中解析出 ${nodes.length} 个节点，${networks.length} 个网络，${connections.length} 个连接`)
+      return {
+        nodes,
+        networks,
+        connections
+      };
+    }
+
+    console.log('⚠️ 文本解析未找到有效的拓扑数据')
+    return null
+
+  } catch (error) {
+    console.error('文本格式解析失败:', error)
+    return null
+  }
+}
+
+// 加载APT医疗场景数据（预设场景，作为回退方案）
 async function loadAptMedicalScenario() {
   try {
-    console.log('🔄 加载APT医疗场景数据...')
-    logInfo('系统', '正在加载APT医疗场景...')
+    console.log('🔄 加载预设APT医疗场景数据...')
+    logInfo('系统', '正在加载预设APT医疗场景...')
 
     // 从场景数据服务获取数据
     const aptScenario = await ScenarioDataService.getAptMedicalScenario()
@@ -1375,14 +1597,14 @@ async function loadAptMedicalScenario() {
       // 渲染半透明拓扑图
       renderScenarioTopology(aptScenario)
 
-      logInfo('系统', `APT医疗场景加载成功，包含 ${aptScenario.nodes.length} 个节点`)
+      logInfo('系统', `预设APT医疗场景加载成功，包含 ${aptScenario.nodes.length} 个节点`)
       return true
     } else {
-      throw new Error('场景数据格式错误')
+      throw new Error('预设场景数据格式错误')
     }
   } catch (error) {
-    console.error('加载APT医疗场景失败:', error)
-    logError('系统', `加载场景失败: ${error.message}`)
+    console.error('加载预设APT医疗场景失败:', error)
+    logError('系统', `加载预设场景失败: ${error.message}`)
     return false
   }
 }

@@ -356,7 +356,13 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+    max_iterations=5,  # 限制最大迭代次数
+    early_stopping_method="generate"  # 生成答案后立即停止
+)
 
 # --- FastAPI应用 ---
 app = FastAPI(
@@ -472,20 +478,54 @@ async def process_scenario_request(request: PromptAnalysisRequest):
         input_prompt = f"""
         用户输入了以下场景描述："{request.prompt}"
 
-        请执行以下步骤：
-        1. 分析这个提示词，提取业务场景和攻击类型
+        请按照以下步骤执行，完成后立即结束：
+        1. 调用analyze_user_prompt分析这个提示词，提取业务场景和攻击类型
         2. 如果识别出是医疗+APT场景，调用parse_apt_ready_scenario获取拓扑数据
         3. 否则调用generate_dynamic_scenario生成对应场景
-        4. 返回包含拓扑结构的完整场景数据
+        4. 获得工具返回的JSON数据后，将其包含在你的最终回答中
+
+        重要：完成工具调用后，请立即输出最终回答，格式如下：
+
+        场景生成完成！以下是拓扑数据：
+
+        ```json
+        [将工具返回的完整JSON数据放在这里]
+        ```
+
+        请确保JSON数据是完整的、有效的。完成输出后立即结束，不要继续等待或思考。
         """
 
         result = await agent_executor.ainvoke({"input": input_prompt})
 
+        # 尝试从Agent的中间步骤中提取工具输出
+        agent_output = result.get("output", "")
+        raw_tool_data = None
+
+        # 检查是否有中间步骤包含工具输出
+        if "intermediate_steps" in result:
+            for step in result["intermediate_steps"]:
+                if len(step) >= 2:
+                    action, observation = step
+                    if hasattr(action, 'tool') and action.tool in ['parse_apt_ready_scenario', 'generate_dynamic_scenario']:
+                        try:
+                            # 尝试解析工具输出为JSON
+                            import json
+                            if isinstance(observation, str) and observation.startswith('{'):
+                                raw_tool_data = json.loads(observation)
+                                break
+                        except:
+                            pass
+
+        # 如果找到了原始工具数据，将其添加到Agent输出中
+        if raw_tool_data:
+            agent_output += f"\n\n```json\n{json.dumps(raw_tool_data, ensure_ascii=False, indent=2)}\n```"
+
         return {
             "status": "success",
             "data": {
-                "agent_output": result.get("output"),
-                "prompt": request.prompt
+                "agent_output": agent_output,
+                "prompt": request.prompt,
+                "raw_tool_data": raw_tool_data  # 也直接提供原始数据
             }
         }
 
