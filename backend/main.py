@@ -6,6 +6,8 @@ import json
 import logging
 import httpx
 import asyncio
+import yaml
+import tempfile
 from typing import List, Dict, Optional, Any, Set
 
 # 设置日志
@@ -244,11 +246,23 @@ async def broadcast_log(log_data: dict):
     """向所有连接的WebSocket客户端广播日志"""
     if not connected_clients:
         return
-    
+
+    # 过滤中控智能体的日志
+    source = log_data.get("source", "").lower()
+    message = log_data.get("message", "").lower()
+
+    # 跳过中控智能体的内部日志
+    if source == "中控智能体" or source == "central_agent":
+        # 只允许重要的状态更新通过
+        important_keywords = ["攻击完成", "攻击失败", "开始攻击", "攻击结束"]
+        if not any(keyword in message for keyword in important_keywords):
+            logger.debug(f"过滤中控智能体日志: {log_data.get('message', '')}")
+            return
+
     # 添加时间戳
     if "timestamp" not in log_data:
         log_data["timestamp"] = asyncio.get_event_loop().time()
-    
+
     # 广播消息
     disconnected_clients = set()
     for client in connected_clients:
@@ -257,7 +271,7 @@ async def broadcast_log(log_data: dict):
         except Exception as e:
             logger.error(f"向WebSocket客户端发送消息失败: {str(e)}")
             disconnected_clients.add(client)
-    
+
     # 移除断开连接的客户端
     for client in disconnected_clients:
         if client in connected_clients:
@@ -273,6 +287,137 @@ api_router = APIRouter(prefix="/api")
 async def manage_topology_api(req: TopologyAction):
     """Proxy endpoint matching the frontend expectation (POST /api/topology)."""
     return await manage_topology(req)
+
+class DynamicTopologyAction(BaseModel):
+    action: str  # start | stop | status
+    config: Dict[str, Any] = Field(description="Dynamic Docker compose configuration")
+
+@api_router.post("/topology/dynamic")
+async def manage_dynamic_topology(req: DynamicTopologyAction):
+    """
+    管理动态生成的拓扑结构
+
+    - action=start: 启动动态生成的容器配置
+    - action=stop: 停止当前运行的容器
+    - action=status: 获取当前运行容器的状态
+    """
+    logger.info(f"Received dynamic topology action: {req.action}")
+
+    if req.action == "start":
+        return await start_dynamic_topology(req.config)
+    elif req.action == "stop":
+        return await stop_dynamic_topology()
+    elif req.action == "status":
+        return await get_dynamic_topology_status()
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown action: {req.action}")
+
+async def start_dynamic_topology(config: Dict[str, Any]):
+    """启动动态生成的拓扑"""
+    try:
+        # 创建临时的docker-compose文件
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            yaml.dump(config, f, default_flow_style=False)
+            temp_compose_file = f.name
+
+        logger.info(f"Created temporary compose file: {temp_compose_file}")
+        logger.info(f"Config content: {yaml.dump(config, default_flow_style=False)}")
+
+        # 使用docker-compose启动容器
+        cmd = ["docker-compose", "-f", temp_compose_file, "up", "-d"]
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=TEMPLATES_DIR)
+
+        if result.returncode != 0:
+            logger.error(f"Docker compose up failed: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"Failed to start containers: {result.stderr}")
+
+        # 获取运行状态 - 使用更简单的方法
+        status_cmd = ["docker-compose", "-f", temp_compose_file, "ps", "--services"]
+        status_result = subprocess.run(status_cmd, capture_output=True, text=True, cwd=TEMPLATES_DIR)
+
+        running_services = []
+        failed_services = []
+
+        if status_result.returncode == 0:
+            services = status_result.stdout.strip().split('\n')
+            for service_name in services:
+                if service_name:
+                    # 检查每个服务的状态
+                    check_cmd = ["docker-compose", "-f", temp_compose_file, "ps", service_name]
+                    check_result = subprocess.run(check_cmd, capture_output=True, text=True, cwd=TEMPLATES_DIR)
+
+                    if "Up" in check_result.stdout:
+                        running_services.append({
+                            "name": service_name,
+                            "status": "running"
+                        })
+                    else:
+                        failed_services.append({
+                            "name": service_name,
+                            "status": "failed"
+                        })
+        else:
+            logger.warning(f"Failed to get service status: {status_result.stderr}")
+
+        # 清理临时文件
+        os.unlink(temp_compose_file)
+
+        return {
+            "status": "success",
+            "message": f"Dynamic topology started with {len(running_services)} services",
+            "running_services": running_services,
+            "failed_services": failed_services
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to start dynamic topology: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start dynamic topology: {str(e)}")
+
+async def stop_dynamic_topology():
+    """停止动态拓扑"""
+    try:
+        # 停止所有运行的容器
+        cmd = ["docker", "stop", "$(docker", "ps", "-q)"]
+        result = subprocess.run(" ".join(cmd), shell=True, capture_output=True, text=True)
+
+        return {
+            "status": "success",
+            "message": "Dynamic topology stopped"
+        }
+    except Exception as e:
+        logger.error(f"Failed to stop dynamic topology: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop dynamic topology: {str(e)}")
+
+async def get_dynamic_topology_status():
+    """获取动态拓扑状态"""
+    try:
+        cmd = ["docker", "ps", "--format", "json"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail="Failed to get container status")
+
+        running_services = []
+        try:
+            import json
+            for line in result.stdout.strip().split('\n'):
+                if line:
+                    container = json.loads(line)
+                    running_services.append({
+                        "name": container.get("Names", ""),
+                        "status": container.get("State", ""),
+                        "image": container.get("Image", "")
+                    })
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse docker ps output")
+
+        return {
+            "status": "success",
+            "running_services": running_services
+        }
+    except Exception as e:
+        logger.error(f"Failed to get dynamic topology status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
 # 添加攻击智能体相关的API
 class AttackRequest(BaseModel):
@@ -585,6 +730,102 @@ async def process_scenario_request(req: ScenarioAnalysisRequest):
         raise HTTPException(status_code=504, detail=error_msg)
     except Exception as e:
         error_msg = f"综合场景处理失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+class ContainerDeploymentRequest(BaseModel):
+    topology_data: Dict[str, Any] = Field(description="拓扑数据用于容器部署")
+
+@api_router.post("/scenario/deploy_containers")
+async def deploy_scenario_containers(req: ContainerDeploymentRequest):
+    """
+    部署场景容器 - 转发到场景智能体
+    """
+    logger.info("收到场景容器部署请求")
+
+    try:
+        # 场景智能体的URL
+        scenario_agent_url = "http://localhost:8007/deploy_containers"
+
+        logger.info(f"开始调用场景智能体: {scenario_agent_url}")
+        logger.info(f"拓扑数据节点数: {len(req.topology_data.get('nodes', []))}")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                scenario_agent_url,
+                json={"topology_data": req.topology_data},
+                timeout=300.0  # 5分钟超时
+            )
+
+            logger.info(f"场景智能体响应状态码: {response.status_code}")
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info("场景容器部署成功")
+            logger.info(f"响应数据: {result}")
+
+            return result
+
+    except httpx.HTTPStatusError as e:
+        error_msg = f"场景智能体HTTP错误: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"场景智能体连接错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+    except httpx.TimeoutException as e:
+        error_msg = f"场景智能体请求超时: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=504, detail=error_msg)
+    except Exception as e:
+        error_msg = f"场景容器部署失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@api_router.post("/scenario/deploy_apt_ready")
+async def deploy_apt_ready_scenario():
+    """
+    部署apt-ready场景容器 - 转发到场景智能体
+    """
+    logger.info("收到apt-ready场景容器部署请求")
+
+    try:
+        # 场景智能体的URL
+        scenario_agent_url = "http://localhost:8007/deploy_apt_ready"
+
+        logger.info(f"开始调用场景智能体: {scenario_agent_url}")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                scenario_agent_url,
+                json={},
+                timeout=300.0  # 5分钟超时
+            )
+
+            logger.info(f"场景智能体响应状态码: {response.status_code}")
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info("apt-ready场景容器部署成功")
+            logger.info(f"响应数据: {result}")
+
+            return result
+
+    except httpx.HTTPStatusError as e:
+        error_msg = f"场景智能体HTTP错误: {e.response.status_code} {e.response.text}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except httpx.RequestError as e:
+        error_msg = f"场景智能体连接错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+    except httpx.TimeoutException as e:
+        error_msg = f"场景智能体请求超时: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=504, detail=error_msg)
+    except Exception as e:
+        error_msg = f"apt-ready场景容器部署失败: {str(e)}"
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 

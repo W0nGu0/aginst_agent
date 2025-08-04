@@ -242,13 +242,7 @@ async def process_command(request: CommandRequest):
                 logger.info(f"攻击执行完成: {result}")
                 await broadcast_progress("攻击执行完成", "complete")
                 
-                # 分析攻击结果
-                if "final_output" in result:
-                    # 解析攻击智能体的输出
-                    output_lines = result["final_output"].split('\n')
-                    for line in output_lines:
-                        if line.strip():
-                            await broadcast_progress(line.strip(), "attack_output")
+                # 攻击结果已通过攻击智能体的WebSocket日志传输，无需重复输出
                 
                 # 返回攻击结果
                 return {

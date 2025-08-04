@@ -511,6 +511,216 @@ def deploy_scenario_containers(scenario_file: str) -> str:
             "error": f"部署容器时发生错误: {str(e)}"
         })
 
+@mcp.tool
+def deploy_dynamic_containers(topology_data: dict) -> str:
+    """
+    基于拓扑数据动态部署容器
+
+    Args:
+        topology_data: 包含节点和网络信息的拓扑数据
+
+    Returns:
+        部署结果JSON字符串
+    """
+    try:
+        import tempfile
+        import yaml
+
+        # 生成Docker Compose配置
+        compose_config = generate_compose_from_topology(topology_data)
+
+        # 创建临时文件
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            yaml.dump(compose_config, f, default_flow_style=False)
+            temp_file = f.name
+
+        print(f"生成临时Docker Compose文件: {temp_file}")
+        print(f"配置内容: {yaml.dump(compose_config, default_flow_style=False)}")
+
+        # 使用docker-compose启动容器
+        result = subprocess.run(
+            ["docker-compose", "-f", temp_file, "up", "-d"],
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+
+        # 获取运行状态
+        running_services = []
+        failed_services = []
+
+        if result.returncode == 0:
+            # 检查服务状态
+            status_result = subprocess.run(
+                ["docker-compose", "-f", temp_file, "ps", "--services"],
+                capture_output=True,
+                text=True
+            )
+
+            if status_result.returncode == 0:
+                services = status_result.stdout.strip().split('\n')
+                for service_name in services:
+                    if service_name:
+                        check_result = subprocess.run(
+                            ["docker-compose", "-f", temp_file, "ps", service_name],
+                            capture_output=True,
+                            text=True
+                        )
+
+                        if "Up" in check_result.stdout:
+                            running_services.append({
+                                "name": service_name,
+                                "status": "running"
+                            })
+                        else:
+                            failed_services.append({
+                                "name": service_name,
+                                "status": "failed"
+                            })
+
+        # 清理临时文件
+        os.unlink(temp_file)
+
+        if result.returncode == 0:
+            return json.dumps({
+                "status": "success",
+                "message": "动态容器部署成功",
+                "running_services": running_services,
+                "failed_services": failed_services,
+                "stdout": result.stdout
+            })
+        else:
+            return json.dumps({
+                "error": f"动态容器部署失败: {result.stderr}",
+                "stdout": result.stdout
+            })
+
+    except subprocess.TimeoutExpired:
+        return json.dumps({
+            "error": "动态容器部署超时"
+        })
+    except Exception as e:
+        return json.dumps({
+            "error": f"动态部署容器时发生错误: {str(e)}"
+        })
+
+def generate_compose_from_topology(topology_data):
+    """
+    从拓扑数据生成Docker Compose配置
+    """
+    services = {}
+    networks = {
+        'internet': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '199.203.100.0/24', 'gateway': '199.203.100.1'}]
+            }
+        },
+        'dmz_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '172.16.100.0/24', 'gateway': '172.16.100.1'}]
+            }
+        },
+        'user_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '192.168.100.0/24', 'gateway': '192.168.100.1'}]
+            }
+        },
+        'server_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '192.168.200.0/24', 'gateway': '192.168.200.1'}]
+            }
+        },
+        'db_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '192.168.214.0/24', 'gateway': '192.168.214.1'}]
+            }
+        },
+        'medical_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '192.168.101.0/24', 'gateway': '192.168.101.1'}]
+            }
+        },
+        'siem_segment': {
+            'driver': 'bridge',
+            'ipam': {
+                'config': [{'subnet': '192.168.66.0/24', 'gateway': '192.168.66.1'}]
+            }
+        }
+    }
+
+    # 为每个节点生成服务配置
+    for node in topology_data.get('nodes', []):
+        node_id = node.get('id', '')
+        node_type = node.get('type', 'workstation')
+        ip_addresses = node.get('ip_addresses', {})
+        node_networks = node.get('networks', [])
+
+        # 生成服务名（确保符合Docker规范）
+        service_name = node_id.replace('_', '-').replace(' ', '-').lower()
+
+        # 获取Docker镜像名
+        image_name = get_docker_image_for_type(node_type)
+
+        # 生成网络配置
+        service_networks = {}
+        for network in node_networks:
+            if network in ip_addresses:
+                service_networks[network] = {
+                    'ipv4_address': ip_addresses[network]
+                }
+
+        services[service_name] = {
+            'build': f'../images/{image_name}',
+            'container_name': service_name,
+            'environment': generate_environment_for_type(node_type, node_id),
+            'networks': service_networks
+        }
+
+    return {
+        'version': '3.8',
+        'services': services,
+        'networks': networks
+    }
+
+def get_docker_image_for_type(node_type):
+    """获取节点类型对应的Docker镜像名"""
+    image_map = {
+        'firewall': 'fw',
+        'web_server': 'ws-apache',
+        'database': 'db-mysql',
+        'workstation': 'ws-ubuntu',
+        'server': 'srv-ubuntu',
+        'attacker': 'attack-node'
+    }
+    return image_map.get(node_type, 'ws-ubuntu')
+
+def generate_environment_for_type(node_type, node_id):
+    """生成节点类型对应的环境变量"""
+    base_env = [
+        'COMPANY=ACME_CORP',
+        'USERNAME=admin',
+        'PASSWORD=admin123',
+        'DEPARTMENT=信息技术部',
+        'ROLE=系统管理员',
+        f'HOST_TYPE={node_type.upper()}',
+        'EMAIL=admin@acmecorp.com'
+    ]
+
+    # 根据节点类型添加特定环境变量
+    if node_type == 'database':
+        base_env.extend([
+            'MYSQL_ROOT_PASSWORD=root123',
+            'MYSQL_DATABASE=company_db'
+        ])
+
+    return base_env
+
 
 if __name__ == "__main__":
     mcp.run(transport="http", port=8002) 

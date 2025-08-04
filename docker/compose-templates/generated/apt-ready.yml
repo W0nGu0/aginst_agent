@@ -39,8 +39,8 @@ services:
     - USERNAME=syslogadmin
     - PASSWORD=syslog123
     networks:
-      siem_segment:
-        ipv4_address: 192.168.66.20
+      server_segment:
+        ipv4_address: 192.168.200.66
     ports:
     - 514:514/udp
     labels:
@@ -326,11 +326,7 @@ networks:
     ipam:
       config:
         - subnet: 192.168.101.0/24
-  siem_segment:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.66.0/24
+
   internet:
     driver: bridge
     ipam:

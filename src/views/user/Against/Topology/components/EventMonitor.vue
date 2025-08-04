@@ -221,6 +221,7 @@
 <script>
 export default {
   name: 'EventMonitor',
+  emits: ['nodes-status-reset', 'nodes-status-refreshed'],
   props: {
     initialExpanded: {
       type: Boolean,

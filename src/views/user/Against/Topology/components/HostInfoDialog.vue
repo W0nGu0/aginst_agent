@@ -87,6 +87,7 @@ import HostInfoService from '../services/HostInfoService';
 
 export default {
   name: 'HostInfoDialog',
+  emits: ['close'],
   props: {
     show: {
       type: Boolean,

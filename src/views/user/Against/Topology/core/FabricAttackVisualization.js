@@ -84,6 +84,28 @@ class FabricAttackVisualization {
     this.canvas.add(attackLine);
     this.attackEffects.push(attackLine);
 
+    // 如果有标签，创建标签
+    let labelText = null;
+    if (config.label) {
+      const midX = (sourceCenter.x + targetCenter.x) / 2;
+      const midY = (sourceCenter.y + targetCenter.y) / 2;
+
+      labelText = new fabric.Text(config.label, {
+        left: midX,
+        top: midY - 10,
+        fontSize: 16,
+        fill: config.color || '#ff4444',
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        originY: 'center',
+        opacity: 0
+      });
+
+      this.canvas.add(labelText);
+      this.attackEffects.push(labelText);
+    }
+
     // 动画扩展到目标
     const animation = attackLine.animate({
       x2: targetCenter.x,
@@ -94,13 +116,24 @@ class FabricAttackVisualization {
       easing: fabric.util.ease.easeOutCubic,
       onChange: () => this.canvas.renderAll(),
       onComplete: () => {
+        // 显示标签
+        if (labelText) {
+          labelText.animate('opacity', 1, {
+            duration: 300,
+            onChange: () => this.canvas.renderAll()
+          });
+        }
+
         // 创建数据包动画
         this.createPacketAnimation(sourceCenter, targetCenter);
 
-        // 延迟移除攻击路径
+        // 延迟移除攻击路径和标签
         setTimeout(() => {
           this.removeEffect(attackLine);
-        }, 1000);
+          if (labelText) {
+            this.removeEffect(labelText);
+          }
+        }, 2000); // 增加显示时间
       }
     });
 
@@ -586,6 +619,117 @@ class FabricAttackVisualization {
     };
 
     createPulse();
+  }
+
+  /**
+   * 创建全局分析动画（显示攻击者正在分析网络拓扑）
+   * @param {fabric.Object} attackerNode - 攻击者节点
+   */
+  createGlobalAnalysisAnimation(attackerNode) {
+    console.log('🧠 开始全局分析动画')
+
+    // 获取所有设备节点
+    const devices = this.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData &&
+      obj !== attackerNode
+    )
+
+    if (devices.length === 0) {
+      console.log('⚠️ 没有找到可分析的设备')
+      return
+    }
+
+    const attackerCenter = attackerNode.getCenterPoint()
+
+    // 创建分析扫描线，从攻击者向各个设备扫描
+    devices.forEach((device, index) => {
+      setTimeout(() => {
+        this.createAnalysisScanLine(attackerCenter, device.getCenterPoint())
+
+        // 在目标设备上显示分析脉冲
+        this.createAnalysisPulse(device)
+      }, index * 300) // 每300ms扫描一个设备
+    })
+
+    // 在攻击者节点显示思考动画
+    this.createThinkingAnimation(attackerNode, 3)
+  }
+
+  /**
+   * 创建分析扫描线
+   * @param {Object} startPoint - 起始点 {x, y}
+   * @param {Object} endPoint - 结束点 {x, y}
+   */
+  createAnalysisScanLine(startPoint, endPoint) {
+    const line = new fabric.Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+      stroke: '#3b82f6',
+      strokeWidth: 2,
+      strokeDashArray: [5, 5],
+      selectable: false,
+      evented: false,
+      opacity: 0
+    })
+
+    this.canvas.add(line)
+    this.attackEffects.push(line)
+
+    // 淡入动画
+    const fadeInAnimation = line.animate('opacity', 0.8, {
+      duration: 300,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 淡出动画
+        const fadeOutAnimation = line.animate('opacity', 0, {
+          duration: 1000,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => this.removeEffect(line)
+        })
+        this.activeAnimations.push(fadeOutAnimation)
+      }
+    })
+
+    this.activeAnimations.push(fadeInAnimation)
+  }
+
+  /**
+   * 创建分析脉冲
+   * @param {fabric.Object} device - 设备对象
+   */
+  createAnalysisPulse(device) {
+    const center = device.getCenterPoint()
+    const baseRadius = Math.max(device.width, device.height) / 2
+
+    const pulse = new fabric.Circle({
+      left: center.x,
+      top: center.y,
+      radius: baseRadius,
+      fill: 'transparent',
+      stroke: '#3b82f6',
+      strokeWidth: 2,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center',
+      opacity: 0.6
+    })
+
+    this.canvas.add(pulse)
+    this.attackEffects.push(pulse)
+
+    const animation = pulse.animate({
+      radius: baseRadius + 15,
+      opacity: 0
+    }, {
+      duration: 800,
+      easing: fabric.util.ease.easeOutQuad,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => this.removeEffect(pulse)
+    })
+
+    this.activeAnimations.push(animation)
   }
 
   /**
@@ -1246,6 +1390,795 @@ class FabricAttackVisualization {
         }, 3000)
       }
     })
+  }
+
+  // ===================== APT攻击专用可视化方法 =====================
+
+  /**
+   * 创建APT攻击活动可视化（保留被攻陷主机脉冲动画）
+   * @param {string} campaignId - APT攻击活动ID
+   * @param {Object} campaignData - 攻击活动数据
+   */
+  createAPTCampaignVisualization(campaignId, campaignData) {
+    console.log('🕵️ 开始APT攻击活动可视化:', campaignId);
+
+    // 存储APT攻击活动信息
+    if (!this.aptCampaigns) {
+      this.aptCampaigns = new Map();
+    }
+
+    this.aptCampaigns.set(campaignId, {
+      ...campaignData,
+      visualElements: [],
+      compromisedHosts: new Set(),
+      attackPaths: [],
+      persistenceMechanisms: []
+    });
+
+    console.log('✅ APT攻击活动已初始化，保留被攻陷主机脉冲动画');
+  }
+
+  // APT攻击活动指示器已删除，不再显示左上角的活动名称
+
+  // APT指示器脉冲动画已删除
+
+  /**
+   * 可视化APT攻击阶段（简化版，不再显示阶段指示器）
+   * @param {string} campaignId - 攻击活动ID
+   * @param {string} phase - 攻击阶段
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeAPTPhase(campaignId, phase, phaseData) {
+    // 不再显示阶段指示器，攻击可视化现在基于真实攻击日志触发
+    console.log(`🎯 APT攻击阶段: ${phase} (基于真实日志触发动画)`);
+  }
+
+  /**
+   * 可视化侦察阶段
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeReconnaissance(campaignId, phaseData) {
+    // 创建扫描波纹效果，覆盖整个网络
+    const devices = Object.values(this.topology.devices);
+
+    devices.forEach((device, index) => {
+      setTimeout(() => {
+        this.createReconnaissanceScan(device);
+      }, index * 200);
+    });
+
+    // 不再显示阶段指示器
+  }
+
+  /**
+   * 创建侦察扫描效果
+   * @param {fabric.Object} device - 设备对象
+   */
+  createReconnaissanceScan(device) {
+    const center = {
+      x: device.left + device.width / 2,
+      y: device.top + device.height / 2
+    };
+
+    // 创建扫描脉冲
+    const scanPulse = new fabric.Circle({
+      left: center.x,
+      top: center.y,
+      radius: 5,
+      fill: 'transparent',
+      stroke: '#3b82f6',
+      strokeWidth: 2,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center',
+      opacity: 0.8
+    });
+
+    this.canvas.add(scanPulse);
+    this.attackEffects.push(scanPulse);
+
+    const animation = scanPulse.animate({
+      radius: 40,
+      opacity: 0
+    }, {
+      duration: 1500,
+      easing: fabric.util.ease.easeOutQuad,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => this.removeEffect(scanPulse)
+    });
+
+    this.activeAnimations.push(animation);
+  }
+
+  /**
+   * 可视化武器化阶段
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeWeaponization(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    this.createWeaponizationEffect();
+  }
+
+  /**
+   * 创建武器化效果
+   */
+  createWeaponizationEffect() {
+    const center = { x: 100, y: 100 };
+
+    // 创建多个旋转的武器符号
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * 60) * Math.PI / 180;
+      const radius = 30;
+
+      const weapon = new fabric.Text('⚔️', {
+        left: center.x + Math.cos(angle) * radius,
+        top: center.y + Math.sin(angle) * radius,
+        fontSize: 16,
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+        opacity: 0
+      });
+
+      this.canvas.add(weapon);
+      this.attackEffects.push(weapon);
+
+      // 淡入动画
+      setTimeout(() => {
+        const animation = weapon.animate({
+          opacity: 1
+        }, {
+          duration: 500,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => {
+            // 延迟移除
+            setTimeout(() => this.removeEffect(weapon), 2000);
+          }
+        });
+        this.activeAnimations.push(animation);
+      }, i * 200);
+    }
+  }
+
+  /**
+   * 可视化投递阶段
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeDelivery(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    const targetDevice = this.findTargetDevice(phaseData.target_email);
+    if (targetDevice) {
+      this.createPhishingEmailAnimation(targetDevice);
+    }
+  }
+
+  /**
+   * 创建钓鱼邮件动画
+   * @param {fabric.Object} targetDevice - 目标设备
+   */
+  createPhishingEmailAnimation(targetDevice) {
+    const center = {
+      x: targetDevice.left + targetDevice.width / 2,
+      y: targetDevice.top + targetDevice.height / 2
+    };
+
+    // 创建邮件图标
+    const email = new fabric.Text('📧', {
+      left: center.x - 100,
+      top: center.y - 100,
+      fontSize: 24,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false
+    });
+
+    this.canvas.add(email);
+    this.attackEffects.push(email);
+
+    // 邮件飞向目标的动画
+    const animation = email.animate({
+      left: center.x,
+      top: center.y,
+      fontSize: 16
+    }, {
+      duration: 2000,
+      easing: fabric.util.ease.easeInOutQuad,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 创建邮件打开效果
+        this.createEmailOpenEffect(center);
+        this.removeEffect(email);
+      }
+    });
+
+    this.activeAnimations.push(animation);
+  }
+
+  /**
+   * 创建邮件打开效果
+   * @param {Object} center - 中心坐标
+   */
+  createEmailOpenEffect(center) {
+    // 创建爆炸式的警告符号
+    const warnings = ['⚠️', '🚨', '💀'];
+
+    warnings.forEach((warning, index) => {
+      const angle = (index * 120) * Math.PI / 180;
+      const radius = 40;
+
+      const warningIcon = new fabric.Text(warning, {
+        left: center.x,
+        top: center.y,
+        fontSize: 20,
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+        opacity: 0
+      });
+
+      this.canvas.add(warningIcon);
+      this.attackEffects.push(warningIcon);
+
+      const animation = warningIcon.animate({
+        left: center.x + Math.cos(angle) * radius,
+        top: center.y + Math.sin(angle) * radius,
+        opacity: 1
+      }, {
+        duration: 1000,
+        easing: fabric.util.ease.easeOutBack,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          setTimeout(() => this.removeEffect(warningIcon), 2000);
+        }
+      });
+
+      this.activeAnimations.push(animation);
+    });
+  }
+
+  /**
+   * 可视化利用阶段
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeExploitation(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    const targetDevice = this.findDeviceByHost(phaseData.target_host);
+    if (targetDevice) {
+      this.createExploitationEffect(targetDevice);
+
+      // 标记设备为已攻陷
+      setTimeout(() => {
+        this.markDeviceAsCompromised(targetDevice, campaignId);
+      }, 3000);
+    }
+  }
+
+  /**
+   * 创建漏洞利用效果
+   * @param {fabric.Object} targetDevice - 目标设备
+   */
+  createExploitationEffect(targetDevice) {
+    const center = {
+      x: targetDevice.left + targetDevice.width / 2,
+      y: targetDevice.top + targetDevice.height / 2
+    };
+
+    // 创建代码注入动画
+    const codeSymbols = ['</>', '{;}', '0x41', 'RCE'];
+
+    codeSymbols.forEach((symbol, index) => {
+      setTimeout(() => {
+        const code = new fabric.Text(symbol, {
+          left: center.x + (Math.random() - 0.5) * 60,
+          top: center.y + (Math.random() - 0.5) * 60,
+          fontSize: 12,
+          fill: '#00ff00',
+          fontFamily: 'monospace',
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          opacity: 0
+        });
+
+        this.canvas.add(code);
+        this.attackEffects.push(code);
+
+        const animation = code.animate({
+          opacity: 1,
+          top: code.top - 30
+        }, {
+          duration: 1500,
+          easing: fabric.util.ease.easeOutQuad,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => this.removeEffect(code)
+        });
+
+        this.activeAnimations.push(animation);
+      }, index * 300);
+    });
+  }
+
+  /**
+   * 标记设备为已攻陷（带红色脉冲动画）
+   * @param {fabric.Object} device - 设备对象
+   * @param {string} campaignId - 攻击活动ID
+   */
+  markDeviceAsCompromised(device, campaignId) {
+    console.log('🔴 标记设备为已攻陷:', device.deviceData?.name);
+
+    // 添加到已攻陷设备列表
+    const campaign = this.aptCampaigns?.get(campaignId);
+    if (campaign) {
+      campaign.compromisedHosts.add(device.id || device.deviceData?.name);
+    }
+
+    // 创建持续的红色脉冲动画
+    this.createCompromisedHostPulse(device);
+
+    // 添加攻陷标识
+    this.addCompromisedIndicator(device);
+  }
+
+  /**
+   * 创建已攻陷主机的红色脉冲动画
+   * @param {fabric.Object} device - 设备对象
+   */
+  createCompromisedHostPulse(device) {
+    const center = {
+      x: device.left + device.width / 2,
+      y: device.top + device.height / 2
+    };
+
+    const createPulse = () => {
+      // 创建红色脉冲圆圈
+      const pulse = new fabric.Circle({
+        left: center.x,
+        top: center.y,
+        radius: 15,
+        fill: 'transparent',
+        stroke: '#dc2626',
+        strokeWidth: 3,
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        originY: 'center',
+        opacity: 0.9
+      });
+
+      // 标记为攻陷效果，便于管理
+      pulse.compromisedEffect = true;
+      pulse.targetDevice = device;
+
+      this.canvas.add(pulse);
+      this.attackEffects.push(pulse);
+
+      const animation = pulse.animate({
+        radius: 35,
+        opacity: 0,
+        strokeWidth: 1
+      }, {
+        duration: 1500,
+        easing: fabric.util.ease.easeOutQuad,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          this.removeEffect(pulse);
+          // 继续下一个脉冲（持续动画）
+          setTimeout(createPulse, 800);
+        }
+      });
+
+      this.activeAnimations.push(animation);
+    };
+
+    // 开始脉冲动画
+    createPulse();
+  }
+
+  /**
+   * 添加攻陷指示器
+   * @param {fabric.Object} device - 设备对象
+   */
+  addCompromisedIndicator(device) {
+    const indicator = new fabric.Text('🔴', {
+      left: device.left + device.width - 10,
+      top: device.top - 10,
+      fontSize: 16,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false
+    });
+
+    indicator.compromisedIndicator = true;
+    indicator.targetDevice = device;
+
+    this.canvas.add(indicator);
+    this.attackEffects.push(indicator);
+  }
+
+  /**
+   * 可视化横向移动
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeLateralMovement(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    const sourceDevice = this.findDeviceBySessionId(phaseData.source_session_id);
+    const targetDevice = this.findDeviceByHost(phaseData.target_host);
+
+    if (sourceDevice && targetDevice) {
+      this.createLateralMovementAnimation(sourceDevice, targetDevice, campaignId);
+    }
+  }
+
+  /**
+   * 创建横向移动动画
+   * @param {fabric.Object} sourceDevice - 源设备
+   * @param {fabric.Object} targetDevice - 目标设备
+   * @param {string} campaignId - 攻击活动ID
+   */
+  createLateralMovementAnimation(sourceDevice, targetDevice, campaignId) {
+    const sourceCenter = {
+      x: sourceDevice.left + sourceDevice.width / 2,
+      y: sourceDevice.top + sourceDevice.height / 2
+    };
+
+    const targetCenter = {
+      x: targetDevice.left + targetDevice.width / 2,
+      y: targetDevice.top + targetDevice.height / 2
+    };
+
+    // 创建横向移动路径
+    const movementPath = new fabric.Line([
+      sourceCenter.x, sourceCenter.y,
+      targetCenter.x, targetCenter.y
+    ], {
+      stroke: '#8b5cf6',
+      strokeWidth: 3,
+      strokeDashArray: [10, 5],
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    this.canvas.add(movementPath);
+    this.attackEffects.push(movementPath);
+
+    // 路径显现动画
+    movementPath.animate({
+      opacity: 1
+    }, {
+      duration: 1000,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 创建移动数据包
+        this.createMovementPacket(sourceCenter, targetCenter, () => {
+          // 移动完成后标记目标为已攻陷
+          this.markDeviceAsCompromised(targetDevice, campaignId);
+          // 移除路径
+          setTimeout(() => this.removeEffect(movementPath), 2000);
+        });
+      }
+    });
+  }
+
+  /**
+   * 创建移动数据包
+   * @param {Object} start - 起始坐标
+   * @param {Object} end - 结束坐标
+   * @param {Function} onComplete - 完成回调
+   */
+  createMovementPacket(start, end, onComplete) {
+    const packet = new fabric.Rect({
+      left: start.x,
+      top: start.y,
+      width: 8,
+      height: 8,
+      fill: '#8b5cf6',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false
+    });
+
+    this.canvas.add(packet);
+    this.attackEffects.push(packet);
+
+    const animation = packet.animate({
+      left: end.x,
+      top: end.y
+    }, {
+      duration: 2000,
+      easing: fabric.util.ease.easeInOutQuad,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        this.removeEffect(packet);
+        if (onComplete) onComplete();
+      }
+    });
+
+    this.activeAnimations.push(animation);
+  }
+
+  /**
+   * 可视化数据收集
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeDataCollection(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    const targetDevice = this.findDeviceBySessionId(phaseData.session_id);
+    if (targetDevice) {
+      this.createDataCollectionEffect(targetDevice);
+    }
+  }
+
+  /**
+   * 创建数据收集效果
+   * @param {fabric.Object} device - 设备对象
+   */
+  createDataCollectionEffect(device) {
+    const center = {
+      x: device.left + device.width / 2,
+      y: device.top + device.height / 2
+    };
+
+    // 创建数据符号动画
+    const dataSymbols = ['📄', '💾', '📊', '🗃️', '📋'];
+
+    dataSymbols.forEach((symbol, index) => {
+      setTimeout(() => {
+        const dataIcon = new fabric.Text(symbol, {
+          left: center.x + (Math.random() - 0.5) * 80,
+          top: center.y + (Math.random() - 0.5) * 80,
+          fontSize: 16,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          opacity: 0
+        });
+
+        this.canvas.add(dataIcon);
+        this.attackEffects.push(dataIcon);
+
+        // 数据收集动画：向中心聚集
+        const animation = dataIcon.animate({
+          left: center.x,
+          top: center.y,
+          opacity: 1,
+          fontSize: 12
+        }, {
+          duration: 1500,
+          easing: fabric.util.ease.easeInQuad,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => {
+            // 数据消失效果
+            dataIcon.animate({
+              opacity: 0,
+              fontSize: 8
+            }, {
+              duration: 500,
+              onChange: () => this.canvas.renderAll(),
+              onComplete: () => this.removeEffect(dataIcon)
+            });
+          }
+        });
+
+        this.activeAnimations.push(animation);
+      }, index * 400);
+    });
+  }
+
+  /**
+   * 可视化数据泄露
+   * @param {string} campaignId - 攻击活动ID
+   * @param {Object} phaseData - 阶段数据
+   */
+  visualizeDataExfiltration(campaignId, phaseData) {
+    // 不再显示阶段指示器，直接执行动画
+    const campaign = this.aptCampaigns?.get(campaignId);
+    if (campaign && campaign.compromisedHosts.size > 0) {
+      this.createDataExfiltrationStream(campaign.compromisedHosts);
+    }
+  }
+
+  /**
+   * 创建数据泄露流
+   * @param {Set} compromisedHosts - 已攻陷主机集合
+   */
+  createDataExfiltrationStream(compromisedHosts) {
+    // 创建外部目标点（攻击者服务器）
+    const externalTarget = {
+      x: this.canvas.width - 100,
+      y: 50
+    };
+
+    // 添加外部服务器图标
+    const externalServer = new fabric.Text('🌐', {
+      left: externalTarget.x,
+      top: externalTarget.y,
+      fontSize: 24,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false
+    });
+
+    this.canvas.add(externalServer);
+    this.attackEffects.push(externalServer);
+
+    // 从每个已攻陷设备创建数据流
+    const devices = Object.values(this.topology.devices);
+    devices.forEach((device, index) => {
+      if (this.isDeviceCompromised(device, compromisedHosts)) {
+        setTimeout(() => {
+          this.createDataStream(device, externalTarget);
+        }, index * 500);
+      }
+    });
+  }
+
+  /**
+   * 创建数据流动画
+   * @param {fabric.Object} sourceDevice - 源设备
+   * @param {Object} target - 目标坐标
+   */
+  createDataStream(sourceDevice, target) {
+    const sourceCenter = {
+      x: sourceDevice.left + sourceDevice.width / 2,
+      y: sourceDevice.top + sourceDevice.height / 2
+    };
+
+    // 创建多个数据包连续传输
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const dataPacket = new fabric.Circle({
+          left: sourceCenter.x,
+          top: sourceCenter.y,
+          radius: 3,
+          fill: '#f59e0b',
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false
+        });
+
+        this.canvas.add(dataPacket);
+        this.attackEffects.push(dataPacket);
+
+        const animation = dataPacket.animate({
+          left: target.x,
+          top: target.y
+        }, {
+          duration: 3000,
+          easing: fabric.util.ease.easeInOutQuad,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => this.removeEffect(dataPacket)
+        });
+
+        this.activeAnimations.push(animation);
+      }, i * 200);
+    }
+  }
+
+  // ===================== 辅助方法 =====================
+
+  // 阶段指示器已删除，不再显示右上角的攻击阶段动画
+  showPhaseIndicator(title, description, color) {
+    // 不再显示阶段指示器
+    console.log(`🎯 攻击阶段: ${title} - ${description} (不再显示UI指示器)`);
+  }
+
+  /**
+   * 移除阶段指示器
+   */
+  removePhaseIndicator() {
+    const indicators = this.attackEffects.filter(effect => effect.phaseIndicator);
+    indicators.forEach(indicator => this.removeEffect(indicator));
+  }
+
+  /**
+   * 根据主机名查找设备
+   * @param {string} hostName - 主机名
+   * @returns {fabric.Object|null} 设备对象
+   */
+  findDeviceByHost(hostName) {
+    const devices = Object.values(this.topology.devices);
+    return devices.find(device =>
+      device.deviceData?.name === hostName ||
+      device.deviceData?.ip === hostName
+    );
+  }
+
+  /**
+   * 根据会话ID查找设备
+   * @param {string} sessionId - 会话ID
+   * @returns {fabric.Object|null} 设备对象
+   */
+  findDeviceBySessionId(sessionId) {
+    // 这里需要维护会话ID到设备的映射
+    // 简化实现：返回第一个已攻陷的设备
+    const devices = Object.values(this.topology.devices);
+    return devices.find(device => device.compromised);
+  }
+
+  /**
+   * 根据邮箱查找目标设备
+   * @param {string} email - 邮箱地址
+   * @returns {fabric.Object|null} 设备对象
+   */
+  findTargetDevice(email) {
+    // 简化实现：返回第一个工作站类型的设备
+    const devices = Object.values(this.topology.devices);
+    return devices.find(device =>
+      device.deviceType === 'pc' ||
+      device.deviceType === 'workstation'
+    );
+  }
+
+  /**
+   * 检查设备是否已被攻陷
+   * @param {fabric.Object} device - 设备对象
+   * @param {Set} compromisedHosts - 已攻陷主机集合
+   * @returns {boolean} 是否已攻陷
+   */
+  isDeviceCompromised(device, compromisedHosts) {
+    return compromisedHosts.has(device.id) ||
+           compromisedHosts.has(device.deviceData?.name) ||
+           device.compromised;
+  }
+
+  /**
+   * 创建防火墙阻挡效果（预留给防御agent使用）
+   * @param {Object} attackerNode - 攻击者节点
+   * @param {Object} firewallNode - 防火墙节点
+   */
+  createFirewallBlockEffect(attackerNode, firewallNode) {
+    // 预留接口，将在防御agent中实现具体的防火墙阻挡动画
+    console.log('🛡️ 防火墙阻挡效果 (预留给防御agent):', {
+      attacker: attackerNode.deviceData?.name,
+      firewall: firewallNode.deviceData?.name
+    });
+
+    // 简单的阻挡指示动画
+    if (firewallNode && this.canvas) {
+      const center = firewallNode.getCenterPoint();
+
+      // 创建阻挡标识
+      const blockIcon = new fabric.Text('🛡️', {
+        left: center.x,
+        top: center.y - 30,
+        fontSize: 24,
+        fill: '#ff4444',
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false
+      });
+
+      this.canvas.add(blockIcon);
+      this.attackEffects.push(blockIcon);
+
+      // 淡出动画
+      const fadeOut = blockIcon.animate('opacity', 0, {
+        duration: 2000,
+        onComplete: () => {
+          this.removeEffect(blockIcon);
+        }
+      });
+
+      this.activeAnimations.push(fadeOut);
+    }
   }
 }
 

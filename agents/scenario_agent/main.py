@@ -430,11 +430,83 @@ def keyword_based_analysis(prompt: str) -> dict:
         }
     }
 
+@tool
+async def deploy_dynamic_containers(topology_data: dict) -> str:
+    """
+    基于拓扑数据动态部署容器
+
+    Args:
+        topology_data: 包含节点和网络信息的拓扑数据
+
+    Returns:
+        部署结果JSON字符串
+    """
+    try:
+        await send_log_to_backend("info", "场景智能体",
+                                f"开始部署动态容器，节点数: {len(topology_data.get('nodes', []))}")
+
+        # 调用场景服务部署容器
+        async with scenario_service_client.client as client:
+            response = await client.call_tool(
+                "deploy_dynamic_containers",
+                arguments={
+                    'topology_data': topology_data
+                }
+            )
+
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+        await send_log_to_backend("info", "场景智能体", "动态容器部署完成")
+        return result
+
+    except Exception as e:
+        error_msg = f"部署动态容器失败: {str(e)}"
+        logger.error(error_msg)
+        await send_log_to_backend("error", "场景智能体", error_msg)
+        return json.dumps({"error": error_msg})
+
+@tool
+async def deploy_scenario_containers(scenario_file: str) -> str:
+    """
+    部署指定的场景容器文件
+
+    Args:
+        scenario_file: Docker Compose文件路径
+
+    Returns:
+        部署结果JSON字符串
+    """
+    try:
+        await send_log_to_backend("info", "场景智能体",
+                                f"开始部署场景文件: {scenario_file}")
+
+        # 调用场景服务部署容器
+        async with scenario_service_client.client as client:
+            response = await client.call_tool(
+                "deploy_scenario_containers",
+                arguments={
+                    'scenario_file': scenario_file
+                }
+            )
+
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+        await send_log_to_backend("info", "场景智能体", "场景容器部署完成")
+        return result
+
+    except Exception as e:
+        error_msg = f"部署场景容器失败: {str(e)}"
+        logger.error(error_msg)
+        await send_log_to_backend("error", "场景智能体", error_msg)
+        return json.dumps({"error": error_msg})
+
 # 将工具添加到工具列表
 tools.extend([
     analyze_user_prompt,
     generate_dynamic_scenario,
-    parse_apt_ready_scenario
+    parse_apt_ready_scenario,
+    deploy_dynamic_containers,
+    deploy_scenario_containers
 ])
 
 # --- 定义Agent ---
@@ -447,7 +519,7 @@ prompt = ChatPromptTemplate.from_messages([
 4. 调用相应的工具生成动态场景
 5. 返回包含拓扑结构的场景数据
 
-你必须严格按照工具的定义来使用它们，确保返回结构化的JSON数据。"""),
+你必须严格按照工具的定义来使用它们，确保返回结构化的JSON数据，JSON数据不用添加换行符"""),
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
 ])
@@ -630,6 +702,84 @@ async def process_scenario_request(request: PromptAnalysisRequest):
 
     except Exception as e:
         error_msg = f"综合场景处理失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+class ContainerDeploymentRequest(BaseModel):
+    topology_data: dict
+
+@app.post("/deploy_containers")
+async def deploy_containers_endpoint(request: ContainerDeploymentRequest):
+    """
+    部署场景容器 - 调用MCP工具启动容器
+    """
+    try:
+        logger.info("收到容器部署请求")
+        logger.info(f"拓扑数据节点数: {len(request.topology_data.get('nodes', []))}")
+
+        # 调用MCP工具部署容器
+        result = await deploy_dynamic_containers.ainvoke({
+            "topology_data": request.topology_data
+        })
+
+        # 尝试解析结果
+        try:
+            parsed_result = json.loads(result)
+            if "error" in parsed_result:
+                raise HTTPException(status_code=500, detail=parsed_result["error"])
+        except json.JSONDecodeError:
+            # 如果不是JSON格式，包装成标准格式
+            parsed_result = {
+                "status": "success",
+                "message": "容器部署完成",
+                "raw_result": result
+            }
+
+        return {
+            "status": "success",
+            "data": parsed_result
+        }
+
+    except Exception as e:
+        error_msg = f"容器部署失败: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.post("/deploy_apt_ready")
+async def deploy_apt_ready_endpoint():
+    """
+    部署apt-ready场景容器 - 直接启动已生成的apt-ready.yml文件
+    """
+    try:
+        logger.info("收到apt-ready场景容器部署请求")
+
+        # 调用MCP工具部署apt-ready.yml文件
+        apt_ready_file = "C:/Users/LEGION/Desktop/sec_agent/docker/compose-templates/generated/apt-ready.yml"
+
+        result = await deploy_scenario_containers.ainvoke({
+            "scenario_file": apt_ready_file
+        })
+
+        # 尝试解析结果
+        try:
+            parsed_result = json.loads(result)
+            if "error" in parsed_result:
+                raise HTTPException(status_code=500, detail=parsed_result["error"])
+        except json.JSONDecodeError:
+            # 如果不是JSON格式，包装成标准格式
+            parsed_result = {
+                "status": "success",
+                "message": "apt-ready容器部署完成",
+                "raw_result": result
+            }
+
+        return {
+            "status": "success",
+            "data": parsed_result
+        }
+
+    except Exception as e:
+        error_msg = f"apt-ready容器部署失败: {str(e)}"
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 

@@ -215,7 +215,7 @@ def execute_exploit_module(module: str, target: str) -> str:
 @mcp.tool
 def execute_shell_command(session_id: str, command: str) -> str:
     """模拟在受控主机上执行命令并返回输出结果。"""
-    output = f"[{session_id}]$ {command}\n模拟输出：command executed successfully."
+    output = f"[{session_id}]$ {command}\n结果输出：command executed successfully."
     return output
 
 
@@ -394,9 +394,758 @@ def send_payload_to_victim_social(victim_url: str, payload: dict) -> str:
         return f"HTTP错误: {e.response.status_code} {e.response.text}"
     except Exception as e:
         return f"发送社会工程学载荷失败: {str(e)}"
+# ----------------------- APT Attack Tools -----------------------
+# APT攻击工具集，实现高级持续威胁的完整攻击链
+
+import time
+from typing import Dict, List, Optional
+
+# APT攻击状态管理
+apt_sessions = {}  # 存储APT攻击会话信息
+
+@mcp.tool
+def initiate_apt_campaign(target_organization: str, campaign_name: str, objectives: List[str] = None) -> str:
+    """
+    启动APT攻击活动，建立攻击会话和目标
+
+    Args:
+        target_organization: 目标组织名称
+        campaign_name: 攻击活动名称
+        objectives: 攻击目标列表（如：窃取数据、长期监控、破坏系统等）
+
+    Returns:
+        APT攻击活动ID和初始化信息
+    """
+    campaign_id = f"apt_{uuid.uuid4().hex[:8]}"
+
+    if objectives is None:
+        objectives = ["数据窃取", "长期监控", "权限维持"]
+
+    apt_sessions[campaign_id] = {
+        "campaign_id": campaign_id,
+        "target_organization": target_organization,
+        "campaign_name": campaign_name,
+        "objectives": objectives,
+        "start_time": datetime.utcnow().isoformat(),
+        "phase": "初始侦察",
+        "compromised_hosts": [],
+        "collected_data": [],
+        "persistence_mechanisms": [],
+        "lateral_movement_paths": [],
+        "stealth_level": "高",
+        "status": "活跃"
+    }
+
+    result = {
+        "campaign_id": campaign_id,
+        "status": "APT攻击活动已启动",
+        "target": target_organization,
+        "phase": "初始侦察",
+        "objectives": objectives,
+        "stealth_level": "高"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_reconnaissance(campaign_id: str, target_domain: str, reconnaissance_type: str = "passive") -> str:
+    """
+    执行APT侦察阶段，收集目标信息
+
+    Args:
+        campaign_id: APT攻击活动ID
+        target_domain: 目标域名
+        reconnaissance_type: 侦察类型（passive/active）
+
+    Returns:
+        侦察结果信息
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "深度侦察"
+
+    # 模拟侦察结果
+    reconnaissance_data = {
+        "domain_info": {
+            "domain": target_domain,
+            "subdomains": [f"mail.{target_domain}", f"vpn.{target_domain}", f"admin.{target_domain}"],
+            "email_addresses": [f"admin@{target_domain}", f"support@{target_domain}"],
+            "technologies": ["Apache", "PHP", "MySQL", "WordPress"]
+        },
+        "social_media": {
+            "employees": ["张三 - CTO", "李四 - 安全工程师", "王五 - 系统管理员"],
+            "company_info": "技术导向型公司，约200名员工"
+        },
+        "infrastructure": {
+            "ip_ranges": ["192.168.1.0/24", "10.0.0.0/16"],
+            "open_ports": [22, 80, 443, 3389],
+            "services": ["SSH", "HTTP", "HTTPS", "RDP"]
+        }
+    }
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "深度侦察",
+        "reconnaissance_type": reconnaissance_type,
+        "data_collected": reconnaissance_data,
+        "next_phase": "武器化"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_weaponization(campaign_id: str, target_profile: Dict, delivery_method: str = "spear_phishing") -> str:
+    """
+    APT武器化阶段，根据目标特征制作定制化攻击载荷
+
+    Args:
+        campaign_id: APT攻击活动ID
+        target_profile: 目标特征信息
+        delivery_method: 投递方式（spear_phishing/watering_hole/supply_chain）
+
+    Returns:
+        武器化载荷信息
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "武器化"
+
+    # 根据投递方式生成不同的载荷
+    weaponization_data = {
+        "spear_phishing": {
+            "payload_type": "定制化钓鱼邮件 + 恶意附件",
+            "attachment": "年度安全报告.docx (含宏病毒)",
+            "social_engineering": "利用目标公司最新新闻事件",
+            "evasion_techniques": ["反沙箱检测", "文档加密", "分阶段下载"]
+        },
+        "watering_hole": {
+            "payload_type": "水坑攻击",
+            "target_websites": ["行业论坛", "供应商网站"],
+            "exploit_kit": "零日漏洞利用工具包",
+            "persistence": "浏览器插件植入"
+        },
+        "supply_chain": {
+            "payload_type": "供应链攻击",
+            "target_software": "第三方开发工具",
+            "backdoor_type": "代码签名后门",
+            "distribution": "软件更新机制"
+        }
+    }
+
+    selected_method = weaponization_data.get(delivery_method, weaponization_data["spear_phishing"])
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "武器化",
+        "delivery_method": delivery_method,
+        "weaponization_details": selected_method,
+        "stealth_rating": "极高",
+        "next_phase": "投递"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_delivery(campaign_id: str, target_email: str, weaponized_payload: str) -> str:
+    """
+    APT投递阶段，向目标发送定制化攻击载荷
+
+    Args:
+        campaign_id: APT攻击活动ID
+        target_email: 目标邮箱
+        weaponized_payload: 武器化载荷
+
+    Returns:
+        投递结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "投递"
+
+    # 模拟高级钓鱼邮件投递
+    delivery_result = {
+        "delivery_status": "成功",
+        "target_email": target_email,
+        "email_subject": "紧急：安全漏洞修复通知",
+        "social_engineering_score": 9.2,  # 高度定制化
+        "evasion_success": True,
+        "delivery_time": datetime.utcnow().isoformat(),
+        "tracking": {
+            "email_opened": True,
+            "attachment_downloaded": True,
+            "macro_enabled": True
+        }
+    }
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "投递",
+        "delivery_result": delivery_result,
+        "success_probability": "85%",
+        "next_phase": "利用"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_exploitation(campaign_id: str, target_host: str, exploit_type: str = "zero_day") -> str:
+    """
+    APT利用阶段，执行漏洞利用获得初始访问权限
+
+    Args:
+        campaign_id: APT攻击活动ID
+        target_host: 目标主机
+        exploit_type: 利用类型（zero_day/known_vuln/social_engineering）
+
+    Returns:
+        利用结果和获得的访问权限
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "利用"
+
+    # 生成会话ID
+    session_id = f"apt_sess_{uuid.uuid4().hex[:8]}"
+
+    exploitation_result = {
+        "exploit_success": True,
+        "session_id": session_id,
+        "target_host": target_host,
+        "exploit_type": exploit_type,
+        "initial_access": {
+            "user_privileges": "标准用户",
+            "access_method": "远程代码执行",
+            "persistence_installed": False,
+            "detection_risk": "低"
+        },
+        "host_info": {
+            "os": "Windows 10 Enterprise",
+            "domain": session["target_organization"],
+            "antivirus": "Windows Defender (已绕过)",
+            "network_position": "内网工作站"
+        }
+    }
+
+    # 更新会话信息
+    session["compromised_hosts"].append({
+        "host": target_host,
+        "session_id": session_id,
+        "compromise_time": datetime.utcnow().isoformat(),
+        "access_level": "用户级"
+    })
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "利用",
+        "exploitation_result": exploitation_result,
+        "next_phase": "安装"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_installation(campaign_id: str, session_id: str, persistence_type: str = "registry") -> str:
+    """
+    APT安装阶段，在目标系统中安装持久化机制
+
+    Args:
+        campaign_id: APT攻击活动ID
+        session_id: 会话ID
+        persistence_type: 持久化类型（registry/service/scheduled_task/dll_hijacking）
+
+    Returns:
+        持久化安装结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "安装"
+
+    persistence_mechanisms = {
+        "registry": {
+            "method": "注册表启动项",
+            "location": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "stealth_level": "中等",
+            "detection_difficulty": "中等"
+        },
+        "service": {
+            "method": "Windows服务",
+            "location": "伪装为系统服务",
+            "stealth_level": "高",
+            "detection_difficulty": "高"
+        },
+        "scheduled_task": {
+            "method": "计划任务",
+            "location": "系统计划任务",
+            "stealth_level": "高",
+            "detection_difficulty": "高"
+        },
+        "dll_hijacking": {
+            "method": "DLL劫持",
+            "location": "系统DLL目录",
+            "stealth_level": "极高",
+            "detection_difficulty": "极高"
+        }
+    }
+
+    selected_persistence = persistence_mechanisms.get(persistence_type, persistence_mechanisms["registry"])
+
+    installation_result = {
+        "installation_success": True,
+        "persistence_type": persistence_type,
+        "persistence_details": selected_persistence,
+        "backdoor_installed": True,
+        "c2_connection": {
+            "server": "apt-c2.example.com",
+            "protocol": "HTTPS",
+            "encryption": "AES-256",
+            "heartbeat_interval": "每6小时"
+        }
+    }
+
+    # 更新会话持久化信息
+    session["persistence_mechanisms"].append({
+        "session_id": session_id,
+        "type": persistence_type,
+        "install_time": datetime.now().isoformat(),
+        "status": "活跃"
+    })
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "安装",
+        "session_id": session_id,
+        "installation_result": installation_result,
+        "next_phase": "命令与控制"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_command_control(campaign_id: str, session_id: str, command: str) -> str:
+    """
+    APT命令与控制阶段，通过C2服务器控制被感染主机
+
+    Args:
+        campaign_id: APT攻击活动ID
+        session_id: 会话ID
+        command: 要执行的命令
+
+    Returns:
+        命令执行结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "命令与控制"
+
+    # 模拟命令执行
+    command_results = {
+        "whoami": "domain\\user123",
+        "ipconfig": "IP地址: 192.168.1.100\n子网掩码: 255.255.255.0\n默认网关: 192.168.1.1",
+        "net user": "Administrator  Guest  user123  service_account",
+        "systeminfo": "OS: Windows 10 Enterprise\n处理器: Intel Core i7\n内存: 16GB",
+        "dir": "文件列表:\nDocuments/\nDownloads/\nDesktop/\nconfig.txt\nsecrets.xlsx"
+    }
+
+    command_output = command_results.get(command, f"命令 '{command}' 执行成功")
+
+    c2_result = {
+        "command_executed": command,
+        "output": command_output,
+        "execution_time": datetime.now().isoformat(),
+        "stealth_status": "未被检测",
+        "c2_communication": {
+            "encrypted": True,
+            "protocol": "HTTPS",
+            "traffic_disguised": "正常Web流量"
+        }
+    }
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "命令与控制",
+        "session_id": session_id,
+        "c2_result": c2_result,
+        "next_actions": ["权限提升", "横向移动", "数据收集"]
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_privilege_escalation(campaign_id: str, session_id: str, escalation_method: str = "uac_bypass") -> str:
+    """
+    APT权限提升阶段，获取更高级别的系统权限
+
+    Args:
+        campaign_id: APT攻击活动ID
+        session_id: 会话ID
+        escalation_method: 提权方法（uac_bypass/kernel_exploit/token_manipulation）
+
+    Returns:
+        权限提升结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "权限提升"
+
+    escalation_methods = {
+        "uac_bypass": {
+            "technique": "UAC绕过",
+            "success_rate": "85%",
+            "stealth_level": "高",
+            "target_privilege": "管理员权限"
+        },
+        "kernel_exploit": {
+            "technique": "内核漏洞利用",
+            "success_rate": "95%",
+            "stealth_level": "中等",
+            "target_privilege": "SYSTEM权限"
+        },
+        "token_manipulation": {
+            "technique": "令牌操纵",
+            "success_rate": "75%",
+            "stealth_level": "极高",
+            "target_privilege": "域管理员权限"
+        }
+    }
+
+    selected_method = escalation_methods.get(escalation_method, escalation_methods["uac_bypass"])
+
+    escalation_result = {
+        "escalation_success": True,
+        "method": selected_method,
+        "new_privileges": selected_method["target_privilege"],
+        "escalation_time": datetime.now().isoformat(),
+        "detection_risk": "低",
+        "capabilities_gained": [
+            "系统文件访问",
+            "注册表完全控制",
+            "服务管理",
+            "用户账户管理"
+        ]
+    }
+
+    # 更新主机访问级别
+    for host in session["compromised_hosts"]:
+        if host["session_id"] == session_id:
+            host["access_level"] = selected_method["target_privilege"]
+            break
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "权限提升",
+        "session_id": session_id,
+        "escalation_result": escalation_result,
+        "next_phase": "横向移动"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_lateral_movement(campaign_id: str, source_session_id: str, target_host: str, movement_technique: str = "pass_the_hash") -> str:
+    """
+    APT横向移动阶段，从已控制主机扩展到网络中的其他主机
+
+    Args:
+        campaign_id: APT攻击活动ID
+        source_session_id: 源主机会话ID
+        target_host: 目标主机
+        movement_technique: 移动技术（pass_the_hash/wmi/psexec/rdp）
+
+    Returns:
+        横向移动结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "横向移动"
+
+    movement_techniques = {
+        "pass_the_hash": {
+            "technique": "哈希传递攻击",
+            "requirements": "NTLM哈希",
+            "stealth_level": "高",
+            "success_rate": "90%"
+        },
+        "wmi": {
+            "technique": "WMI远程执行",
+            "requirements": "管理员权限",
+            "stealth_level": "极高",
+            "success_rate": "85%"
+        },
+        "psexec": {
+            "technique": "PsExec工具",
+            "requirements": "SMB访问权限",
+            "stealth_level": "中等",
+            "success_rate": "95%"
+        },
+        "rdp": {
+            "technique": "远程桌面协议",
+            "requirements": "RDP凭据",
+            "stealth_level": "低",
+            "success_rate": "80%"
+        }
+    }
+
+    selected_technique = movement_techniques.get(movement_technique, movement_techniques["pass_the_hash"])
+    new_session_id = f"apt_sess_{uuid.uuid4().hex[:8]}"
+
+    movement_result = {
+        "movement_success": True,
+        "technique": selected_technique,
+        "source_host": source_session_id,
+        "target_host": target_host,
+        "new_session_id": new_session_id,
+        "movement_time": datetime.now().isoformat(),
+        "credentials_harvested": [
+            "domain\\admin_user:password123",
+            "domain\\service_account:service_pass"
+        ],
+        "network_discovery": {
+            "domain_controllers": ["dc01.domain.com", "dc02.domain.com"],
+            "file_servers": ["fs01.domain.com", "backup.domain.com"],
+            "database_servers": ["sql01.domain.com"]
+        }
+    }
+
+    # 添加新的被控主机
+    session["compromised_hosts"].append({
+        "host": target_host,
+        "session_id": new_session_id,
+        "compromise_time": datetime.now().isoformat(),
+        "access_level": "管理员权限",
+        "source_host": source_session_id
+    })
+
+    # 记录横向移动路径
+    session["lateral_movement_paths"].append({
+        "from": source_session_id,
+        "to": new_session_id,
+        "technique": movement_technique,
+        "timestamp": datetime.now().isoformat()
+    })
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "横向移动",
+        "movement_result": movement_result,
+        "total_compromised_hosts": len(session["compromised_hosts"]),
+        "next_phase": "数据收集"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_data_collection(campaign_id: str, session_id: str, collection_targets: List[str] = None) -> str:
+    """
+    APT数据收集阶段，从目标系统中收集敏感信息
+
+    Args:
+        campaign_id: APT攻击活动ID
+        session_id: 会话ID
+        collection_targets: 收集目标类型列表
+
+    Returns:
+        数据收集结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "数据收集"
+
+    if collection_targets is None:
+        collection_targets = ["文档", "数据库", "邮件", "凭据"]
+
+    collection_results = {
+        "文档": {
+            "files_found": 1247,
+            "sensitive_files": [
+                "财务报表2024.xlsx",
+                "客户信息数据库.csv",
+                "商业计划书.docx",
+                "员工薪资表.xlsx"
+            ],
+            "total_size": "2.3GB"
+        },
+        "数据库": {
+            "databases_found": ["customer_db", "financial_db", "hr_db"],
+            "records_extracted": 50000,
+            "sensitive_tables": ["users", "payments", "personal_info"]
+        },
+        "邮件": {
+            "mailboxes_accessed": ["CEO", "CFO", "IT管理员"],
+            "emails_collected": 15000,
+            "sensitive_emails": 342
+        },
+        "凭据": {
+            "passwords_harvested": 89,
+            "certificates_found": 12,
+            "api_keys": 23,
+            "domain_accounts": 156
+        }
+    }
+
+    collected_data = []
+    for target in collection_targets:
+        if target in collection_results:
+            collected_data.append({
+                "type": target,
+                "data": collection_results[target],
+                "collection_time": datetime.now().isoformat()
+            })
+
+    # 更新会话收集的数据
+    session["collected_data"].extend(collected_data)
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "数据收集",
+        "session_id": session_id,
+        "collection_targets": collection_targets,
+        "collected_data": collected_data,
+        "total_data_size": "2.3GB",
+        "next_phase": "数据泄露"
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_exfiltration(campaign_id: str, data_type: str, exfiltration_method: str = "encrypted_channel") -> str:
+    """
+    APT数据泄露阶段，将收集的数据安全传输到攻击者控制的服务器
+
+    Args:
+        campaign_id: APT攻击活动ID
+        data_type: 要泄露的数据类型
+        exfiltration_method: 泄露方法（encrypted_channel/dns_tunneling/steganography）
+
+    Returns:
+        数据泄露结果
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+    session["phase"] = "数据泄露"
+
+    exfiltration_methods = {
+        "encrypted_channel": {
+            "method": "加密通道",
+            "protocol": "HTTPS",
+            "encryption": "AES-256",
+            "stealth_level": "高",
+            "speed": "10MB/s"
+        },
+        "dns_tunneling": {
+            "method": "DNS隧道",
+            "protocol": "DNS",
+            "encryption": "Base64编码",
+            "stealth_level": "极高",
+            "speed": "1MB/s"
+        },
+        "steganography": {
+            "method": "隐写术",
+            "protocol": "HTTP",
+            "encryption": "图像隐写",
+            "stealth_level": "极高",
+            "speed": "5MB/s"
+        }
+    }
+
+    selected_method = exfiltration_methods.get(exfiltration_method, exfiltration_methods["encrypted_channel"])
+
+    exfiltration_result = {
+        "exfiltration_success": True,
+        "data_type": data_type,
+        "method": selected_method,
+        "destination": "apt-exfil.example.com",
+        "data_size": "2.3GB",
+        "transfer_time": "4小时23分钟",
+        "detection_risk": "极低",
+        "exfiltration_time": datetime.now().isoformat()
+    }
+
+    result = {
+        "campaign_id": campaign_id,
+        "phase": "数据泄露",
+        "exfiltration_result": exfiltration_result,
+        "campaign_status": "目标达成",
+        "next_actions": ["维持访问", "清理痕迹", "准备下一阶段"]
+    }
+
+    return json.dumps(result)
+
+@mcp.tool
+def apt_campaign_status(campaign_id: str) -> str:
+    """
+    获取APT攻击活动的完整状态信息
+
+    Args:
+        campaign_id: APT攻击活动ID
+
+    Returns:
+        攻击活动完整状态
+    """
+    if campaign_id not in apt_sessions:
+        return json.dumps({"error": "无效的APT攻击活动ID"})
+
+    session = apt_sessions[campaign_id]
+
+    # 计算攻击持续时间
+    start_time = datetime.fromisoformat(session["start_time"])
+    duration = datetime.now() - start_time
+
+    status_report = {
+        "campaign_overview": {
+            "campaign_id": campaign_id,
+            "target_organization": session["target_organization"],
+            "campaign_name": session["campaign_name"],
+            "current_phase": session["phase"],
+            "status": session["status"],
+            "duration": str(duration),
+            "stealth_level": session["stealth_level"]
+        },
+        "attack_progress": {
+            "objectives": session["objectives"],
+            "compromised_hosts": len(session["compromised_hosts"]),
+            "persistence_mechanisms": len(session["persistence_mechanisms"]),
+            "lateral_movement_paths": len(session["lateral_movement_paths"]),
+            "data_collected": len(session["collected_data"])
+        },
+        "detailed_status": {
+            "compromised_hosts": session["compromised_hosts"],
+            "persistence_mechanisms": session["persistence_mechanisms"],
+            "lateral_movement_paths": session["lateral_movement_paths"],
+            "collected_data": session["collected_data"]
+        },
+        "threat_assessment": {
+            "impact_level": "高",
+            "detection_probability": "低",
+            "attribution_difficulty": "极高",
+            "remediation_complexity": "复杂"
+        }
+    }
+
+    return json.dumps(status_report)
+
 # -----------------------------------------------------------------------------
 
 # 3. Start the server
 if __name__ == "__main__":
-    print("\n--- Attack Service (v2 - with JSON string fix) is starting... ---\n")
+    print("\n--- Attack Service (v3 - with APT capabilities) is starting... ---\n")
     mcp.run(transport="http", port=8001)

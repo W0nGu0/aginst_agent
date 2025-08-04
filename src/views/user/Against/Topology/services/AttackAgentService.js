@@ -43,6 +43,7 @@ class AttackAgentService {
       const requestData = {
         target_host: targetHost,
         attack_type: "auto", // 攻击类型，让中控智能体决定具体使用哪种攻击
+        speed_multiplier: 0.2, // 攻击速度倍数，0.2倍速便于观察
       };
 
       console.log("发送攻击请求到中控智能体:", requestData);
@@ -266,6 +267,7 @@ class AttackAgentService {
         victim_url: targetHost, // 目标主机URL
         victim_name: attackData.target?.deviceData?.name || "未知用户",
         company: "ACME_CORP", // 公司名称，实际环境中应该从配置或参数中获取
+        speed_multiplier: 0.2, // 攻击速度倍数，0.2倍速便于观察
       };
 
       // 创建攻击任务

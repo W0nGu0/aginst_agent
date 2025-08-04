@@ -1,192 +1,175 @@
 <template>
-  <div class="firewall-dialog">
-    <div v-if="show" class="dialog-overlay" @click="closeDialog">
-      <div class="dialog-content" ref="dialogContent" @click.stop>
-        <div class="dialog-header" @mousedown="startDrag">
+  <div v-if="show" class="firewall-dialog">
+    <div class="dialog-overlay" @click="closeDialog">
+      <div class="dialog-content" @click.stop>
+        <!-- 标题栏 -->
+        <div class="dialog-header">
           <h3>防火墙配置</h3>
           <button class="close-btn" @click="closeDialog">&times;</button>
         </div>
+        
+        <!-- 基本信息 -->
         <div class="dialog-body">
-          <div class="firewall-info">
-            <div class="info-item">
-              <span class="label">名称:</span>
-              <span class="value">{{ firewall.deviceData?.name }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">状态:</span>
-              <span class="value" :class="statusClass">{{ statusText }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">接口数量:</span>
-              <span class="value">{{ interfaces.length }}</span>
-            </div>
+          <div class="basic-info">
+            <p><strong>名称:</strong> border_firewall</p>
+            <p><strong>状态:</strong> <span style="color: #00f2c3;">运行中</span></p>
+            <p><strong>接口数量:</strong> 5</p>
           </div>
-
+          
+          <!-- 标签页 -->
           <div class="tabs">
-            <div 
-              class="tab" 
-              :class="{ active: activeTab === 'interfaces' }"
+            <button 
+              class="tab-btn" 
+              :class="{ active: activeTab === 'interfaces' }" 
               @click="activeTab = 'interfaces'"
             >
               接口
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeTab === 'rules' }"
+            </button>
+            <button 
+              class="tab-btn" 
+              :class="{ active: activeTab === 'rules' }" 
               @click="activeTab = 'rules'"
             >
-              规则
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeTab === 'logs' }"
+              访问规则
+            </button>
+            <button 
+              class="tab-btn" 
+              :class="{ active: activeTab === 'blacklist' }" 
+              @click="activeTab = 'blacklist'"
+            >
+              黑名单
+            </button>
+            <button 
+              class="tab-btn" 
+              :class="{ active: activeTab === 'whitelist' }" 
+              @click="activeTab = 'whitelist'"
+            >
+              白名单
+            </button>
+            <button 
+              class="tab-btn" 
+              :class="{ active: activeTab === 'logs' }" 
               @click="activeTab = 'logs'"
             >
               日志
-            </div>
+            </button>
           </div>
-
+          
+          <!-- 内容区域 -->
           <div class="tab-content">
-            <!-- 接口选项卡 -->
-            <div v-if="activeTab === 'interfaces'" class="interfaces-tab">
-              <table class="interfaces-table">
-                <thead>
-                  <tr>
-                    <th>接口名称</th>
-                    <th>IP地址</th>
-                    <th>网段</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(iface, index) in interfaces" :key="index">
-                    <td>{{ iface.name }}</td>
-                    <td>{{ iface.ip }}</td>
-                    <td>{{ iface.subnet }}</td>
-                    <td>
-                      <span class="status-badge" :class="{ 'active': iface.active }">
-                        {{ iface.active ? '活跃' : '禁用' }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- 规则选项卡 -->
-            <div v-if="activeTab === 'rules'" class="rules-tab">
-              <div class="rules-actions">
-                <button class="btn btn-primary" @click="addRule">添加规则</button>
+            <!-- 接口标签页 -->
+            <div v-show="activeTab === 'interfaces'" class="content-panel">
+              <h4>网络接口配置</h4>
+              <div class="content-list">
+                <div class="content-item">
+                  <strong>eth0</strong> - 192.168.200.254/24 (服务器网段) - <span style="color: #00f2c3;">活跃</span>
+                </div>
+                <div class="content-item">
+                  <strong>eth1</strong> - 192.168.100.254/24 (用户网段) - <span style="color: #00f2c3;">活跃</span>
+                </div>
+                <div class="content-item">
+                  <strong>eth2</strong> - 192.168.66.254/24 (SIEM网段) - <span style="color: #00f2c3;">活跃</span>
+                </div>
+                <div class="content-item">
+                  <strong>eth3</strong> - 192.168.110.254/24 (VPN网段) - <span style="color: #00f2c3;">活跃</span>
+                </div>
+                <div class="content-item">
+                  <strong>eth4</strong> - 192.168.214.254/24 (数据库网段) - <span style="color: #00f2c3;">活跃</span>
+                </div>
               </div>
-              <table class="rules-table">
-                <thead>
-                  <tr>
-                    <th>序号</th>
-                    <th>动作</th>
-                    <th>源地址</th>
-                    <th>目标地址</th>
-                    <th>协议</th>
-                    <th>端口</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(rule, index) in rules" :key="index">
-                    <td>{{ index + 1 }}</td>
-                    <td>
-                      <span class="action-badge" :class="rule.action">
-                        {{ rule.action === 'allow' ? '允许' : '拒绝' }}
-                      </span>
-                    </td>
-                    <td>{{ rule.source }}</td>
-                    <td>{{ rule.destination }}</td>
-                    <td>{{ rule.protocol }}</td>
-                    <td>{{ rule.port }}</td>
-                    <td>
-                      <button class="btn btn-sm btn-danger" @click="deleteRule(index)">删除</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
-
-            <!-- 日志选项卡 -->
-            <div v-if="activeTab === 'logs'" class="logs-tab">
-              <div class="log-filters">
-                <select v-model="logFilter" class="log-filter-select">
-                  <option value="all">全部日志</option>
-                  <option value="allow">允许</option>
-                  <option value="deny">拒绝</option>
-                </select>
-                <button class="btn btn-secondary" @click="refreshLogs">刷新</button>
+            
+            <!-- 访问规则标签页 -->
+            <div v-show="activeTab === 'rules'" class="content-panel">
+              <h4>访问控制规则</h4>
+              <div class="content-list">
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> any → any (ICMP) - 允许ICMP协议
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> 192.168.100.0/24 → 192.168.200.0/24 (TCP:80,443) - 允许用户访问Web服务
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge deny">拒绝</span> any → 192.168.200.23 (TCP:3306) - 拒绝外部访问数据库
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> 192.168.100.0/24 → 192.168.200.6 (TCP:445) - 允许文件共享
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge block">阻断</span> 199.203.100.0/24 → 192.168.0.0/16 (any) - 阻断可疑外网访问
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> 192.168.66.0/24 → any (TCP:514) - 允许SIEM日志收集
+                </div>
               </div>
-              <div class="log-entries">
-                <div 
-                  v-for="(log, index) in filteredLogs" 
-                  :key="index"
-                  class="log-entry"
-                  :class="{ 'allow': log.action === 'allow', 'deny': log.action === 'deny' }"
-                >
-                  <div class="log-time">{{ log.timestamp }}</div>
-                  <div class="log-message">
-                    <span class="action-badge" :class="log.action">
-                      {{ log.action === 'allow' ? '允许' : '拒绝' }}
-                    </span>
-                    <span>{{ log.source }} → {{ log.destination }}</span>
-                    <span>{{ log.protocol }} {{ log.port ? ':' + log.port : '' }}</span>
-                  </div>
+            </div>
+            
+            <!-- 黑名单标签页 -->
+            <div v-show="activeTab === 'blacklist'" class="content-panel">
+              <h4>IP/域名黑名单</h4>
+              <div class="content-list">
+                <div class="content-item">
+                  <span class="type-badge ip">IP</span> 203.0.113.15 - 恶意IP地址 - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge domain">域名</span> malicious-site.com - 恶意域名 - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge subnet">网段</span> 198.51.100.0/24 - 可疑网段 - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge ip">IP</span> 192.0.2.100 - 攻击源IP - <span style="color: #6c757d;">禁用</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 白名单标签页 -->
+            <div v-show="activeTab === 'whitelist'" class="content-panel">
+              <h4>IP/域名白名单</h4>
+              <div class="content-list">
+                <div class="content-item">
+                  <span class="type-badge ip">IP</span> 8.8.8.8 - Google DNS - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge domain">域名</span> trusted-partner.com - 可信合作伙伴 - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge subnet">网段</span> 192.168.0.0/16 - 内网网段 - <span style="color: #00f2c3;">启用</span>
+                </div>
+                <div class="content-item">
+                  <span class="type-badge ip">IP</span> 1.1.1.1 - Cloudflare DNS - <span style="color: #00f2c3;">启用</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 日志标签页 -->
+            <div v-show="activeTab === 'logs'" class="content-panel">
+              <h4>防火墙访问日志</h4>
+              <div class="content-list">
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> 2025-01-08 17:42:15 - 192.168.100.9 → 192.168.200.23 (TCP:80)
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge deny">拒绝</span> 2025-01-08 17:41:32 - 199.203.100.10 → 192.168.200.23 (TCP:3306)
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge allow">允许</span> 2025-01-08 17:40:18 - 192.168.100.34 → 192.168.200.6 (TCP:445)
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge block">阻断</span> 2025-01-08 17:39:45 - 199.203.100.10 → 172.16.100.53 (UDP:53)
+                </div>
+                <div class="content-item">
+                  <span class="rule-badge block">阻断</span> 2025-01-08 17:38:22 - 203.0.113.15 → 192.168.200.23 (TCP:22)
                 </div>
               </div>
             </div>
           </div>
         </div>
+        
+        <!-- 底部按钮 -->
         <div class="dialog-footer">
-          <button class="btn btn-primary" @click="saveChanges">保存更改</button>
+          <button class="btn btn-primary">保存更改</button>
           <button class="btn btn-secondary" @click="closeDialog">取消</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 添加规则对话框 -->
-    <div v-if="showAddRuleDialog" class="dialog-overlay" @click="showAddRuleDialog = false">
-      <div class="dialog-content add-rule-dialog" @click.stop>
-        <div class="dialog-header">
-          <h3>添加防火墙规则</h3>
-          <button class="close-btn" @click="showAddRuleDialog = false">&times;</button>
-        </div>
-        <div class="dialog-body">
-          <div class="form-group">
-            <label>动作</label>
-            <select v-model="newRule.action" class="form-control">
-              <option value="allow">允许</option>
-              <option value="deny">拒绝</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>源地址</label>
-            <input type="text" v-model="newRule.source" class="form-control" placeholder="例如: 192.168.1.0/24, any">
-          </div>
-          <div class="form-group">
-            <label>目标地址</label>
-            <input type="text" v-model="newRule.destination" class="form-control" placeholder="例如: 10.0.0.1, any">
-          </div>
-          <div class="form-group">
-            <label>协议</label>
-            <select v-model="newRule.protocol" class="form-control">
-              <option value="any">任意</option>
-              <option value="tcp">TCP</option>
-              <option value="udp">UDP</option>
-              <option value="icmp">ICMP</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>端口</label>
-            <input type="text" v-model="newRule.port" class="form-control" placeholder="例如: 80, 443, 1-1024">
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn btn-primary" @click="confirmAddRule">添加</button>
-          <button class="btn btn-secondary" @click="showAddRuleDialog = false">取消</button>
         </div>
       </div>
     </div>
@@ -196,6 +179,7 @@
 <script>
 export default {
   name: 'FirewallDialog',
+  emits: ['close'],
   props: {
     show: {
       type: Boolean,
@@ -208,237 +192,29 @@ export default {
   },
   data() {
     return {
-      activeTab: 'interfaces',
-      interfaces: [],
-      rules: [],
-      logs: [],
-      logFilter: 'all',
-      showAddRuleDialog: false,
-      newRule: {
-        action: 'allow',
-        source: 'any',
-        destination: 'any',
-        protocol: 'any',
-        port: ''
-      },
-      // 拖动相关状态
-      isDragging: false,
-      dragOffset: { x: 0, y: 0 },
-      position: { x: 0, y: 0 }
-    };
-  },
-  mounted() {
-    // 添加全局鼠标事件监听
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('mouseup', this.onMouseUp);
-  },
-  beforeUnmount() {
-    // 移除全局鼠标事件监听
-    document.removeEventListener('mousemove', this.onMouseMove);
-    document.removeEventListener('mouseup', this.onMouseUp);
-  },
-  computed: {
-    statusText() {
-      if (!this.firewall.deviceData) return '未知';
-      return this.firewall.deviceData.status === 'running' ? '运行中' : 
-             this.firewall.deviceData.status === 'failed' ? '失败' : '已停止';
-    },
-    statusClass() {
-      if (!this.firewall.deviceData) return '';
-      return this.firewall.deviceData.status === 'running' ? 'status-running' : 
-             this.firewall.deviceData.status === 'failed' ? 'status-failed' : 'status-stopped';
-    },
-    filteredLogs() {
-      if (this.logFilter === 'all') return this.logs;
-      return this.logs.filter(log => log.action === this.logFilter);
-    }
-  },
-  watch: {
-    firewall: {
-      immediate: true,
-      handler(newVal) {
-        if (newVal && newVal.id) {
-          this.loadFirewallData();
-        }
-      }
-    },
-    show(newVal) {
-      if (newVal) {
-        this.loadFirewallData();
-      }
+      activeTab: 'interfaces'
     }
   },
   methods: {
-    loadFirewallData() {
-      // 在实际应用中，这里应该从后端API获取防火墙数据
-      // 这里使用模拟数据进行演示
-      this.loadInterfaces();
-      this.loadRules();
-      this.loadLogs();
-    },
-    loadInterfaces() {
-      // 模拟从后端获取接口数据
-      const firewallName = this.firewall.deviceData?.name || '';
-      
-      if (firewallName === '内部防火墙') {
-        this.interfaces = [
-          { name: 'eth0', ip: '192.168.200.254', subnet: '192.168.200.0/24', active: true },
-          { name: 'eth1', ip: '192.168.100.254', subnet: '192.168.100.0/24', active: true },
-          { name: 'eth2', ip: '192.168.66.254', subnet: '192.168.66.0/24', active: true },
-          { name: 'eth3', ip: '192.168.110.254', subnet: '192.168.110.0/24', active: true },
-          { name: 'eth4', ip: '192.168.214.254', subnet: '192.168.214.0/24', active: true },
-          { name: 'eth5', ip: '192.168.254.3', subnet: '192.168.254.0/29', active: true }
-        ];
-      } else if (firewallName === '外部防火墙') {
-        this.interfaces = [
-          { name: 'eth0', ip: '172.16.100.254', subnet: '172.16.100.0/24', active: true },
-          { name: 'eth1', ip: '199.203.100.2', subnet: '199.203.100.0/24', active: true },
-          { name: 'eth2', ip: '192.168.254.2', subnet: '192.168.254.0/29', active: true }
-        ];
-      } else {
-        this.interfaces = [];
-      }
-    },
-    loadRules() {
-      // 模拟从后端获取规则数据
-      this.rules = [
-        { action: 'allow', source: 'any', destination: 'any', protocol: 'icmp', port: '' },
-        { action: 'allow', source: '192.168.100.0/24', destination: '192.168.200.0/24', protocol: 'tcp', port: '80,443' },
-        { action: 'deny', source: 'any', destination: '192.168.200.23', protocol: 'tcp', port: '3306' }
-      ];
-    },
-    loadLogs() {
-      // 模拟从后端获取日志数据
-      this.logs = [
-        { timestamp: '2025-07-18 17:42:15', action: 'allow', source: '192.168.100.9', destination: '192.168.200.23', protocol: 'TCP', port: '80' },
-        { timestamp: '2025-07-18 17:41:32', action: 'deny', source: '199.203.100.10', destination: '192.168.200.23', protocol: 'TCP', port: '3306' },
-        { timestamp: '2025-07-18 17:40:18', action: 'allow', source: '192.168.100.34', destination: '192.168.200.6', protocol: 'TCP', port: '445' },
-        { timestamp: '2025-07-18 17:39:45', action: 'deny', source: '199.203.100.10', destination: '172.16.100.53', protocol: 'UDP', port: '53' }
-      ];
-    },
-    refreshLogs() {
-      // 在实际应用中，这里应该从后端API刷新日志数据
-      this.loadLogs();
-    },
-    addRule() {
-      this.newRule = {
-        action: 'allow',
-        source: 'any',
-        destination: 'any',
-        protocol: 'any',
-        port: ''
-      };
-      this.showAddRuleDialog = true;
-    },
-    confirmAddRule() {
-      this.rules.push({ ...this.newRule });
-      this.showAddRuleDialog = false;
-    },
-    deleteRule(index) {
-      this.rules.splice(index, 1);
-    },
-    saveChanges() {
-      // 在实际应用中，这里应该将更改保存到后端API
-      this.$emit('save', {
-        interfaces: this.interfaces,
-        rules: this.rules
-      });
-      this.closeDialog();
-    },
     closeDialog() {
-      this.$emit('close');
-    },
-    
-    // 开始拖动
-    startDrag(event) {
-      if (event.target.classList.contains('close-btn')) return;
-      
-      this.isDragging = true;
-      const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
-      
-      this.dragOffset = {
-        x: event.clientX - dialogRect.left,
-        y: event.clientY - dialogRect.top
-      };
-      
-      // 设置初始位置
-      if (this.position.x === 0 && this.position.y === 0) {
-        this.position = {
-          x: dialogRect.left,
-          y: dialogRect.top
-        };
-      }
-      
-      // 添加拖动中的样式
-      this.$refs.dialogContent.style.transition = 'none';
-      this.$refs.dialogContent.style.cursor = 'grabbing';
-    },
-    
-    // 拖动中
-    onMouseMove(event) {
-      if (!this.isDragging) return;
-      
-      // 计算新位置
-      this.position = {
-        x: event.clientX - this.dragOffset.x,
-        y: event.clientY - this.dragOffset.y
-      };
-      
-      // 应用新位置
-      this.applyPosition();
-    },
-    
-    // 结束拖动
-    onMouseUp() {
-      if (!this.isDragging) return;
-      
-      this.isDragging = false;
-      
-      // 恢复样式
-      if (this.$refs.dialogContent) {
-        this.$refs.dialogContent.style.transition = '';
-        this.$refs.dialogContent.style.cursor = '';
-      }
-    },
-    
-    // 应用位置
-    applyPosition() {
-      if (!this.$refs.dialogContent) return;
-      
-      // 获取窗口尺寸
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const dialogRect = this.$refs.dialogContent.getBoundingClientRect();
-      
-      // 确保对话框不会超出窗口边界
-      let x = this.position.x;
-      let y = this.position.y;
-      
-      // 限制左右边界
-      if (x < 0) x = 0;
-      if (x + dialogRect.width > windowWidth) x = windowWidth - dialogRect.width;
-      
-      // 限制上下边界
-      if (y < 0) y = 0;
-      if (y + dialogRect.height > windowHeight) y = windowHeight - dialogRect.height;
-      
-      // 更新位置
-      this.position = { x, y };
-      
-      // 应用样式
-      this.$refs.dialogContent.style.position = 'fixed';
-      this.$refs.dialogContent.style.left = `${x}px`;
-      this.$refs.dialogContent.style.top = `${y}px`;
-      this.$refs.dialogContent.style.margin = '0';
-      this.$refs.dialogContent.style.transform = 'none';
+      this.$emit('close')
     }
   }
-};
+}
 </script>
 
 <style scoped>
-.dialog-overlay {
+.firewall-dialog {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.dialog-overlay {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -447,41 +223,33 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
 }
 
 .dialog-content {
   background-color: #1e1e2f;
   border-radius: 8px;
-  width: 800px;
+  width: 700px;
   max-width: 90%;
-  max-height: 90%;
-  overflow-y: auto;
+  max-height: 80vh;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-}
-
-.add-rule-dialog {
-  width: 500px;
+  overflow: hidden;
 }
 
 .dialog-header {
-  padding: 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid #2c2c40;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: grab;
-}
-
-.dialog-header:active {
-  cursor: grabbing;
+  background-color: #1e1e2f;
 }
 
 .dialog-header h3 {
   margin: 0;
   color: #ffffff;
+  font-size: 18px;
 }
 
 .close-btn {
@@ -490,192 +258,160 @@ export default {
   font-size: 24px;
   color: #ffffff;
   cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dialog-body {
-  padding: 16px;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  background-color: #1e1e2f;
 }
 
-.dialog-footer {
-  padding: 16px;
-  border-top: 1px solid #2c2c40;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+.basic-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #27293d;
+  border-radius: 6px;
+  border: 1px solid #2c2c40;
 }
 
-.firewall-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-}
-
-.label {
-  font-weight: bold;
-  margin-right: 8px;
-  color: #a9a9a9;
-}
-
-.value {
+.basic-info p {
+  margin: 8px 0;
   color: #ffffff;
+  font-size: 14px;
 }
 
-.status-running {
-  color: #00f2c3;
-}
-
-.status-failed {
-  color: #fd5d93;
-}
-
-.status-stopped {
-  color: #fd5d93;
+.basic-info strong {
+  color: #a9a9a9;
+  margin-right: 8px;
 }
 
 .tabs {
   display: flex;
+  margin-bottom: 20px;
   border-bottom: 1px solid #2c2c40;
 }
 
-.tab {
-  padding: 8px 16px;
-  cursor: pointer;
+.tab-btn {
+  padding: 10px 16px;
+  background: none;
+  border: none;
   color: #a9a9a9;
+  cursor: pointer;
+  font-size: 14px;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
 }
 
-.tab:hover {
+.tab-btn:hover {
   color: #ffffff;
 }
 
-.tab.active {
+.tab-btn.active {
   color: #ffffff;
   border-bottom-color: #1d8cf8;
 }
 
 .tab-content {
-  padding: 16px 0;
+  min-height: 300px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 8px;
-  text-align: left;
-  border-bottom: 1px solid #2c2c40;
-}
-
-th {
-  color: #a9a9a9;
-  font-weight: normal;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  background-color: #6c757d;
-  color: white;
-}
-
-.status-badge.active {
-  background-color: #00f2c3;
-}
-
-.action-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: white;
-}
-
-.action-badge.allow {
-  background-color: #00f2c3;
-}
-
-.action-badge.deny {
-  background-color: #fd5d93;
-}
-
-.rules-actions {
-  margin-bottom: 16px;
-}
-
-.log-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.log-filter-select {
-  padding: 6px 12px;
-  border-radius: 4px;
-  background-color: #27293d;
-  border: 1px solid #2c2c40;
-  color: #ffffff;
-}
-
-.log-entries {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.log-entry {
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #27293d;
-  display: flex;
-  flex-direction: column;
-}
-
-.log-time {
-  font-size: 12px;
-  color: #a9a9a9;
-  margin-bottom: 4px;
-}
-
-.log-message {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
+.content-panel {
   display: block;
-  margin-bottom: 4px;
-  color: #a9a9a9;
 }
 
-.form-control {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
+.content-panel h4 {
+  margin: 0 0 16px 0;
+  color: #1d8cf8;
+  font-size: 16px;
+}
+
+.content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.content-item {
   background-color: #27293d;
   border: 1px solid #2c2c40;
+  border-radius: 6px;
+  padding: 12px 16px;
   color: #ffffff;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.rule-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 8px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.rule-badge.allow {
+  background-color: #00f2c3;
+  color: #000;
+}
+
+.rule-badge.deny {
+  background-color: #fd5d93;
+  color: white;
+}
+
+.rule-badge.block {
+  background-color: #ef4444;
+  color: white;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 8px;
+  min-width: 35px;
+  text-align: center;
+}
+
+.type-badge.ip {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.type-badge.domain {
+  background-color: #10b981;
+  color: white;
+}
+
+.type-badge.subnet {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.dialog-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #2c2c40;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background-color: #1e1e2f;
 }
 
 .btn {
@@ -684,11 +420,7 @@ th {
   border: none;
   cursor: pointer;
   font-weight: bold;
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .btn-primary {
@@ -707,14 +439,5 @@ th {
 
 .btn-secondary:hover {
   background-color: #5a6268;
-}
-
-.btn-danger {
-  background-color: #fd5d93;
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #fd77a4;
 }
 </style>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟时间轴测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-header h1 {
+            margin: 0 0 10px 0;
+            color: #64ffda;
+            font-size: 2em;
+        }
+
+        .test-header p {
+            margin: 0;
+            color: #b0bec5;
+            font-size: 1.1em;
+        }
+
+        .test-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            color: #b0bec5;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .control-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .control-btn.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .control-btn.info {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+        }
+
+        .timeline-wrapper {
+            margin-bottom: 30px;
+        }
+
+        .test-log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-log h3 {
+            margin: 0 0 15px 0;
+            color: #64ffda;
+            font-size: 1.2em;
+        }
+
+        .log-entry {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #64ffda;
+            background: rgba(255, 255, 255, 0.05);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .log-entry.success {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .log-entry.warning {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .log-entry.error {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .log-timestamp {
+            color: #78909c;
+            margin-right: 8px;
+        }
+
+        /* 滚动条样式 */
+        .test-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .test-log::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .test-log::-webkit-scrollbar-thumb {
+            background: rgba(100, 255, 218, 0.3);
+            border-radius: 3px;
+        }
+
+        .test-log::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 255, 218, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- 测试头部 -->
+        <div class="test-header">
+            <h1>🕒 虚拟时间轴测试</h1>
+            <p>测试APT攻击演练的虚拟时间轴功能</p>
+        </div>
+
+        <!-- 测试控制面板 -->
+        <div class="test-controls">
+            <div class="control-group">
+                <label>时间轴控制</label>
+                <button class="control-btn" onclick="startTimeline()">▶️ 启动时间轴</button>
+                <button class="control-btn warning" onclick="pauseTimeline()">⏸️ 暂停时间轴</button>
+                <button class="control-btn danger" onclick="resetTimeline()">🔄 重置时间轴</button>
+            </div>
+
+            <div class="control-group">
+                <label>模拟攻击事件</label>
+                <button class="control-btn info" onclick="simulateReconnaissance()">🔍 侦察阶段</button>
+                <button class="control-btn info" onclick="simulateWeaponization()">⚔️ 武器化阶段</button>
+                <button class="control-btn info" onclick="simulateDelivery()">📧 投递阶段</button>
+            </div>
+
+            <div class="control-group">
+                <label>高级攻击事件</label>
+                <button class="control-btn warning" onclick="simulateExploitation()">💥 利用阶段</button>
+                <button class="control-btn warning" onclick="simulateInstallation()">🔧 安装阶段</button>
+                <button class="control-btn danger" onclick="simulateC2()">🎮 命令控制</button>
+            </div>
+
+            <div class="control-group">
+                <label>最终阶段</label>
+                <button class="control-btn danger" onclick="simulateActions()">🎯 行动阶段</button>
+                <button class="control-btn" onclick="simulateDetection()">🛡️ 检测事件</button>
+                <button class="control-btn" onclick="clearLog()">🗑️ 清空日志</button>
+            </div>
+        </div>
+
+        <!-- 虚拟时间轴组件 -->
+        <div class="timeline-wrapper">
+            <div id="virtual-timeline-container">
+                <!-- 这里将插入虚拟时间轴组件 -->
+                <div style="text-align: center; padding: 40px; color: #b0bec5;">
+                    <p>🔄 正在加载虚拟时间轴组件...</p>
+                    <p>请确保在Vue应用中使用此测试页面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="test-log">
+            <h3>📋 测试日志</h3>
+            <div id="log-container">
+                <div class="log-entry">
+                    <span class="log-timestamp">[初始化]</span>
+                    虚拟时间轴测试页面已加载
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟的虚拟时间轴引用（在实际Vue应用中会被替换）
+        let virtualTimelineRef = null;
+
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                ${message}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 时间轴控制函数
+        function startTimeline() {
+            addLog('🕒 启动虚拟时间轴', 'success');
+            
+            // 触发自定义事件
+            const event = new CustomEvent('timeline-started');
+            document.dispatchEvent(event);
+        }
+
+        function pauseTimeline() {
+            addLog('⏸️ 暂停虚拟时间轴', 'warning');
+            
+            const event = new CustomEvent('timeline-paused');
+            document.dispatchEvent(event);
+        }
+
+        function resetTimeline() {
+            addLog('🔄 重置虚拟时间轴', 'warning');
+            
+            const event = new CustomEvent('timeline-reset');
+            document.dispatchEvent(event);
+        }
+
+        // 模拟攻击事件函数
+        function simulateReconnaissance() {
+            addLog('🔍 模拟侦察阶段攻击事件', 'info');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '侦察',
+                    type: 'info',
+                    message: '攻击者开始网络侦察',
+                    details: {
+                        '技术': 'port_scan',
+                        '目标': 'firewall',
+                        '状态': 'in_progress'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateWeaponization() {
+            addLog('⚔️ 模拟武器化阶段攻击事件', 'info');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '武器化',
+                    type: 'warning',
+                    message: '攻击者制作恶意载荷',
+                    details: {
+                        '技术': 'phishing_email',
+                        '载荷类型': 'trojan',
+                        '状态': 'completed'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateDelivery() {
+            addLog('📧 模拟投递阶段攻击事件', 'warning');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '投递',
+                    type: 'warning',
+                    message: '攻击者发送钓鱼邮件',
+                    details: {
+                        '技术': 'email_delivery',
+                        '目标': 'target_user',
+                        '状态': 'completed'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateExploitation() {
+            addLog('💥 模拟利用阶段攻击事件', 'warning');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '利用',
+                    type: 'error',
+                    message: '攻击者利用漏洞获得访问权限',
+                    details: {
+                        '技术': 'vulnerability_exploit',
+                        '漏洞': 'CVE-2023-1234',
+                        '状态': 'completed'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateInstallation() {
+            addLog('🔧 模拟安装阶段攻击事件', 'warning');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '安装',
+                    type: 'error',
+                    message: '攻击者安装持久化后门',
+                    details: {
+                        '技术': 'backdoor_installation',
+                        '工具': 'remote_access_tool',
+                        '状态': 'completed'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateC2() {
+            addLog('🎮 模拟命令控制阶段攻击事件', 'error');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '命令控制',
+                    type: 'error',
+                    message: '攻击者建立C2通信',
+                    details: {
+                        '技术': 'c2_communication',
+                        '协议': 'HTTPS',
+                        '状态': 'active'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateActions() {
+            addLog('🎯 模拟行动阶段攻击事件', 'error');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '行动',
+                    type: 'error',
+                    message: '攻击者窃取敏感数据',
+                    details: {
+                        '技术': 'data_exfiltration',
+                        '数据类型': '患者医疗记录',
+                        '状态': 'completed'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function simulateDetection() {
+            addLog('🛡️ 模拟检测事件', 'success');
+            
+            const event = new CustomEvent('attack-event', {
+                detail: {
+                    phase: '检测',
+                    type: 'success',
+                    message: '安全系统检测到异常活动',
+                    details: {
+                        '检测类型': 'behavioral_analysis',
+                        '置信度': '95%',
+                        '状态': 'alert_triggered'
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+        }
+
+        function clearLog() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry"><span class="log-timestamp">[清空]</span>测试日志已清空</div>';
+            addLog('🗑️ 测试日志已清空', 'info');
+        }
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('✅ 虚拟时间轴测试页面初始化完成', 'success');
+            addLog('💡 提示：请在Vue应用中使用此测试页面以获得完整功能', 'info');
+        });
+    </script>
+</body>
+</html>

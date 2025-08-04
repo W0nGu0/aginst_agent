@@ -1,0 +1,406 @@
+/* 共享样式文件 - 容器配置组件通用样式 */
+
+/* 基础样式 */
+.config-section {
+  background-color: #27293d;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.config-section h4 {
+  margin: 0 0 16px 0;
+  color: #ffffff;
+  font-size: 16px;
+  border-bottom: 1px solid #2c2c40;
+  padding-bottom: 8px;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.config-item label {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+/* 表单控件 */
+.form-control, .form-control-sm {
+  background-color: #1e1e2f;
+  border: 1px solid #2c2c40;
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.form-control:focus, .form-control-sm:focus {
+  outline: none;
+  border-color: #1d8cf8;
+  box-shadow: 0 0 0 2px rgba(29, 140, 248, 0.2);
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group .form-control {
+  flex: 1;
+}
+
+.help-text {
+  color: #a9a9a9;
+  font-size: 12px;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.btn-primary {
+  background-color: #1d8cf8;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #3a9cfa;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-success {
+  background-color: #00f2c3;
+  color: #1e1e2f;
+}
+
+.btn-success:hover {
+  background-color: #33f4d1;
+}
+
+.btn-warning {
+  background-color: #ffa726;
+  color: #1e1e2f;
+}
+
+.btn-warning:hover {
+  background-color: #ffb74d;
+}
+
+.btn-danger {
+  background-color: #fd5d93;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #ff7aa3;
+}
+
+.btn-info {
+  background-color: #42a5f5;
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: #64b5f6;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #1d8cf8;
+  border: 1px solid #1d8cf8;
+}
+
+.btn-outline:hover {
+  background-color: #1d8cf8;
+  color: white;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: #a9a9a9;
+  border: 1px solid #2c2c40;
+}
+
+.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+/* 状态指示器 */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-running, .status-open, .status-listening {
+  background-color: #00f2c3;
+}
+
+.status-stopped, .status-closed {
+  background-color: #fd5d93;
+}
+
+.status-failed, .status-dead {
+  background-color: #ff6b6b;
+}
+
+.status-paused {
+  background-color: #ffa726;
+}
+
+.status-restarting, .status-starting {
+  background-color: #42a5f5;
+}
+
+.status-created {
+  background-color: #ab47bc;
+}
+
+/* 切换开关 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #2c2c40;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #1d8cf8;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* 进度条 */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #2c2c40;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #1d8cf8;
+  transition: width 0.3s ease;
+}
+
+/* 变更预览 */
+.changes-preview {
+  background-color: #27293d;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #1d8cf8;
+}
+
+.changes-preview h4 {
+  margin: 0 0 12px 0;
+  color: #1d8cf8;
+  font-size: 14px;
+}
+
+.changes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.change-field {
+  color: #a9a9a9;
+  min-width: 100px;
+}
+
+.change-arrow {
+  color: #1d8cf8;
+}
+
+.change-value {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background-color: #1e1e2f;
+  border-radius: 8px;
+  max-width: 95%;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  padding: 16px;
+  border-bottom: 1px solid #2c2c40;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: grab;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.dialog-body {
+  padding: 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog-footer {
+  padding: 16px;
+  border-top: 1px solid #2c2c40;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dialog-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .input-group {
+    flex-direction: column;
+  }
+}

@@ -11,49 +11,40 @@
 
           <!-- 编辑工具栏 -->
           <div class="flex flex-wrap gap-2 mb-4">
-            <button
-              @click="deleteSelectedNode"
-              class="btn btn-sm btn-error"
-              :disabled="!topology?.getActiveObject()"
-            >
+            <button @click="deleteSelectedNode" class="btn btn-sm btn-error"
+              :disabled="!selectedObject || (!selectedObject.type === 'device' && !selectedObject.nodeData)">
               🗑️ 删除节点
             </button>
-            <button
-              @click="startConnectingNodes"
-              class="btn btn-sm btn-warning"
-              :class="{ 'btn-active': isConnectingNodes }"
-            >
+            <button @click="editSelectedNodeIP" class="btn btn-sm btn-info"
+              :disabled="!selectedObject || (!selectedObject.type === 'device' && !selectedObject.nodeData)">
+              🏷️ 设置IP
+            </button>
+            <button @click="openContainerConfig" class="btn btn-sm btn-primary"
+              :disabled="!selectedObject || (!selectedObject.type === 'device' && !selectedObject.nodeData) || !isContainerRunning(selectedObject)">
+              ⚙️ 容器配置
+            </button>
+            <button @click="startConnectingNodes" class="btn btn-sm btn-warning"
+              :class="{ 'btn-active': isConnectingNodes }">
               🔗 连接节点
             </button>
-            <button
-              v-if="isConnectingNodes"
-              @click="stopConnectingNodes"
-              class="btn btn-sm btn-ghost"
-            >
+            <button v-if="isConnectingNodes" @click="stopConnectingNodes" class="btn btn-sm btn-ghost">
               ❌ 取消连接
             </button>
+
           </div>
 
           <!-- 节点添加区域 -->
           <div class="mb-4">
             <h4 class="font-medium mb-2">添加节点:</h4>
             <div class="grid grid-cols-2 gap-2">
-              <button
-                v-for="nodeType in availableNodeTypes"
-                :key="nodeType.type"
-                @click="startAddingNode(nodeType)"
+              <button v-for="nodeType in availableNodeTypes" :key="nodeType.type" @click="startAddingNode(nodeType)"
                 class="btn btn-sm btn-outline"
-                :class="{ 'btn-active': isAddingNode && selectedNodeType?.type === nodeType.type }"
-              >
+                :class="{ 'btn-active': isAddingNode && selectedNodeType?.type === nodeType.type }">
                 {{ nodeType.name }}
               </button>
             </div>
-            <button
-              v-if="isAddingNode"
-              @click="stopAddingNode"
-              class="btn btn-sm btn-ghost mt-2 w-full"
-            >
-              ❌ 取消添加
+            <button v-if="isAddingNode" @click="stopAddingNode" class="btn btn-sm btn-ghost mt-2 w-full">
+              ❌ 取消添加 (调试: {{ isAddingNode }})
             </button>
           </div>
 
@@ -92,17 +83,10 @@
           <div class="flex gap-2 flex-wrap">
             <!-- 场景模式按钮 -->
             <template v-if="isScenarioMode">
-              <button
-                @click="generateScenario"
-                class="btn btn-sm btn-success"
-                :disabled="virtualNodes.size === 0"
-              >
-                🚀 部署容器
+              <button @click="generateScenario" class="btn btn-sm btn-success" :disabled="virtualNodes.size === 0">
+                🚀 部署容器 ({{ virtualNodes.size }})
               </button>
-              <button
-                @click="disableEditMode"
-                class="btn btn-sm btn-ghost"
-              >
+              <button @click="disableEditMode" class="btn btn-sm btn-ghost">
                 ❌ 退出编辑
               </button>
             </template>
@@ -129,19 +113,26 @@
 
 
 
-          <!-- 攻击可视化现在直接在Canvas中实现，无需额外组件 -->
-
           <!-- 事件监控器 -->
           <div class="event-monitor-container">
-            <EventMonitor
-              ref="eventMonitorRef"
-              :attackTaskStatus="currentAttackTaskStatus"
-              @nodes-status-reset="handleNodesStatusReset"
-              @nodes-status-refreshed="handleNodesStatusRefreshed"
-            />
+            <EventMonitor ref="eventMonitorRef" :attackTaskStatus="currentAttackTaskStatus"
+              @nodes-status-reset="handleNodesStatusReset" @nodes-status-refreshed="handleNodesStatusRefreshed" />
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 虚拟时间轴 - 放在拓扑图下方 -->
+    <div class="virtual-timeline-section">
+      <VirtualTimeline
+        ref="virtualTimelineRef"
+        :auto-start="false"
+        @timeline-started="onTimelineStarted"
+        @timeline-paused="onTimelinePaused"
+        @timeline-reset="onTimelineReset"
+        @phase-changed="onPhaseChanged"
+        @speed-changed="onSpeedChanged"
+      />
     </div>
 
     <!-- 攻击者对话框 -->
@@ -155,33 +146,51 @@
     <!-- 主机信息对话框 -->
     <HostInfoDialog :show="showHostInfoDialog" :host="selectedHost" @close="showHostInfoDialog = false" />
 
-    <!-- 钓鱼攻击可视化 - 暂时禁用，使用新的 TopologyAttackVisualizer -->
-    <!-- <SimplePhishingVisualization :show="showPhishingAttackVisualization" :attacker="selectedAttacker"
-      :target="selectedPhishingTarget" :attackType="currentAttackType"
-      @close="showPhishingAttackVisualization = false" /> -->
+    <!-- 容器配置对话框 -->
+    <ContainerConfigDialog :show="showContainerConfigDialog" :container="selectedContainer"
+      @close="showContainerConfigDialog = false" @message="handleMessage" />
 
+    <!-- IP设置对话框 -->
+    <div v-if="showIPDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-base-100 rounded-lg p-6 w-96 max-w-md">
+        <h3 class="text-lg font-semibold mb-4">设置节点IP地址</h3>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">节点名称:</label>
+          <input v-model="editingNode.name" type="text" class="input input-bordered w-full" placeholder="输入节点名称" />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">IP地址:</label>
+          <input v-model="editingNode.ip" type="text" class="input input-bordered w-full"
+            placeholder="例如: 192.168.1.100" />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">网络段:</label>
+          <select v-model="editingNode.network" class="select select-bordered w-full">
+            <option value="">选择网络段</option>
+            <option value="dmz_segment">DMZ段 (172.16.100.0/24)</option>
+            <option value="server_segment">服务器段 (192.168.200.0/24)</option>
+            <option value="user_segment">用户段 (192.168.100.0/24)</option>
+            <option value="db_segment">数据库段 (192.168.214.0/24)</option>
+            <option value="medical_segment">医疗段 (192.168.101.0/24)</option>
+          </select>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button @click="closeIPDialog" class="btn btn-ghost">取消</button>
+          <button @click="saveNodeIP" class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
 
-
-    <!-- 不再使用全屏的攻击进度监控，而是在EventMonitor中显示 -->
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
 import FabricAttackVisualization from './core/FabricAttackVisualization'
-import {
-  handleReconnaissanceAnimation,
-  handleWeaponizationAnimation,
-  handleDeliveryAnimation,
-  handleExploitationAnimation,
-  handleInstallationAnimation,
-  handleCommandControlAnimation,
-  handleActionsAnimation,
-  handleLogBasedAnimation
-} from './core/AttackStageAnimations'
+// 移除未使用的AttackStageAnimations导入
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
 import ScenarioDataService from './services/ScenarioDataService'
@@ -192,7 +201,9 @@ import WebSocketService from './services/WebSocketService'
 import AttackerDialog from './components/AttackerDialog.vue'
 import FirewallDialog from './components/FirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
+import ContainerConfigDialog from './components/ContainerConfigDialog.vue'
 import EventMonitor from './components/EventMonitor.vue'
+import VirtualTimeline from './components/VirtualTimeline.vue'
 
 const topologyStore = useTopologyStore()
 let topology = null
@@ -221,11 +232,14 @@ const deviceTypes = {
 const showAttackerDialog = ref(false)
 const showFirewallDialog = ref(false)
 const showHostInfoDialog = ref(false)
+const showContainerConfigDialog = ref(false)
 const selectedAttacker = ref(null)
 const selectedFirewall = ref(null)
 const selectedHost = ref(null)
+const selectedContainer = ref(null)
 const attackTargets = ref([])
 const eventMonitorRef = ref(null)
+const virtualTimelineRef = ref(null)
 
 // 攻击任务状态
 const currentAttackTaskId = ref('')
@@ -236,6 +250,7 @@ const isScenarioMode = ref(false)
 const scenarioData = ref(null)
 const virtualNodes = ref(new Set())
 const runningNodes = ref(new Set())
+const serviceToNodeMap = ref(new Map()) // 服务名到节点ID的映射
 
 // 节点编辑状态
 const isEditMode = ref(false)
@@ -243,6 +258,36 @@ const isAddingNode = ref(false)
 const isConnectingNodes = ref(false)
 const selectedNodeForConnection = ref(null)
 const selectedNodeType = ref(null)
+
+// 拖拽状态管理
+const isDragging = ref(false)
+const dragStartTime = ref(0)
+const dragStartPosition = ref({ x: 0, y: 0 })
+const DRAG_THRESHOLD = 5 // 像素阈值，超过这个距离才认为是拖拽
+const CLICK_TIME_THRESHOLD = 200 // 毫秒阈值，超过这个时间才认为是拖拽
+
+// 节点类型计数器
+const nodeTypeCounters = ref({
+  workstation: 0,
+  server: 0,
+  firewall: 0,
+  router: 0,
+  switch: 0,
+  database: 0,
+  pc: 0
+})
+
+// 选中状态
+const selectedObject = ref(null)
+
+// IP设置对话框状态
+const showIPDialog = ref(false)
+const editingNode = ref({
+  id: null,
+  name: '',
+  ip: '',
+  network: ''
+})
 const availableNodeTypes = ref([
   { type: 'workstation', name: '工作站', icon: '/icons/workstation.svg' },
   { type: 'server', name: '服务器', icon: '/icons/server.svg' },
@@ -254,16 +299,7 @@ const availableNodeTypes = ref([
 
 
 
-// 计算属性
-const selectedDevice = computed(() => {
-  const obj = topologyStore.selectedObject
-  return obj && obj.type === 'device' ? obj : null
-})
 
-const selectedConnection = computed(() => {
-  const obj = topologyStore.selectedObject
-  return obj && obj.type === 'connection' ? obj : null
-})
 
 // 初始化拓扑图
 onMounted(async () => {
@@ -287,10 +323,22 @@ onMounted(async () => {
   console.log('   - mode参数:', mode)
 
   // 检查sessionStorage中的场景数据
-  const scenarioDataStr = sessionStorage.getItem('scenarioData')
+  let scenarioDataStr = sessionStorage.getItem('scenarioData')
   console.log('🔍 SessionStorage检查:')
   console.log('   - scenarioData存在:', !!scenarioDataStr)
   console.log('   - scenarioData长度:', scenarioDataStr?.length || 0)
+
+  // 如果sessionStorage中没有数据，检查localStorage
+  if (!scenarioDataStr) {
+    scenarioDataStr = localStorage.getItem('persistentScenarioData')
+    console.log('🔍 LocalStorage检查:')
+    console.log('   - persistentScenarioData存在:', !!scenarioDataStr)
+    console.log('   - persistentScenarioData长度:', scenarioDataStr?.length || 0)
+
+    if (scenarioDataStr) {
+      console.log('📦 从localStorage恢复场景数据')
+    }
+  }
 
   if (mode === 'scenario') {
     console.log('✅ 检测到场景模式')
@@ -310,6 +358,10 @@ onMounted(async () => {
         // 场景模式：直接初始化场景拓扑，不使用通用的initializeTopology
         await initializeScenarioTopology(storedData)
 
+        // 保存到localStorage以便持久化存储
+        localStorage.setItem('persistentScenarioData', JSON.stringify(storedData))
+        console.log('💾 场景数据已保存到localStorage以便持久化')
+
         // 清理sessionStorage（在成功加载后）
         sessionStorage.removeItem('scenarioData')
         console.log('🧹 已清理sessionStorage中的场景数据')
@@ -319,12 +371,14 @@ onMounted(async () => {
         initializeBasicTopology()
       }
     } else {
-      console.warn('⚠️ 场景模式但未找到场景数据，回退到普通模式')
-      initializeBasicTopology()
+      console.warn('⚠️ 场景模式但未找到场景数据，尝试加载预设APT场景')
+      // 始终保持场景模式，加载预设APT场景
+      await initializeAPTScenario()
     }
   } else {
-    console.log('📋 普通模式，初始化空拓扑图')
-    initializeBasicTopology()
+    console.log('📋 普通模式，但强制使用场景模式，加载预设APT场景')
+    // 始终使用场景模式
+    await initializeAPTScenario()
   }
 
   // 添加攻击进度和完成事件监听
@@ -401,6 +455,31 @@ function handleWebSocketMessage(message) {
           attack_info: message.attack_info  // 传递attack_info
         });
       }
+
+      // 同时添加到虚拟时间轴
+      if (virtualTimelineRef.value && message.attack_info) {
+        const attackInfo = message.attack_info
+        virtualTimelineRef.value.addEvent({
+          phase: getPhaseDisplayName(attackInfo.stage),
+          type: getEventType(message.level),
+          message: message.message,
+          details: {
+            '技术': attackInfo.technique,
+            '源节点': attackInfo.source_node,
+            '目标节点': attackInfo.target_node,
+            '状态': attackInfo.status,
+            '进度': attackInfo.progress + '%'
+          }
+        })
+
+        // 更新时间轴阶段
+        virtualTimelineRef.value.setPhase(getPhaseDisplayName(attackInfo.stage))
+
+        // 更新受影响资产数量
+        if (attackInfo.status === 'completed' && attackInfo.target_node) {
+          updateCompromisedAssetsCount()
+        }
+      }
     } else {
       // 普通日志使用logMessage函数
       logMessage(message.level, message.source, message.message, true);
@@ -437,6 +516,15 @@ function handleWebSocketMessage(message) {
 
       // 添加到关键事件，标记为WebSocket事件
       addAttackEvent(`[${message.source}] ${message.message}`, true);
+    }
+
+    // 基于真实攻击日志触发可视化动画（只在攻击真正执行时）
+    if (attackVisualization && topology && topology.devices) {
+      // 检查当前攻击任务状态，只在真正攻击阶段才显示动画
+      const shouldShowAnimation = shouldTriggerAttackAnimation(message)
+      if (shouldShowAnimation) {
+        triggerAttackVisualizationFromLog(message)
+      }
     }
 
     // 如果是攻击相关的消息，更新攻击状态
@@ -633,16 +721,47 @@ function initializeBasicTopology() {
         attackVisualization = null
       }
 
-      // 监听事件
-      topology.on('objectSelected', (data) => {
-        topologyStore.setSelectedObject(data.object)
-        if (data.object.type === 'device') {
-          handleDeviceClick(data.object)
+      // 设置拖拽检测事件监听
+      setupDragDetection()
+
+      // 监听取消选中事件
+      topology.canvas.on('selection:cleared', () => {
+        selectedObject.value = null
+      })
+
+      // 添加节点移动事件监听器（用于更新连线和标签）
+      topology.canvas.on('object:moving', function (e) {
+        const obj = e.target
+        if (obj && (obj.type === 'device' || obj.nodeData)) {
+          // 使用NetworkTopology原生的连线更新逻辑
+          if (topology.connections) {
+            topology.connections.forEach(conn => {
+              if (conn.source === obj || conn.target === obj) {
+                topology._updateConnection(conn)
+              }
+            })
+          }
+
+          // 更新场景模式的网络连线和标签
+          const nodeId = obj.nodeData?.scenarioData?.id || obj.nodeData?.id || obj.id
+          if (nodeId) {
+            updateConnectionsForNode(nodeId)
+          }
+
+          // 更新节点相关的标签位置（不包括连线上的IP标签，因为updateConnectionsForNode已经处理了）
+          updateNodeLabelsPosition(obj)
         }
       })
 
       // 初始化canvas store
       topologyStore.setCanvas(topology.canvas)
+
+      // 隐藏加载动画
+      const loadingEl = document.getElementById('topology-loading')
+      if (loadingEl) {
+        loadingEl.style.display = 'none'
+        console.log('✅ 普通模式：加载动画已隐藏')
+      }
 
       // 触发初始化完成事件
       const initEvent = new CustomEvent('topology-initialized', {
@@ -705,11 +824,35 @@ async function initializeScenarioTopology(storedData) {
       attackVisualization = null
     }
 
-    // 5. 监听事件
-    topology.on('objectSelected', (data) => {
-      topologyStore.setSelectedObject(data.object)
-      if (data.object.type === 'device') {
-        handleDeviceClick(data.object)
+    // 5. 设置拖拽检测事件监听
+    setupDragDetection()
+
+    // 监听取消选中事件
+    topology.canvas.on('selection:cleared', () => {
+      selectedObject.value = null
+    })
+
+    // 添加节点移动事件监听器（用于更新连线和标签）
+    topology.canvas.on('object:moving', function (e) {
+      const obj = e.target
+      if (obj && (obj.type === 'device' || obj.nodeData)) {
+        // 使用NetworkTopology原生的连线更新逻辑
+        if (topology.connections) {
+          topology.connections.forEach(conn => {
+            if (conn.source === obj || conn.target === obj) {
+              topology._updateConnection(conn)
+            }
+          })
+        }
+
+        // 更新场景模式的网络连线和标签
+        const nodeId = obj.nodeData?.scenarioData?.id || obj.nodeData?.id || obj.id
+        if (nodeId) {
+          updateConnectionsForNode(nodeId)
+        }
+
+        // 更新节点相关的标签位置（不包括连线上的IP标签，因为updateConnectionsForNode已经处理了）
+        updateNodeLabelsPosition(obj)
       }
     })
 
@@ -722,6 +865,13 @@ async function initializeScenarioTopology(storedData) {
     if (success) {
       enableEditMode()
       logInfo('系统', `场景模式已激活: ${storedData.prompt}`)
+    }
+
+    // 7.5. 隐藏加载动画
+    const loadingEl = document.getElementById('topology-loading')
+    if (loadingEl) {
+      loadingEl.style.display = 'none'
+      console.log('✅ 场景模式：加载动画已隐藏')
     }
 
     // 8. 触发初始化完成事件
@@ -743,22 +893,166 @@ async function initializeScenarioTopology(storedData) {
   }
 }
 
+// 设置拖拽检测
+function setupDragDetection() {
+  if (!topology || !topology.canvas) return
+
+  // 监听鼠标按下事件
+  topology.canvas.on('mouse:down', (e) => {
+    if (e.target && (e.target.type === 'device' || e.target.nodeData)) {
+      isDragging.value = false
+      dragStartTime.value = Date.now()
+      const pointer = topology.canvas.getPointer(e.e)
+      dragStartPosition.value = { x: pointer.x, y: pointer.y }
+      console.log('🖱️ 鼠标按下，开始检测拖拽:', { target: e.target, position: dragStartPosition.value })
+    }
+  })
+
+  // 监听鼠标移动事件
+  topology.canvas.on('mouse:move', (e) => {
+    if (dragStartTime.value > 0 && !isDragging.value) {
+      const pointer = topology.canvas.getPointer(e.e)
+      const deltaX = Math.abs(pointer.x - dragStartPosition.value.x)
+      const deltaY = Math.abs(pointer.y - dragStartPosition.value.y)
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+      const timeDelta = Date.now() - dragStartTime.value
+
+      // 如果移动距离超过阈值或时间超过阈值，认为是拖拽
+      if (distance > DRAG_THRESHOLD || timeDelta > CLICK_TIME_THRESHOLD) {
+        isDragging.value = true
+        console.log('🖱️ 检测到拖拽开始:', { distance, timeDelta })
+      }
+    }
+  })
+
+  // 监听鼠标释放事件
+  topology.canvas.on('mouse:up', (e) => {
+    const wasDragging = isDragging.value
+    const target = e.target
+
+    // 重置拖拽状态
+    isDragging.value = false
+    dragStartTime.value = 0
+    dragStartPosition.value = { x: 0, y: 0 }
+
+    // 如果不是拖拽，且点击的是设备，则处理点击事件
+    if (!wasDragging && target && (target.type === 'device' || target.nodeData)) {
+      console.log('🖱️ 检测到点击事件（非拖拽）:', target)
+      handleDeviceClick(target)
+    } else if (wasDragging) {
+      console.log('🖱️ 拖拽结束，不触发点击事件')
+    }
+  })
+
+  // 监听选择创建事件，但只在非拖拽时处理
+  topology.canvas.on('selection:created', (e) => {
+    // 延迟处理，确保拖拽状态已更新
+    setTimeout(() => {
+      if (!isDragging.value && e.selected && e.selected.length > 0) {
+        const selectedObj = e.selected[0]
+        console.log('🖱️ 选择创建事件（非拖拽）:', selectedObj)
+        selectedObject.value = selectedObj
+        topologyStore.setSelectedObject(selectedObj)
+      }
+    }, 10)
+  })
+
+  // 监听选择更新事件
+  topology.canvas.on('selection:updated', (e) => {
+    setTimeout(() => {
+      if (!isDragging.value && e.selected && e.selected.length > 0) {
+        const selectedObj = e.selected[0]
+        console.log('🖱️ 选择更新事件（非拖拽）:', selectedObj)
+        selectedObject.value = selectedObj
+        topologyStore.setSelectedObject(selectedObj)
+      }
+    }, 10)
+  })
+}
+
 // 处理设备点击事件
 function handleDeviceClick(device) {
+  console.log('🖱️ 处理设备点击事件:', device)
+
+  // 检查节点状态，只有运行状态的节点才能打开配置弹窗
+  const nodeId = device.nodeData?.scenarioData?.id || device.nodeData?.id || device.id
+  const nodeStatus = device.nodeData?.scenarioData?.status || device.nodeData?.status || 'virtual'
+
+  // 详细的状态调试信息
+  console.log('🔍 详细节点状态检查:', {
+    nodeId,
+    nodeStatus,
+    isRunning: runningNodes.value.has(nodeId),
+    runningNodesSet: Array.from(runningNodes.value),
+    virtualNodesSet: Array.from(virtualNodes.value),
+    deviceOpacity: device.opacity,
+    deviceStroke: device.stroke,
+    nodeDataStatus: device.nodeData?.status,
+    scenarioDataStatus: device.nodeData?.scenarioData?.status,
+    deviceData: device.nodeData,
+    scenarioData: device.nodeData?.scenarioData
+  })
+
+  // 临时：如果节点看起来是实色的（opacity >= 0.9），允许点击
+  const isVisuallyRunning = device.opacity >= 0.9
+  console.log('🎨 视觉状态检查:', { opacity: device.opacity, isVisuallyRunning })
+
+  // 如果是虚拟状态（半透明），不允许点击配置
+  if (nodeStatus === 'virtual' && !runningNodes.value.has(nodeId) && !isVisuallyRunning) {
+    console.log('⚠️ 节点处于虚拟状态，无法打开配置弹窗')
+    logWarning('系统', `节点 "${device.nodeData?.name || nodeId}" 处于虚拟状态，请先部署容器后再进行配置`)
+    return
+  }
+
+  // 只有运行状态的节点才能进行配置
+  if (!runningNodes.value.has(nodeId) && nodeStatus !== 'running' && !isVisuallyRunning) {
+    console.log('⚠️ 节点未运行，无法打开配置弹窗')
+    logWarning('系统', `节点 "${device.nodeData?.name || nodeId}" 未运行，请先部署容器后再进行配置`)
+    return
+  }
+
+  console.log('✅ 节点状态允许配置，打开相应弹窗')
+
   // 如果是攻击者，显示攻击对话框
-  if (device.deviceData.name === '攻击者') {
+  if (device.deviceData.name === '攻击者' || 
+      device.deviceData.name === 'attacker' || 
+      device.deviceData.name.toLowerCase().includes('attack') ||
+      device.deviceType === 'attacker') {
     selectedAttacker.value = device
     // 获取所有可能的攻击目标（除了攻击者自己）
     attackTargets.value = Object.values(topology.devices).filter(d =>
-      d !== device && d.deviceData.name !== '攻击节点'
+      d !== device && 
+      d.deviceData.name !== '攻击节点' && 
+      !d.deviceData.name.toLowerCase().includes('attack')
     )
     showAttackerDialog.value = true
+    logInfo('系统', '已打开攻击者配置对话框')
   }
 
   // 如果是防火墙，显示防火墙对话框
   if (device.deviceType === 'firewall') {
     selectedFirewall.value = device
     showFirewallDialog.value = true
+    logInfo('系统', '已打开防火墙配置对话框')
+  }
+
+  // 如果是其他类型的设备，根据运行状态选择对话框
+  if (device.deviceType !== 'firewall' && 
+      device.deviceData.name !== '攻击者' && 
+      device.deviceData.name !== 'attacker' && 
+      !device.deviceData.name.toLowerCase().includes('attack') &&
+      device.deviceType !== 'attacker') {
+    // 如果是运行中的容器，显示容器配置对话框
+    if (runningNodes.value.has(nodeId) || nodeStatus === 'running' || isVisuallyRunning) {
+      selectedContainer.value = device
+      showContainerConfigDialog.value = true
+      logInfo('系统', `已打开容器 "${device.deviceData?.name || nodeId}" 配置对话框`)
+    } else {
+      // 否则显示主机信息对话框
+      selectedHost.value = device
+      showHostInfoDialog.value = true
+      logInfo('系统', `已打开主机 "${device.deviceData?.name || nodeId}" 信息对话框`)
+    }
   }
 }
 
@@ -778,7 +1072,9 @@ function handleAttackProgress(event) {
       // 根据日志内容触发动画
       if (attackVisualization && selectedAttacker.value) {
         const target = Object.values(topology.devices || {}).find(d =>
-          d !== selectedAttacker.value && d.deviceData.name !== '攻击节点'
+          d !== selectedAttacker.value && 
+          d.deviceData.name !== '攻击节点' &&
+          !d.deviceData.name.toLowerCase().includes('attack')
         )
         attackVisualization.triggerAnimationFromLog(latestLog, selectedAttacker.value, target)
       }
@@ -796,6 +1092,20 @@ function handleAttackCompleted(event) {
   if (taskId === currentAttackTaskId.value) {
     if (success) {
       logSuccess('攻击智能体', '攻击任务已完成')
+
+      // 触发关键事件，通知虚拟时间轴停止
+      const keyEvent = new CustomEvent('key-event', {
+        detail: {
+          type: 'complete',
+          status: 'completed',
+          message: '攻击任务已完成',
+          timestamp: new Date(),
+          taskId: taskId,
+          result: result
+        }
+      })
+      document.dispatchEvent(keyEvent)
+      console.log('🎯 已触发攻击完成关键事件')
 
       // 解析结果
       if (result && result.final_output) {
@@ -841,51 +1151,53 @@ function handleTopologyAnimationEvent(event) {
   }
 }
 
-// 根据攻击步骤触发动画
+// 根据攻击步骤触发动画（简化版）
 function triggerAttackStepAnimation(attackInfo, log) {
-  const { stage, technique, source_node, target_node, status, progress } = attackInfo
+  try {
+    const { stage, technique, source_node, target_node, status, progress } = attackInfo
 
-  // 查找对应的拓扑节点
-  const sourceNode = findTopologyNode(source_node)
-  const targetNode = findTopologyNode(target_node)
+    // 查找对应的拓扑节点
+    const sourceNode = findTopologyNode(source_node)
+    const targetNode = findTopologyNode(target_node)
 
-  console.log('🎯 触发攻击步骤动画:', {
-    stage,
-    technique,
-    sourceNode: sourceNode?.deviceData?.name,
-    targetNode: targetNode?.deviceData?.name,
-    status,
-    progress
-  })
+    console.log('🎯 触发攻击步骤动画:', {
+      stage,
+      technique,
+      sourceNode: sourceNode?.deviceData?.name,
+      targetNode: targetNode?.deviceData?.name,
+      status,
+      progress
+    })
 
-  // 根据攻击阶段和技术选择动画
+  // 简化的动画触发逻辑
+  if (!attackVisualization) return
+
+  // 根据攻击阶段触发基础动画
   switch (stage) {
     case 'reconnaissance':
-      handleReconnaissanceAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
-      break
-    case 'weaponization':
-      handleWeaponizationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
-      break
-    case 'delivery':
-      handleDeliveryAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      if (sourceNode && attackVisualization.createScanningPulse) {
+        attackVisualization.createScanningPulse(sourceNode)
+      }
       break
     case 'exploitation':
-      handleExploitationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
-      break
-    case 'installation':
-      handleInstallationAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
-      break
-    case 'command_and_control':
-      handleCommandControlAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      if (sourceNode && targetNode && attackVisualization.createAttackPath) {
+        attackVisualization.createAttackPath(sourceNode, targetNode)
+      }
       break
     case 'actions_on_objectives':
-      handleActionsAnimation(technique, sourceNode, targetNode, status, progress, attackVisualization)
+      if (sourceNode && targetNode && attackVisualization.createDataTheftAnimation) {
+        attackVisualization.createDataTheftAnimation(targetNode, sourceNode, 3)
+      }
       break
     default:
-      // 默认动画：根据日志内容触发
+      // 默认使用基于日志的动画触发
       if (log) {
-        handleLogBasedAnimation(log, sourceNode || targetNode, targetNode, attackVisualization)
+        triggerAttackVisualizationFromLog(log)
       }
+      break
+  }
+  } catch (error) {
+    console.error('触发攻击步骤动画时出错:', error)
   }
 }
 
@@ -898,7 +1210,7 @@ function findTopologyNode(nodeId) {
   // 节点ID映射 - 根据后端实际使用的ID和前端实际设备名称
   const nodeMapping = {
     // 后端使用的ID -> 前端设备名称的可能匹配
-    'internet': ['攻击者', '攻击节点'],
+    'internet': ['攻击者', '攻击节点', 'attacker'],
     'firewall': ['内部防火墙', '外部防火墙', '防火墙'],
     'target_host': ['PC-1', 'PC-2'],
     'pc-user': ['PC-1', 'PC-2'],
@@ -950,7 +1262,9 @@ function updateAttackVisualizationByPhase(phase, progress) {
   // 获取攻击者和目标
   const attacker = selectedAttacker.value
   const target = Object.values(topology.devices).find(d =>
-    d !== attacker && d.deviceData.name !== '攻击节点'
+    d !== attacker && 
+    d.deviceData.name !== '攻击节点' &&
+    !d.deviceData.name.toLowerCase().includes('attack')
   )
 
   if (!attacker || !target) return
@@ -1002,54 +1316,63 @@ function updateAttackVisualizationByPhase(phase, progress) {
 // 处理攻击事件
 async function handleAttack(attackData) {
   try {
-    // 检查是否为自动攻击模式
+    // 检查是否为自动攻击模式（现在自动攻击就是APT攻击）
     if (attackData.attackType === 'auto') {
-      // 记录自动攻击开始
-      logInfo('攻击智能体', `${attackData.attacker.deviceData.name} 开始自动分析网络拓扑并规划攻击路径`)
+      // 记录APT攻击开始
+      logInfo('APT攻击智能体', `${attackData.attacker.deviceData.name} 启动APT攻击活动`)
 
       // 添加到关键事件
-      addAttackEvent(`攻击智能体启动：开始自动分析网络拓扑并规划攻击路径`)
+      addAttackEvent(`APT攻击活动启动：开始高级持续威胁攻击`)
 
       // 记录详细日志
-      logDebug('攻击智能体', '向中央智能体发送攻击指令...')
+      logDebug('APT攻击智能体', '初始化APT攻击活动...')
 
-      // 在拓扑图上显示思考动画 - 使用新的 Fabric.js 动画系统
+      // 不再使用前端模拟的APT攻击序列，直接依赖后端攻击智能体的真实动作
+
+      // 在拓扑图上显示思考动画
       if (attackVisualization && attackVisualization.createThinkingAnimation) {
         attackVisualization.createThinkingAnimation(attackData.attacker, 3)
       }
 
       try {
-        // 调用攻击智能体服务，执行自动攻击
-        const result = await AttackAgentService.executeAutoAttack(attackData)
+        // 调用攻击智能体服务，执行自动攻击（现在是APT攻击）
+        const result = await AttackAgentService.executeAutoAttack({
+          ...attackData,
+          speedMultiplier: attackSpeedMultiplier.value
+        })
 
         if (result.success) {
           // 更新当前任务ID和状态
           currentAttackTaskId.value = result.taskId
           currentAttackTaskStatus.value = result.details
 
-          // 不再显示全屏攻击进度监控，而是使用EventMonitor中的攻击链阶段
+          // 启动虚拟时间轴
+          if (virtualTimelineRef.value) {
+            virtualTimelineRef.value.startTimeline()
+            console.log('🕒 APT攻击开始，自动启动虚拟时间轴')
+          }
 
           // 记录成功消息
-          logSuccess('中央智能体', '成功向攻击智能体下达攻击指令')
-          logInfo('攻击智能体', '开始执行自动攻击流程')
+          logSuccess('中央智能体', '成功启动APT攻击活动')
+          logInfo('APT攻击智能体', '开始执行多阶段APT攻击流程')
 
           // 添加到关键事件
-          addAttackEvent(`中央智能体成功向攻击智能体下达攻击指令`)
+          addAttackEvent(`APT攻击活动成功启动，开始执行多阶段攻击`)
 
-          // 在拓扑图上可视化攻击路径
-          visualizeAttackPath(attackData.attacker)
+          // 攻击可视化现在基于WebSocket日志触发，不再在此处预先触发
+          console.log('🎯 APT攻击已启动，等待WebSocket日志触发动画')
         } else {
-          logError('中央智能体', `向攻击智能体下达指令失败: ${result.message}`)
+          logError('中央智能体', `APT攻击启动失败: ${result.message}`)
           addEvent({
             type: 'failure',
-            message: `攻击指令下达失败: ${result.message}`
+            message: `APT攻击启动失败: ${result.message}`
           })
         }
       } catch (error) {
-        logError('中央智能体', `与攻击智能体通信失败: ${error.message}`)
+        logError('中央智能体', `与APT攻击智能体通信失败: ${error.message}`)
         addEvent({
           type: 'failure',
-          message: `与攻击智能体通信失败: ${error.message}`
+          message: `与APT攻击智能体通信失败: ${error.message}`
         })
 
         // 不再使用前端模拟攻击流程
@@ -1059,7 +1382,10 @@ async function handleAttack(attackData) {
       // 钓鱼攻击或社会工程学攻击
       try {
         // 调用攻击智能体服务，执行社会工程学攻击
-        const result = await AttackAgentService.executeSocialEngineeringAttack(attackData)
+        const result = await AttackAgentService.executeSocialEngineeringAttack({
+          ...attackData,
+          speedMultiplier: attackSpeedMultiplier.value
+        })
 
         if (result.success) {
           // 更新当前任务ID和状态
@@ -1081,8 +1407,8 @@ async function handleAttack(attackData) {
           // currentAttackType.value = attackData.attackType
           // showPhishingAttackVisualization.value = true
 
-          // 在拓扑图上可视化攻击路径
-          visualizeAttackPath(attackData.attacker, attackData.target)
+          // 攻击可视化现在基于WebSocket日志触发，不再在此处预先触发
+          console.log('🎯 社会工程学攻击已启动，等待WebSocket日志触发动画')
         } else {
           logError('攻击智能体', `社会工程学攻击失败: ${result.message}`)
           addEvent({
@@ -1104,8 +1430,8 @@ async function handleAttack(attackData) {
       // 添加到关键事件
       addAttackEvent(`${attackData.attacker.deviceData.name} 开始对 ${attackData.target.deviceData.name} 发起 ${attackData.attackName} 攻击`)
 
-      // 在拓扑图上可视化攻击路径
-      visualizeAttackPath(attackData.attacker, attackData.target)
+      // 攻击可视化现在基于WebSocket日志触发，不再在此处预先触发
+      console.log('🎯 攻击已启动，等待WebSocket日志触发动画')
 
       // 使用攻击服务执行攻击
       const result = await AttackService.simulateAttack(attackData)
@@ -1138,6 +1464,596 @@ async function handleAttack(attackData) {
   }
 }
 
+// 攻击速度控制（默认0.2倍速）
+const attackSpeedMultiplier = ref(0.2) // 更慢速度，便于观察攻击过程
+
+// 判断是否应该触发攻击动画
+function shouldTriggerAttackAnimation(message) {
+  // 检查当前攻击任务状态
+  if (currentAttackTaskId.value) {
+    const taskStatus = AttackTaskService.getTaskStatus(currentAttackTaskId.value)
+    if (taskStatus) {
+      // 只有在攻击任务真正运行且不在准备阶段时才显示动画
+      const isRunning = taskStatus.status === AttackTaskService.STATUS.RUNNING
+      const isNotPreparation = taskStatus.phase !== AttackTaskService.PHASE.RECONNAISSANCE ||
+                              taskStatus.progress > 10 // 侦察阶段进度超过10%才算真正开始
+
+      console.log('🎯 攻击任务状态检查:', {
+        taskId: currentAttackTaskId.value,
+        status: taskStatus.status,
+        phase: taskStatus.phase,
+        progress: taskStatus.progress,
+        isRunning,
+        isNotPreparation,
+        shouldShow: isRunning && isNotPreparation,
+        message: message.message
+      })
+
+      return isRunning && isNotPreparation
+    }
+  }
+
+  // 如果没有任务状态，使用消息内容判断
+  const animationType = getLogAnimationType(message.message?.toLowerCase() || '', message.source?.toLowerCase() || '')
+  return animationType !== null
+}
+
+// 基于真实攻击日志触发可视化动画
+function triggerAttackVisualizationFromLog(logMessage) {
+  try {
+    if (!attackVisualization || !topology || !topology.devices) {
+      console.log('⚠️ 攻击可视化未初始化或拓扑图不存在')
+      return
+    }
+
+    const message = logMessage.message.toLowerCase()
+    const source = logMessage.source.toLowerCase()
+
+    // 判断日志类型并决定动画类型
+    const animationType = getLogAnimationType(message, source)
+    if (!animationType) {
+      console.log('⏸️ 跳过无需动画的日志:', logMessage.message)
+      return
+    }
+
+    console.log('🎬 处理攻击日志动画:', {
+      source: logMessage.source,
+      message: logMessage.message,
+      level: logMessage.level,
+      animationType: animationType
+    })
+
+    // 找到攻击者节点
+    const attackerNode = findAttackerNode()
+    if (!attackerNode) {
+      console.log('⚠️ 未找到攻击者节点')
+      return
+    }
+
+    // 根据日志类型触发对应的动画
+    triggerAnimationByType(animationType, message, attackerNode, logMessage)
+
+  } catch (error) {
+    console.error('触发攻击可视化动画时出错:', error)
+  }
+}
+
+// 判断日志类型并决定是否需要动画
+function getLogAnimationType(message, source) {
+  // 分析阶段的关键词
+  const analysisKeywords = [
+    '分析攻击路径', '分析可能的攻击路径', '正在分析目标网络拓扑', '分析目标',
+    '制定攻击计划', '评估攻击策略', '选择攻击方式',
+    'analyzing', 'analysis complete', 'attack analysis'
+  ]
+
+  // 扫描侦察阶段
+  const scanningKeywords = [
+    '开始扫描', '执行扫描', '端口扫描', '服务扫描', '漏洞扫描', '扫描防火墙',
+    'port scan', 'vulnerability scan', 'scanning', 'reconnaissance'
+  ]
+
+  // 钓鱼攻击阶段
+  const phishingKeywords = [
+    '发送钓鱼邮件', '生成钓鱼邮件', '制作钓鱼邮件', '投递载荷',
+    'phishing', 'email', 'payload delivery'
+  ]
+
+  // 漏洞利用阶段
+  const exploitKeywords = [
+    '利用漏洞', '执行攻击', '获取权限', '建立连接',
+    'exploit', 'vulnerability exploitation', 'gaining access'
+  ]
+
+  // 后渗透阶段
+  const postExploitKeywords = [
+    '执行命令', '获取数据', '横向移动', '权限提升', '安装后门', '建立持久化',
+    'command execution', 'data exfiltration', 'lateral movement', 'privilege escalation'
+  ]
+
+  // 根据关键词判断日志类型
+  if (analysisKeywords.some(keyword => message.includes(keyword))) {
+    return 'analysis'
+  } else if (scanningKeywords.some(keyword => message.includes(keyword))) {
+    return 'scanning'
+  } else if (phishingKeywords.some(keyword => message.includes(keyword))) {
+    return 'phishing'
+  } else if (exploitKeywords.some(keyword => message.includes(keyword))) {
+    return 'exploit'
+  } else if (postExploitKeywords.some(keyword => message.includes(keyword))) {
+    return 'post_exploit'
+  }
+
+  return null // 不需要动画
+}
+
+// 动画队列管理
+const animationQueue = []
+let isProcessingAnimations = false
+const recentAnimations = new Map() // 记录最近的动画，避免重复
+
+// 根据动画类型触发对应的动画（支持延迟和队列）
+function triggerAnimationByType(animationType, message, attackerNode, logMessage) {
+  console.log(`🎬 添加${animationType}类型动画到队列:`, message)
+
+  // 检查是否是重复动画（5秒内相同类型的动画）
+  const animationKey = `${animationType}_${attackerNode.id || attackerNode.deviceData?.name}`
+  const now = Date.now()
+  const lastAnimation = recentAnimations.get(animationKey)
+
+  if (lastAnimation && (now - lastAnimation) < 5000) {
+    console.log(`⏸️ 跳过重复动画: ${animationType}`)
+    return
+  }
+
+  // 记录动画时间
+  recentAnimations.set(animationKey, now)
+
+  // 将动画添加到队列
+  animationQueue.push({
+    type: animationType,
+    message: message,
+    attackerNode: attackerNode,
+    logMessage: logMessage,
+    timestamp: now
+  })
+
+  // 如果没有在处理动画，开始处理队列
+  if (!isProcessingAnimations) {
+    processAnimationQueue()
+  }
+}
+
+// 处理动画队列
+async function processAnimationQueue() {
+  if (isProcessingAnimations || animationQueue.length === 0) {
+    return
+  }
+
+  isProcessingAnimations = true
+  console.log('🎬 开始处理动画队列，当前队列长度:', animationQueue.length)
+
+  while (animationQueue.length > 0) {
+    const animation = animationQueue.shift()
+    await executeAnimation(animation)
+
+    // 动画之间的延迟，避免冲突（根据动画类型调整延迟）
+    const delay = animation.type === 'analysis' ? 1500 : 600
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  isProcessingAnimations = false
+  console.log('🎬 动画队列处理完成')
+}
+
+// 执行单个动画
+async function executeAnimation(animation) {
+  const { type, message, attackerNode, logMessage } = animation
+  console.log(`🎬 执行${type}类型动画:`, message)
+
+  switch (type) {
+    case 'analysis':
+      await executeAnalysisAnimation(attackerNode, message)
+      break
+
+    case 'scanning':
+      await executeScanningAnimation(attackerNode, message)
+      break
+
+    case 'phishing':
+      await executePhishingAnimation(attackerNode, message)
+      break
+
+    case 'exploit':
+      await executeExploitAnimation(attackerNode, message)
+      break
+
+    case 'post_exploit':
+      await executePostExploitAnimation(attackerNode, message)
+      break
+
+    default:
+      console.log('⚠️ 未知动画类型:', type)
+  }
+}
+
+// 钓鱼阶段动画（更丰富）
+async function executePhishingAnimation(attackerNode, message) {
+  console.log('📧 执行钓鱼阶段动画')
+
+  const targetNode = findTargetNodeFromMessage(message)
+  if (!targetNode) {
+    console.log('⚠️ 未找到钓鱼目标节点')
+    return
+  }
+
+  // 1. 邮件制作动画
+  if (attackVisualization.createThinkingAnimation) {
+    attackVisualization.createThinkingAnimation(attackerNode, 1.5)
+  }
+
+  // 2. 延迟后发送邮件动画
+  setTimeout(() => {
+    if (attackVisualization.createPhishingEmailAnimation) {
+      attackVisualization.createPhishingEmailAnimation(targetNode)
+    }
+  }, 1200)
+
+  // 3. 邮件传输路径动画
+  setTimeout(() => {
+    if (attackVisualization.createAttackPath) {
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        color: '#f59e0b',
+        dashArray: [5, 5],
+        label: '📧'
+      })
+    }
+  }, 2000)
+
+  // 4. 目标节点反应动画
+  setTimeout(() => {
+    if (attackVisualization.addNodePulse) {
+      attackVisualization.addNodePulse(targetNode, '#f59e0b')
+    }
+  }, 3000)
+}
+
+// 漏洞利用阶段动画（更丰富）
+async function executeExploitAnimation(attackerNode, message) {
+  console.log('💥 执行漏洞利用阶段动画')
+
+  const targetNode = findTargetNodeFromMessage(message)
+  if (!targetNode) {
+    console.log('⚠️ 未找到利用目标节点')
+    return
+  }
+
+  // 1. 漏洞扫描动画
+  if (attackVisualization.createScanningPulse) {
+    attackVisualization.createScanningPulse(targetNode)
+  }
+
+  // 2. 延迟后的攻击路径
+  setTimeout(() => {
+    if (attackVisualization.createAttackPath) {
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        color: '#dc2626',
+        width: 4,
+        label: '💥'
+      })
+    }
+  }, 1000)
+
+  // 3. 漏洞利用成功动画
+  setTimeout(() => {
+    if (attackVisualization.markDeviceAsCompromised) {
+      attackVisualization.markDeviceAsCompromised(targetNode, 'exploit_campaign')
+    }
+  }, 2500)
+
+  // 4. 建立连接动画
+  setTimeout(() => {
+    if (attackVisualization.createDataTheftAnimation) {
+      attackVisualization.createDataTheftAnimation(targetNode, attackerNode, 2)
+    }
+  }, 3500)
+}
+
+// 后渗透阶段动画（更丰富）
+async function executePostExploitAnimation(attackerNode, message) {
+  console.log('🔧 执行后渗透阶段动画')
+
+  const targetNode = findTargetNodeFromMessage(message)
+  if (!targetNode) {
+    console.log('⚠️ 未找到后渗透目标节点')
+    return
+  }
+
+  if (message.includes('数据') || message.includes('窃取') || message.includes('收集')) {
+    // 数据窃取动画序列
+    console.log('📊 执行数据窃取动画')
+
+    // 1. 数据搜索动画
+    if (attackVisualization.createThinkingAnimation) {
+      attackVisualization.createThinkingAnimation(targetNode, 2)
+    }
+
+    // 2. 数据收集动画
+    setTimeout(() => {
+      if (attackVisualization.createDataTheftAnimation) {
+        attackVisualization.createDataTheftAnimation(targetNode, attackerNode, 4)
+      }
+    }, 1500)
+
+    // 3. 数据传输动画
+    setTimeout(() => {
+      if (attackVisualization.startNetworkTraffic) {
+        attackVisualization.startNetworkTraffic([targetNode, attackerNode], 'data-exfil')
+      }
+    }, 3000)
+
+  } else if (message.includes('横向移动') || message.includes('lateral')) {
+    // 横向移动动画序列
+    console.log('↔️ 执行横向移动动画')
+
+    // 1. 网络侦察动画
+    const nearbyDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData &&
+      obj !== attackerNode &&
+      obj !== targetNode
+    ).slice(0, 2)
+
+    nearbyDevices.forEach((device, index) => {
+      setTimeout(() => {
+        if (attackVisualization.createScanningPulse) {
+          attackVisualization.createScanningPulse(device)
+        }
+      }, index * 600)
+    })
+
+    // 2. 横向移动路径
+    setTimeout(() => {
+      if (nearbyDevices.length > 0 && attackVisualization.createLateralMovementAnimation) {
+        attackVisualization.createLateralMovementAnimation(targetNode, nearbyDevices[0], 'lateral_campaign')
+      }
+    }, 2000)
+
+  } else if (message.includes('命令') || message.includes('执行') || message.includes('控制')) {
+    // 命令执行动画
+    console.log('🎮 执行命令控制动画')
+
+    // 1. 命令发送动画
+    if (attackVisualization.createAttackPath) {
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        color: '#8b5cf6',
+        dashArray: [3, 3],
+        label: '⌨️'
+      })
+    }
+
+    // 2. 命令执行反馈
+    setTimeout(() => {
+      if (attackVisualization.addNodePulse) {
+        attackVisualization.addNodePulse(targetNode, '#8b5cf6')
+      }
+    }, 1000)
+  }
+}
+
+// 分析阶段动画（更丰富）
+async function executeAnalysisAnimation(attackerNode, message) {
+  console.log('🧠 执行分析阶段动画')
+
+  // 1. 攻击者思考动画
+  if (attackVisualization.createThinkingAnimation) {
+    attackVisualization.createThinkingAnimation(attackerNode, 2)
+  }
+
+  // 延迟后执行全局分析
+  setTimeout(() => {
+    if (attackVisualization.createGlobalAnalysisAnimation) {
+      attackVisualization.createGlobalAnalysisAnimation(attackerNode)
+    }
+  }, 1000)
+
+  // 再延迟后显示网络流量分析
+  setTimeout(() => {
+    const allDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' && !obj._deleted && !obj.isDeleted && obj.deviceData
+    )
+    if (allDevices.length > 1 && attackVisualization.startNetworkTraffic) {
+      attackVisualization.startNetworkTraffic(allDevices.slice(0, 3), 'analysis-traffic')
+    }
+  }, 2500)
+}
+
+// 扫描阶段动画（更丰富）
+async function executeScanningAnimation(attackerNode, message) {
+  console.log('🔍 执行扫描阶段动画')
+
+  // 1. 基础扫描脉冲
+  if (attackVisualization.createScanningPulse) {
+    attackVisualization.createScanningPulse(attackerNode)
+  }
+
+  // 2. 延迟后的目标扫描
+  setTimeout(() => {
+    const targetDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData &&
+      obj !== attackerNode
+    )
+
+    // 逐个扫描目标设备
+    targetDevices.slice(0, 3).forEach((device, index) => {
+      setTimeout(() => {
+        if (attackVisualization.createScanningPulse) {
+          attackVisualization.createScanningPulse(device)
+        }
+      }, index * 500)
+    })
+  }, 1000)
+
+  // 3. 扫描结果可视化
+  setTimeout(() => {
+    if (attackVisualization.createAttackSequence) {
+      const targets = topology.canvas.getObjects().filter(obj =>
+        obj.type === 'device' &&
+        !obj._deleted &&
+        !obj.isDeleted &&
+        obj.deviceData &&
+        obj !== attackerNode
+      ).slice(0, 2)
+
+      if (targets.length > 0) {
+        attackVisualization.createAttackSequence(attackerNode, targets, 'scan-result')
+      }
+    }
+  }, 2000)
+}
+
+// 找到攻击者节点
+function findAttackerNode() {
+  // 只从画布上实际存在且未被删除的设备中查找
+  const canvasDevices = topology.canvas.getObjects().filter(obj =>
+    obj.type === 'device' &&
+    !obj._deleted &&
+    !obj.isDeleted &&
+    obj.deviceData
+  )
+
+  return canvasDevices.find(device =>
+    device.deviceData.name.toLowerCase().includes('attack') ||
+    device.deviceData.name.toLowerCase().includes('攻击') ||
+    device.deviceData.ip === '192.168.100.11' ||
+    device.deviceData.type === 'attacker'
+  )
+}
+
+
+
+// 注意：此函数已被 triggerAnimationByType 替代
+
+// 注意：此函数已被 triggerAnimationByType 替代
+
+// 从攻击信息中找到目标节点
+function findTargetNodeFromAttackInfo(attackInfo) {
+  if (!attackInfo.target_node) return null
+
+  // 只从画布上实际存在且未被删除的设备中查找
+  const canvasDevices = topology.canvas.getObjects().filter(obj =>
+    obj.type === 'device' &&
+    !obj._deleted &&
+    !obj.isDeleted &&
+    obj.deviceData
+  )
+
+  const targetDevice = canvasDevices.find(device =>
+    device.deviceData.name === attackInfo.target_node ||
+    device.deviceData.ip === attackInfo.target_node ||
+    device.id === attackInfo.target_node
+  )
+
+  if (targetDevice) {
+    console.log(`🎯 通过攻击信息找到目标节点: ${targetDevice.deviceData.name}`)
+  } else {
+    console.log(`⚠️ 未找到攻击信息中的目标节点: ${attackInfo.target_node}`)
+  }
+
+  return targetDevice
+}
+
+// 从日志消息中查找目标节点
+function findTargetNodeFromMessage(message, type = 'target') {
+  try {
+    if (!topology || !topology.devices) return null
+
+    // 只获取画布上实际存在且未被删除的设备
+    const canvasDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData
+    )
+
+    // 尝试从消息中提取IP地址
+    const ipRegex = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g
+    const ips = message.match(ipRegex)
+
+    if (ips && ips.length > 0) {
+      // 如果有多个IP，根据type选择
+      const targetIp = type === 'source' ? ips[0] : ips[ips.length - 1]
+      const deviceByIp = canvasDevices.find(device => device.deviceData && device.deviceData.ip === targetIp)
+      if (deviceByIp) {
+        console.log(`🎯 通过IP找到目标节点: ${deviceByIp.deviceData.name} (${targetIp})`)
+        return deviceByIp
+      }
+    }
+
+    // 默认返回第一个非攻击者节点
+    const targetDevice = canvasDevices.find(device =>
+      device.deviceData &&
+      !device.deviceData.name.toLowerCase().includes('attack') &&
+      !device.deviceData.name.toLowerCase().includes('攻击') &&
+      device.deviceData.ip !== '192.168.100.11'
+    )
+
+    if (targetDevice) {
+      console.log(`🎯 找到默认目标节点: ${targetDevice.deviceData.name}`)
+    } else {
+      console.log('⚠️ 未找到合适的目标节点')
+    }
+
+    return targetDevice
+  } catch (error) {
+    console.error('查找目标节点时出错:', error)
+    return null
+  }
+}
+
+// 可视化APT攻击路径
+function visualizeAPTAttackPath(attacker) {
+  if (!topology || !attackVisualization) {
+    console.log('⚠️ 拓扑图或攻击可视化未初始化')
+    return
+  }
+
+  console.log('🕵️ 开始APT攻击路径可视化')
+
+  // 找到所有潜在目标 - 只从画布上实际存在且未被删除的设备中查找
+  const canvasDevices = topology.canvas.getObjects().filter(obj =>
+    obj.type === 'device' &&
+    !obj._deleted &&
+    !obj.isDeleted &&
+    obj.deviceData
+  )
+  const targets = canvasDevices.filter(d =>
+    d !== attacker &&
+    d.deviceData.name !== '攻击节点' &&
+    !d.deviceData.name.toLowerCase().includes('attack')
+  )
+
+  if (targets.length === 0) {
+    console.log('⚠️ 未找到合适的APT攻击目标')
+    return
+  }
+
+  // 创建APT攻击序列动画
+  if (attackVisualization.createAttackSequence) {
+    attackVisualization.createAttackSequence(attacker, targets, 'apt')
+  }
+
+  // 开始连续扫描（APT特有的持续侦察）
+  if (attackVisualization.startContinuousScanning) {
+    attackVisualization.startContinuousScanning(targets, 'apt-reconnaissance')
+  }
+}
+
 // 在拓扑图上可视化攻击路径 - 使用新的 Fabric.js 动画系统
 function visualizeAttackPath(attacker, target = null) {
   if (!topology || !attackVisualization) {
@@ -1149,8 +2065,13 @@ function visualizeAttackPath(attacker, target = null) {
 
   // 如果没有指定目标，寻找合适的目标
   if (!target) {
-    const devices = Object.values(topology.devices)
-    target = devices.find(d =>
+    const canvasDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData
+    )
+    target = canvasDevices.find(d =>
       d !== attacker &&
       d.deviceData.name !== '攻击节点' &&
       (d.deviceData.type === 'web' || d.deviceData.type === 'server')
@@ -1164,9 +2085,17 @@ function visualizeAttackPath(attacker, target = null) {
 
   // 创建增强的攻击序列动画
   if (attackVisualization.createAttackSequence) {
-    // 找到所有可能的目标
-    const allTargets = Object.values(topology.devices).filter(d =>
-      d !== attacker && d.deviceData.name !== '攻击节点'
+    // 找到所有可能的目标 - 只从画布上实际存在且未被删除的设备中查找
+    const canvasDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData
+    )
+    const allTargets = canvasDevices.filter(d =>
+      d !== attacker &&
+      d.deviceData.name !== '攻击节点' &&
+      !d.deviceData.name.toLowerCase().includes('attack')
     )
 
     attackVisualization.createAttackSequence(attacker, allTargets.slice(0, 3), 'auto')
@@ -1177,9 +2106,8 @@ function visualizeAttackPath(attacker, target = null) {
     }
 
     // 开始网络流量模拟
-    const allNodes = Object.values(topology.devices)
-    if (allNodes.length > 1) {
-      attackVisualization.startNetworkTraffic(allNodes, 'background-traffic')
+    if (canvasDevices.length > 1) {
+      attackVisualization.startNetworkTraffic(canvasDevices, 'background-traffic')
     }
   } else if (attackVisualization.createAttackPath) {
     // 回退到单个攻击路径
@@ -1190,15 +2118,24 @@ function visualizeAttackPath(attacker, target = null) {
 
   // 如果没有指定目标，则寻找可能的目标
   if (!target) {
+    const canvasDevices = topology.canvas.getObjects().filter(obj =>
+      obj.type === 'device' &&
+      !obj._deleted &&
+      !obj.isDeleted &&
+      obj.deviceData
+    )
+
     // 查找Web服务器作为第一个目标
-    target = Object.values(topology.devices).find(d =>
+    target = canvasDevices.find(d =>
       d.deviceData.name.includes('Web') || d.deviceType === 'web'
     )
 
     // 如果没有Web服务器，选择任意一个非攻击者的设备
     if (!target) {
-      target = Object.values(topology.devices).find(d =>
-        d !== attacker && d.deviceData.name !== '攻击节点'
+      target = canvasDevices.find(d =>
+        d !== attacker &&
+        d.deviceData.name !== '攻击节点' &&
+        !d.deviceData.name.toLowerCase().includes('attack')
       )
     }
 
@@ -1328,11 +2265,7 @@ function updateNodeStatus(node, status) {
   topology.canvas.requestRenderAll()
 }
 
-// 前端模拟攻击流程已移除，现在使用 Fabric.js 动画系统
 
-// 钓鱼攻击功能已移除，现在使用 Fabric.js 动画系统
-
-// 攻击模拟功能已移除，现在使用 Fabric.js 动画系统
 
 // 处理防火墙保存事件
 function handleFirewallSave(firewallData) {
@@ -1340,69 +2273,58 @@ function handleFirewallSave(firewallData) {
   console.log('防火墙配置已更新:', firewallData)
 }
 
-// 设置模式
-function setMode(mode) {
-  if (!topology) return
+// 处理容器配置消息事件
+function handleMessage(message) {
+  const { type, text } = message
 
-  topology.setMode(mode)
-  topologyStore.setMode(mode)
+  switch (type) {
+    case 'success':
+      logInfo('容器配置', text)
+      break
+    case 'error':
+      logError('容器配置', text)
+      break
+    case 'warning':
+      logWarning('容器配置', text)
+      break
+    case 'info':
+    default:
+      logInfo('容器配置', text)
+      break
+  }
 }
 
-// 创建设备
-function createDevice(type) {
-  if (!topology) return
+// 检查容器是否正在运行
+function isContainerRunning(device) {
+  if (!device) return false
 
-  topology.createDevice(type)
+  const nodeId = device.nodeData?.scenarioData?.id || device.nodeData?.id || device.id
+  const nodeStatus = device.nodeData?.scenarioData?.status || device.nodeData?.status
+  const isVisuallyRunning = device.opacity === 1.0 && !device.strokeDashArray?.length
+
+  return runningNodes.value.has(nodeId) || nodeStatus === 'running' || isVisuallyRunning
 }
 
-// 删除选中对象
-function deleteSelected() {
-  if (!topology) return
+// 打开容器配置对话框
+function openContainerConfig() {
+  if (!selectedObject.value) {
+    logWarning('系统', '请先选择一个节点')
+    return
+  }
 
-  topology.deleteSelected()
-  topologyStore.setSelectedObject(null)
+  const device = selectedObject.value
+
+  if (!isContainerRunning(device)) {
+    logWarning('系统', '只有运行中的容器才能进行配置')
+    return
+  }
+
+  selectedContainer.value = device
+  showContainerConfigDialog.value = true
+  logInfo('系统', `已打开容器 "${device.deviceData?.name || device.id}" 配置对话框`)
 }
 
-// 更新设备属性
-function updateDeviceProperty() {
-  if (!topology || !selectedDevice.value) return
 
-  // 更新设备标签
-  topology._updateLabel(selectedDevice.value, selectedDevice.value.deviceData.name)
-
-  // 更新画布
-  topology.canvas.requestRenderAll()
-}
-
-// 更新连接类型
-function updateConnectionType() {
-  if (!topology || !selectedConnection.value) return
-
-  const connType = topology.connectionTypes[selectedConnection.value.connectionType] || topology.connectionTypes.ethernet
-
-  selectedConnection.value.set({
-    stroke: connType.color,
-    strokeDashArray: connType.dash
-  })
-
-  topology.canvas.requestRenderAll()
-}
-
-// 缩放控制
-function zoomIn() {
-  if (!topology) return
-  topology.zoomIn()
-}
-
-function zoomOut() {
-  if (!topology) return
-  topology.zoomOut()
-}
-
-function resetView() {
-  if (!topology) return
-  topology.resetView()
-}
 
 // 全屏切换
 function toggleFullScreen() {
@@ -1428,9 +2350,34 @@ document.addEventListener('fullscreenchange', () => {
 function saveTopology() {
   if (!topology) return
 
-  // TODO: 实现保存功能
-  console.log('保存拓扑图')
-  logInfo('系统', '拓扑图已保存')
+  try {
+    // 获取当前场景数据
+    const currentData = window.getGlobalScenarioData()
+
+    if (currentData) {
+      // 保存到localStorage
+      const saveData = {
+        ...currentData,
+        savedAt: new Date().toISOString(),
+        version: '1.0'
+      }
+
+      localStorage.setItem('persistentScenarioData', JSON.stringify(saveData))
+      console.log('💾 拓扑图已保存到localStorage')
+      logInfo('系统', '拓扑图已保存到本地存储')
+
+      // 也保存一个备份到sessionStorage
+      sessionStorage.setItem('scenarioData', JSON.stringify(saveData))
+      console.log('💾 拓扑图备份已保存到sessionStorage')
+
+    } else {
+      console.warn('⚠️ 没有可保存的场景数据')
+      logWarning('系统', '没有可保存的场景数据')
+    }
+  } catch (error) {
+    console.error('❌ 保存拓扑图失败:', error)
+    logError('系统', `保存拓扑图失败: ${error.message}`)
+  }
 }
 
 // 加载动态场景数据
@@ -1454,6 +2401,23 @@ async function loadDynamicScenario(storedData) {
 
       scenarioData.value = scenarioTopology
       isScenarioMode.value = true
+
+      // 保存到全局变量，便于测试和调试
+      const globalData = {
+        topology: scenarioTopology,
+        prompt: storedData.prompt,
+        timestamp: Date.now(),
+        source: 'dynamic_scenario'
+      }
+
+      if (typeof window.setGlobalScenarioData === 'function') {
+        window.setGlobalScenarioData(globalData)
+        console.log('💾 场景数据已保存到全局变量')
+      } else {
+        // 直接设置全局变量作为备选
+        window.globalScenarioData = globalData
+        console.log('💾 场景数据已直接保存到全局变量')
+      }
 
       // 记录虚拟节点
       virtualNodes.value.clear()
@@ -1489,25 +2453,7 @@ async function loadDynamicScenario(storedData) {
   }
 }
 
-// 获取节点颜色
-function getNodeColor(nodeType) {
-  const colorMap = {
-    'database': '#3498db',
-    'server': '#2ecc71',
-    'workstation': '#f39c12',
-    'router': '#9b59b6',
-    'firewall': '#e74c3c',
-    'switch': '#1abc9c',
-    'file_server': '#34495e',
-    'web_server': '#27ae60',
-    'mail_server': '#8e44ad',
-    'dns_server': '#16a085',
-    'medical_device': '#e67e22',
-    'medical_workstation': '#d35400',
-    'medical_server': '#c0392b'
-  }
-  return colorMap[nodeType] || '#95a5a6'
-}
+
 
 // 获取节点边框颜色
 function getNodeStrokeColor(status) {
@@ -1520,17 +2466,9 @@ function getNodeStrokeColor(status) {
   return strokeMap[status] || '#bdc3c7'
 }
 
-// 获取连接颜色
-function getConnectionColor(network) {
-  const colorMap = {
-    'server_segment': '#3498db',
-    'user_segment': '#2ecc71',
-    'dmz_segment': '#f39c12',
-    'medical_segment': '#e74c3c',
-    'internet': '#9b59b6'
-  }
-  return colorMap[network] || '#95a5a6'
-}
+
+
+
 
 // 解析场景拓扑数据
 function parseScenarioTopology(agentOutput) {
@@ -1737,6 +2675,25 @@ function parseTextTopology(agentOutput) {
   }
 }
 
+// 初始化APT场景（包含拓扑图初始化和场景数据加载）
+async function initializeAPTScenario() {
+  console.log('🎯 初始化APT场景...')
+
+  // 1. 先初始化基础拓扑图
+  await initializeBasicTopology()
+
+  // 2. 加载APT医疗场景数据
+  const success = await loadAptMedicalScenario()
+
+  // 3. 如果加载成功，启用编辑模式
+  if (success) {
+    enableEditMode()
+    logInfo('系统', 'APT场景初始化完成，编辑模式已启用')
+  }
+
+  return success
+}
+
 // 加载APT医疗场景数据（预设场景，作为回退方案）
 async function loadAptMedicalScenario() {
   try {
@@ -1749,6 +2706,23 @@ async function loadAptMedicalScenario() {
     if (aptScenario && aptScenario.nodes) {
       scenarioData.value = aptScenario
       isScenarioMode.value = true
+
+      // 保存到全局变量，便于测试和调试
+      const globalData = {
+        topology: aptScenario,
+        prompt: 'APT医疗场景（预设）',
+        timestamp: Date.now(),
+        source: 'preset_apt_medical'
+      }
+
+      if (typeof window.setGlobalScenarioData === 'function') {
+        window.setGlobalScenarioData(globalData)
+        console.log('💾 预设APT场景数据已保存到全局变量')
+      } else {
+        // 直接设置全局变量作为备选
+        window.globalScenarioData = globalData
+        console.log('💾 预设APT场景数据已直接保存到全局变量')
+      }
 
       // 记录虚拟节点
       virtualNodes.value.clear()
@@ -1827,10 +2801,8 @@ async function renderScenarioTopology(scenarioTopology) {
           status: nodeData.status
         })
 
-        // 计算节点位置（简单的网格布局）
-        const gridCols = Math.ceil(Math.sqrt(scenarioTopology.nodes.length))
-        const x = 100 + (index % gridCols) * 150
-        const y = 100 + Math.floor(index / gridCols) * 120
+        // 使用智能布局算法计算节点位置
+        const position = calculateSmartNodePosition(nodeData, index, scenarioTopology.nodes)
 
         // 映射节点类型到设备类型
         const deviceType = mapNodeTypeToDeviceType(nodeData.type)
@@ -1841,8 +2813,8 @@ async function renderScenarioTopology(scenarioTopology) {
 
         // 使用现有的 createDevice 方法
         const fabricNode = await topology.createDevice(deviceType, {
-          left: x,
-          top: y,
+          left: position.x,
+          top: position.y,
           deviceData: {
             name: nodeData.name,
             ip: primaryIP,
@@ -1878,55 +2850,13 @@ async function renderScenarioTopology(scenarioTopology) {
       console.warn('⚠️ 没有找到节点数据')
     }
 
-    // 添加连接
-    if (scenarioTopology.connections && scenarioTopology.connections.length > 0) {
-      console.log('🔗 开始添加连接...')
+    // 渲染网络连线和IP标注
+    console.log('🔗 开始渲染网络连线和IP标注...')
+    await renderNetworkConnections(scenarioTopology)
 
-      scenarioTopology.connections.forEach((connData, index) => {
-        console.log(`🔗 处理连接 ${index + 1}/${scenarioTopology.connections.length}:`, {
-          id: connData.id,
-          source: connData.source,
-          target: connData.target,
-          network: connData.network,
-          type: connData.type
-        })
-
-        const sourceNode = findDeviceByScenarioId(connData.source)
-        const targetNode = findDeviceByScenarioId(connData.target)
-
-        if (sourceNode && targetNode) {
-          // 使用现有的 addConnection 方法
-          const connection = topology.addConnection(
-            sourceNode,
-            targetNode,
-            connData.type || 'ethernet',
-            {
-              subnet: connData.network,
-              connectionType: connData.type || 'ethernet'
-            }
-          )
-
-          if (connection) {
-            // 设置半透明样式
-            connection.set({
-              stroke: getConnectionColor(connData.network),
-              strokeWidth: 2,
-              strokeDashArray: connData.type === 'wireless' ? [3, 3] : [5, 5],
-              opacity: 0.5
-            })
-            console.log(`✅ 连接 ${connData.source} -> ${connData.target} 已添加`)
-          }
-        } else {
-          console.warn(`⚠️ 连接 ${connData.source} -> ${connData.target} 的节点未找到`)
-          console.warn('   sourceNode:', sourceNode?.deviceData?.name || '未找到')
-          console.warn('   targetNode:', targetNode?.deviceData?.name || '未找到')
-        }
-      })
-
-      console.log('✅ 所有连接添加完成')
-    } else {
-      console.warn('⚠️ 没有找到连接数据')
-    }
+    // 🚫 已禁用预定义连接逻辑，只使用优化后的防火墙连线
+    // 这样可以避免重复连线，只保留简洁的防火墙连接
+    console.log('🚫 已跳过预定义连接，只使用优化的防火墙连线逻辑')
 
     // 添加网络信息到元数据
     if (scenarioTopology.networks && scenarioTopology.networks.length > 0) {
@@ -1947,8 +2877,11 @@ async function renderScenarioTopology(scenarioTopology) {
     topology.canvas.requestRenderAll()
     console.log('🎨 画布渲染完成')
 
+    // 启用编辑模式，使所有节点可以拖拽和选择
+    enableEditMode()
+
     console.log('✅ 场景拓扑图渲染完成')
-    logInfo('系统', '半透明拓扑图渲染完成')
+    logInfo('系统', '半透明拓扑图渲染完成，编辑模式已启用')
 
   } catch (error) {
     console.error('❌ 渲染场景拓扑图失败:', error)
@@ -1969,8 +2902,864 @@ function findDeviceByScenarioId(scenarioId) {
   })
 }
 
+// 分析网络拓扑结构
+function analyzeNetworkTopology(allNodes) {
+  const analysis = {
+    networks: {},
+    firewalls: [],
+    attackers: [],
+    servers: [],
+    workstations: []
+  }
+
+  // 分析每个节点
+  allNodes.forEach(node => {
+    // 按类型分类
+    if (node.type === 'firewall') {
+      analysis.firewalls.push(node)
+    } else if (node.type === 'attacker') {
+      analysis.attackers.push(node)
+    } else if (node.type.includes('server') || node.type === 'database') {
+      analysis.servers.push(node)
+    } else if (node.type === 'workstation') {
+      analysis.workstations.push(node)
+    }
+
+    // 按网络分组
+    const networks = node.networks || ['unknown']
+    networks.forEach(network => {
+      if (!analysis.networks[network]) {
+        analysis.networks[network] = []
+      }
+      analysis.networks[network].push(node)
+    })
+  })
+
+  return analysis
+}
+
+// 智能节点位置计算函数 - 基于网络安全标准拓扑
+function calculateSmartNodePosition(nodeData, _, allNodes) {
+  // 分析所有节点，构建网络拓扑结构
+  const networkAnalysis = analyzeNetworkTopology(allNodes)
+
+  // 使用固定坐标确保布局的一致性和美观性
+  const position = calculateFixedPosition(nodeData, allNodes, networkAnalysis)
+  if (position) {
+    return position
+  }
+
+  // 如果没有匹配到固定位置，使用动态布局
+  return calculateDynamicPosition(nodeData, allNodes)
+}
+
+// 计算固定位置（严格避免重叠的布局算法）
+function calculateFixedPosition(nodeData, allNodes, networkAnalysis) {
+  const name = nodeData.name?.toLowerCase() || ''
+  const type = nodeData.type || ''
+
+  // 最小间距定义 - 增加间距避免重叠
+  const MIN_SPACING_X = 150  // 最小水平间距
+  const MIN_SPACING_Y = 120  // 最小垂直间距
+
+  // 1. 攻击者 - 最右侧，避免与其他节点重叠
+  if (type === 'attacker') {
+    return { x: 1000, y: 250 }
+  }
+
+  // 2. 防火墙 - 严格按位置排列，绝不重叠
+  if (type === 'firewall') {
+    if (name.includes('internal')) {
+      return { x: 400, y: 250 } // 内部防火墙
+    } else if (name.includes('border') || name.includes('external')) {
+      return { x: 650, y: 250 } // 边界防火墙
+    } else if (name.includes('db') || name.includes('database')) {
+      return { x: 400, y: 350 } // 数据库防火墙，在内部防火墙正下方
+    } else {
+      // 其他防火墙按顺序排列，确保间距
+      const firewallIndex = networkAnalysis.firewalls.findIndex(n => n.id === nodeData.id)
+      return { x: 400 + firewallIndex * MIN_SPACING_X, y: 250 }
+    }
+  }
+
+  // 3. DMZ区域 - 边界防火墙上方，横向排列，严格间距
+  if (nodeData.networks?.[0] === 'dmz_segment') {
+    if (name.includes('web')) {
+      return { x: 700, y: 80 } // Web服务器
+    } else if (name.includes('wordpress')) {
+      return { x: 850, y: 80 } // WordPress，确保与web服务器间距150px
+    } else if (name.includes('dns')) {
+      return { x: 1000, y: 80 } // DNS服务器，确保与wordpress间距150px
+    } else {
+      const dmzNodes = allNodes.filter(n => n.networks?.[0] === 'dmz_segment')
+      const nodeIndex = dmzNodes.findIndex(n => n.id === nodeData.id)
+      return { x: 600 + nodeIndex * MIN_SPACING_X, y: 120 }
+    }
+  }
+
+  // 4. 服务器区域 - 左上，横向排列，严格间距
+  if (type.includes('server') && !type.includes('dns')) {
+    if (name.includes('medical')) {
+      return { x: 250, y: 480 } // 医疗文件服务器
+    } else if (name.includes('crt-files') || name.includes('files')) {
+      return { x: 270, y: 100 } // 文件服务器，确保与medical间距120px
+    } else if (name.includes('update')) {
+      return { x: 390, y: 100 } // 更新服务器，确保与files间距120px
+    } else if (name.includes('syslog') || name.includes('log')) {
+      return { x: 510, y: 100 } // 日志服务器，与其他服务器同一水平线
+    } else {
+      const serverNodes = allNodes.filter(n =>
+        n.type.includes('server') &&
+        !n.name?.includes('dns')
+      )
+      const nodeIndex = serverNodes.findIndex(n => n.id === nodeData.id)
+      return { x: 150 + nodeIndex * MIN_SPACING_X, y: 150 }
+    }
+  }
+
+  // 5. DNS服务器 - 如果不在DMZ，放在服务器区域右侧
+  if (type === 'dns_server' || name.includes('dns')) {
+    if (nodeData.networks?.[0] === 'dmz_segment') {
+      return { x: 790, y: 100 } // DMZ中的DNS
+    } else {
+      return { x: 510, y: 100 } // 内网DNS，确保与update服务器间距120px
+    }
+  }
+
+  // 6. 数据库 - 左下，横向排列，严格间距，绝对避免重叠
+  if (type === 'database') {
+    // 根据实际的数据库节点名称进行布局
+    if (name.includes('cnt-sql')) {
+      return { x: 150, y: 100 } // cnt-sql数据库
+    } else if (name === 'database') {
+      return { x: 350, y: 480 } // database节点，间距200px
+    } else if (name.includes('medical-db')) {
+      return { x: 450, y: 480 } // medical-db，间距200px
+    } else {
+      // 其他数据库按顺序排列
+      const dbNodes = allNodes.filter(n => n.type === 'database')
+      const nodeIndex = dbNodes.findIndex(n => n.id === nodeData.id)
+      return { x: 150 + nodeIndex * 200, y: 480 } // 间距200px，确保不重叠
+    }
+  }
+
+  // 7. 工作站 - 左侧中间，垂直排列，严格间距
+  if (type === 'workstation') {
+    const wsNodes = allNodes.filter(n => n.type === 'workstation')
+    const nodeIndex = wsNodes.findIndex(n => n.id === nodeData.id)
+    return { x: 120, y: 300 + nodeIndex * MIN_SPACING_Y } // 确保垂直间距120px
+  }
+
+  // 8. 日志服务器 - 如果不是server类型，单独处理
+  if (type.includes('syslog') || (name.includes('syslog') && !type.includes('server'))) {
+    return { x: 510, y: 150 } // 与服务器同一水平线
+  }
+
+  return null // 没有匹配到固定位置
+}
+
+// 计算动态位置（当固定位置不适用时的回退方案）
+function calculateDynamicPosition(nodeData, allNodes) {
+  const primaryNetwork = nodeData.networks?.[0] || 'default'
+  const deviceType = nodeData.type
+
+  // 动态布局配置 - 增加间距避免重叠
+  const layouts = {
+    'internet': { baseX: 1000, baseY: 320, spacing: 120 },
+    'dmz_segment': { baseX: 800, baseY: 200, spacing: 150 },
+    'server_segment': { baseX: 200, baseY: 120, spacing: 150 },
+    'user_segment': { baseX: 120, baseY: 380, spacing: 120 },
+    'db_segment': { baseX: 200, baseY: 480, spacing: 150 }
+  }
+
+  const layout = layouts[primaryNetwork] || layouts['server_segment']
+
+  // 计算同类型设备的索引
+  const sameTypeNodes = allNodes.filter(n =>
+    n.type === deviceType &&
+    n.networks?.[0] === primaryNetwork
+  )
+  const nodeIndex = sameTypeNodes.findIndex(n => n.id === nodeData.id)
+
+  return {
+    x: layout.baseX + (nodeIndex % 3) * layout.spacing,
+    y: layout.baseY + Math.floor(nodeIndex / 3) * 120
+  }
+}
+
+
+
+
+
+// 网络连线和IP标注渲染函数
+async function renderNetworkConnections(scenarioTopology) {
+  if (!topology || !topology.canvas) {
+    console.error('❌ 拓扑图未初始化')
+    return
+  }
+
+  console.log('🔗 开始渲染网络连线和IP标注...')
+
+  const { nodes } = scenarioTopology
+
+  // 网络颜色映射
+  const networkColors = {
+    'internet': '#ff6b6b',
+    'dmz_segment': '#4ecdc4',
+    'user_segment': '#45b7d1',
+    'server_segment': '#f9ca24',
+    'db_segment': '#6c5ce7',
+    'medical_segment': '#a29bfe',
+    'siem_segment': '#fd79a8'
+  }
+
+  // 1. 为非防火墙节点添加IP标签（显示在节点下方）
+  console.log('📍 添加节点IP标签...')
+  nodes.forEach(node => {
+    // 跳过防火墙节点，防火墙的IP只显示在连线上
+    if (node.type === 'firewall') {
+      console.log(`🔥 跳过防火墙节点 ${node.id}，IP将显示在连线上`)
+      return
+    }
+
+    const fabricNode = findDeviceByScenarioId(node.id)
+    if (!fabricNode) return
+
+    // 获取节点的主要IP地址
+    const primaryIP = getPrimaryIP(node)
+    if (!primaryIP) return
+
+    // 创建IP标签
+    const ipLabel = new fabric.Text(primaryIP, {
+      left: fabricNode.left,
+      top: fabricNode.top + 55, // 节点下方，增加间距避免与名称重叠
+      fontSize: 10,
+      fill: '#ffffff',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'top',
+      selectable: false,
+      evented: false,
+      nodeId: node.id,
+      labelType: 'ip'
+    })
+
+    // 设置IP标签跟随节点移动
+    const updateIPLabelPosition = () => {
+      ipLabel.set({
+        left: fabricNode.left,
+        top: fabricNode.top + 55
+      })
+      ipLabel.setCoords()
+    }
+
+    // 为节点添加移动事件监听器
+    fabricNode.on('moving', updateIPLabelPosition)
+
+    // 将更新函数保存到标签对象上
+    ipLabel.updatePosition = updateIPLabelPosition
+    ipLabel.parentNode = fabricNode
+
+    topology.canvas.add(ipLabel)
+    console.log(`📍 为节点 ${node.id} 添加IP标签: ${primaryIP}，已设置移动监听器`)
+  })
+
+  // 2. 创建简化的防火墙连线（避免重复连接）
+  console.log('🔗 创建简化的防火墙连线...')
+
+  // 找到所有防火墙节点
+  const firewallNodes = nodes.filter(node => node.type === 'firewall')
+  console.log(`🔥 找到 ${firewallNodes.length} 个防火墙节点:`, firewallNodes.map(f => f.id))
+
+  // 记录已连接的设备，避免重复连接
+  const connectedDevices = new Set()
+
+  // 为每个防火墙创建连线，但要确保设备只连接到正确的防火墙
+  firewallNodes.forEach(firewallNode => {
+    console.log(`🔥 处理防火墙: ${firewallNode.id}`)
+
+    // 获取防火墙连接的所有网络
+    const firewallNetworks = firewallNode.networks || []
+
+    firewallNetworks.forEach(networkId => {
+      // 根据网络类型决定哪些设备应该连接到这个防火墙
+      let shouldConnectDevices = []
+
+      if (firewallNode.id.includes('border')) {
+        // 边界防火墙：只连接DMZ设备和Internet设备
+        shouldConnectDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'dmz_segment' || networkId === 'internet') &&
+          !connectedDevices.has(node.id)
+        )
+      } else if (firewallNode.id.includes('internal')) {
+        // 内部防火墙：连接服务器段和用户段设备，但不连接DMZ设备
+        shouldConnectDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'server_segment' || networkId === 'user_segment') &&
+          !connectedDevices.has(node.id)
+        )
+      } else if (firewallNode.id.includes('db')) {
+        // 数据库防火墙：连接数据库段和医疗段设备
+        shouldConnectDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'db_segment' || networkId === 'medical_segment') &&
+          !connectedDevices.has(node.id)
+        )
+      }
+
+      // 为防火墙与符合条件的设备创建连线
+      shouldConnectDevices.forEach(device => {
+        const networkColor = networkColors[networkId] || '#95a5a6'
+        console.log(`🔗 创建防火墙连接: ${firewallNode.id} -> ${device.id} (${networkId})`)
+        createNetworkConnection(firewallNode, device, networkId, networkColor)
+        connectedDevices.add(device.id)  // 标记为已连接
+      })
+    })
+  })
+
+  // 特殊处理：防火墙之间的连接（只连接相邻层级）
+  const borderFirewall = firewallNodes.find(fw => fw.id.includes('border'))
+  const internalFirewall = firewallNodes.find(fw => fw.id.includes('internal'))
+  const dbFirewall = firewallNodes.find(fw => fw.id.includes('db'))
+
+  // 边界防火墙 <-> 内部防火墙
+  if (borderFirewall && internalFirewall) {
+    // 检查两个防火墙是否有共同网络
+    const commonNetworks = borderFirewall.networks?.filter(net =>
+      internalFirewall.networks?.includes(net)
+    ) || []
+
+    if (commonNetworks.length > 0) {
+      const networkId = commonNetworks[0] // 使用第一个共同网络
+      const networkColor = networkColors[networkId] || '#95a5a6'
+      console.log(`🔗 创建防火墙间连接: ${borderFirewall.id} -> ${internalFirewall.id} (${networkId})`)
+      createNetworkConnection(borderFirewall, internalFirewall, networkId, networkColor)
+    }
+  }
+
+  // 内部防火墙 <-> 数据库防火墙
+  if (internalFirewall && dbFirewall) {
+    // 检查两个防火墙是否有共同网络
+    const commonNetworks = internalFirewall.networks?.filter(net =>
+      dbFirewall.networks?.includes(net)
+    ) || []
+
+    if (commonNetworks.length > 0) {
+      const networkId = commonNetworks[0] // 使用第一个共同网络
+      const networkColor = networkColors[networkId] || '#95a5a6'
+      console.log(`🔗 创建防火墙间连接: ${internalFirewall.id} -> ${dbFirewall.id} (${networkId})`)
+      createNetworkConnection(internalFirewall, dbFirewall, networkId, networkColor)
+    }
+  }
+
+  // 3. 为防火墙连接添加IP标注（只为实际连接的设备添加）
+  console.log('🔥 为防火墙连接添加IP标注...')
+
+  // 为每个防火墙的连接添加IP标注
+  firewallNodes.forEach(firewallNode => {
+    const fabricFirewall = findDeviceByScenarioId(firewallNode.id)
+    if (!fabricFirewall) return
+
+    // 获取防火墙在各个网络中的IP地址
+    Object.entries(firewallNode.ip_addresses || {}).forEach(([networkId, firewallIP]) => {
+      // 根据防火墙类型，只为实际连接的设备添加IP标签
+      let targetDevices = []
+
+      if (firewallNode.id.includes('border')) {
+        // 边界防火墙：只为DMZ和Internet设备添加IP标签
+        targetDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'dmz_segment' || networkId === 'internet') &&
+          connectedDevices.has(node.id)
+        )
+      } else if (firewallNode.id.includes('internal')) {
+        // 内部防火墙：只为服务器段和用户段设备添加IP标签
+        targetDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'server_segment' || networkId === 'user_segment') &&
+          connectedDevices.has(node.id)
+        )
+      } else if (firewallNode.id.includes('db')) {
+        // 数据库防火墙：只为数据库段和医疗段设备添加IP标签
+        targetDevices = nodes.filter(node =>
+          node.id !== firewallNode.id &&
+          node.type !== 'firewall' &&
+          node.networks &&
+          node.networks.includes(networkId) &&
+          (networkId === 'db_segment' || networkId === 'medical_segment') &&
+          connectedDevices.has(node.id)
+        )
+      }
+
+      // 为每个目标设备添加防火墙IP标注（仅在没有手动创建的IP标签时）
+      targetDevices.forEach(device => {
+        const fabricDevice = findDeviceByScenarioId(device.id)
+        if (fabricDevice) {
+          // 检查是否已经存在手动创建的防火墙IP标签
+          const existingManualLabels = topology.canvas.getObjects().filter(obj =>
+            obj.labelType === 'firewall-ip' &&
+            ((obj.sourceNodeId === firewallNode.id && obj.targetNodeId === device.id) ||
+              (obj.sourceNodeId === device.id && obj.targetNodeId === firewallNode.id))
+          )
+
+          if (existingManualLabels.length === 0) {
+            console.log(`🏷️ 为防火墙 ${firewallNode.id} 在网络 ${networkId} 添加场景IP标签: ${firewallIP}`)
+            addIPLabelOnConnection(fabricFirewall, fabricDevice, firewallIP, firewallNode.id, networkId)
+          } else {
+            console.log(`🏷️ 跳过为防火墙 ${firewallNode.id} 添加场景IP标签，已存在手动创建的标签`)
+          }
+        }
+      })
+    })
+  })
+
+  console.log('✅ 网络连线和IP标注渲染完成')
+}
+
+
+
+// 辅助函数：获取节点的主要IP地址
+function getPrimaryIP(node) {
+  const ipAddresses = node.ip_addresses || {}
+  const ips = Object.values(ipAddresses)
+  return ips.length > 0 ? ips[0] : null
+}
+
+// 创建两个节点之间的网络连线
+function createNetworkConnection(node1, node2, networkId, color) {
+  const fabricNode1 = findDeviceByScenarioId(node1.id)
+  const fabricNode2 = findDeviceByScenarioId(node2.id)
+
+  if (!fabricNode1 || !fabricNode2) return
+
+  // 计算连线的起点和终点
+  const startPoint = getConnectionPoint(fabricNode1)
+  const endPoint = getConnectionPoint(fabricNode2)
+
+  // 创建连线
+  const line = new fabric.Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+    stroke: color,
+    strokeWidth: 2,
+    strokeDashArray: getStrokeDashArray(networkId),
+    opacity: 0.7,
+    selectable: false,
+    evented: false,
+    networkId: networkId,
+    sourceNodeId: node1.id,
+    targetNodeId: node2.id,
+    connectionType: 'network'
+  })
+
+  // 将连线添加到画布底层
+  topology.canvas.insertAt(line, 0)
+
+  // 设置移动事件监听器，使连线能跟随节点移动
+  const updateLinePosition = () => {
+    const newStartPoint = getConnectionPoint(fabricNode1)
+    const newEndPoint = getConnectionPoint(fabricNode2)
+    line.set({
+      x1: newStartPoint.x,
+      y1: newStartPoint.y,
+      x2: newEndPoint.x,
+      y2: newEndPoint.y
+    })
+    line.setCoords()
+    topology.canvas.requestRenderAll()
+  }
+
+  // 为两个节点添加移动事件监听器
+  fabricNode1.on('moving', updateLinePosition)
+  fabricNode2.on('moving', updateLinePosition)
+
+  // 将更新函数保存到连线对象上，以便后续清理
+  line.updatePosition = updateLinePosition
+  line.sourceNode = fabricNode1
+  line.targetNode = fabricNode2
+
+  console.log(`🔗 创建连线: ${node1.id} -> ${node2.id} (${networkId})，已设置移动监听器`)
+}
+
+// 在连线上添加IP标签（用于防火墙）
+function addIPLabelOnConnection(fabricNode1, fabricNode2, ip, nodeId, networkId) {
+  // 计算连线中点
+  const midX = (fabricNode1.left + fabricNode2.left) / 2
+  const midY = (fabricNode1.top + fabricNode2.top) / 2
+
+  // 计算标签偏移（避免与连线重叠）
+  const angle = Math.atan2(fabricNode2.top - fabricNode1.top, fabricNode2.left - fabricNode1.left)
+  const offsetDistance = 15
+  const offsetX = Math.sin(angle) * offsetDistance
+  const offsetY = -Math.cos(angle) * offsetDistance
+
+  // 创建IP标签背景
+  const labelBg = new fabric.Rect({
+    left: midX + offsetX,
+    top: midY + offsetY,
+    width: ip.length * 6 + 8,
+    height: 16,
+    fill: 'rgba(0, 0, 0, 0.7)',
+    rx: 3,
+    ry: 3,
+    originX: 'center',
+    originY: 'center',
+    selectable: false,
+    evented: false,
+    labelType: 'ip-bg',
+    nodeId: nodeId
+  })
+
+  // 创建IP标签文本
+  const ipLabel = new fabric.Text(ip, {
+    left: midX + offsetX,
+    top: midY + offsetY,
+    fontSize: 9,
+    fill: '#ffffff',
+    textAlign: 'center',
+    originX: 'center',
+    originY: 'center',
+    selectable: false,
+    evented: false,
+    labelType: 'ip-on-connection',
+    nodeId: nodeId,
+    networkId: networkId
+  })
+
+  // 设置标签更新函数
+  const updateLabelPosition = () => {
+    const midX = (fabricNode1.left + fabricNode2.left) / 2
+    const midY = (fabricNode1.top + fabricNode2.top) / 2
+    const angle = Math.atan2(fabricNode2.top - fabricNode1.top, fabricNode2.left - fabricNode1.left)
+    const offsetX = Math.sin(angle) * offsetDistance
+    const offsetY = -Math.cos(angle) * offsetDistance
+
+    labelBg.set({
+      left: midX + offsetX,
+      top: midY + offsetY
+    })
+    ipLabel.set({
+      left: midX + offsetX,
+      top: midY + offsetY
+    })
+    labelBg.setCoords()
+    ipLabel.setCoords()
+  }
+
+  // 为两个节点添加移动事件监听器
+  fabricNode1.on('moving', updateLabelPosition)
+  fabricNode2.on('moving', updateLabelPosition)
+
+  // 将更新函数保存到标签对象上
+  labelBg.updatePosition = updateLabelPosition
+  ipLabel.updatePosition = updateLabelPosition
+  labelBg.sourceNode = fabricNode1
+  labelBg.targetNode = fabricNode2
+  ipLabel.sourceNode = fabricNode1
+  ipLabel.targetNode = fabricNode2
+
+  topology.canvas.add(labelBg)
+  topology.canvas.add(ipLabel)
+  console.log(`🏷️ 为防火墙 ${nodeId} 在 ${networkId} 网络添加IP标签: ${ip}，已设置移动监听器`)
+}
+
+// 辅助函数：获取连线的起点/终点
+function getConnectionPoint(fabricNode) {
+  return {
+    x: fabricNode.left,
+    y: fabricNode.top
+  }
+}
+
+// 辅助函数：根据网络类型获取虚线样式
+function getStrokeDashArray(networkId) {
+  const dashPatterns = {
+    'internet': [5, 5],
+    'dmz_segment': [],
+    'user_segment': [3, 3],
+    'server_segment': [],
+    'db_segment': [2, 2],
+    'medical_segment': [4, 2],
+    'siem_segment': [6, 2]
+  }
+  return dashPatterns[networkId] || []
+}
+
+// 更新连线位置（当节点移动时调用）
+function updateConnectionsForNode(nodeId) {
+  if (!topology || !topology.canvas) return
+
+  const canvas = topology.canvas
+  const allObjects = canvas.getObjects()
+  const fabricNode = findDeviceByScenarioId(nodeId)
+
+  if (!fabricNode) return
+
+  // 1. 更新场景模式的网络连线
+  const relatedConnections = allObjects.filter(obj =>
+    obj.connectionType === 'network' &&
+    (obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId)
+  )
+
+  relatedConnections.forEach(connection => {
+    const sourceNode = findDeviceByScenarioId(connection.sourceNodeId)
+    const targetNode = findDeviceByScenarioId(connection.targetNodeId)
+
+    if (sourceNode && targetNode) {
+      const startPoint = getConnectionPoint(sourceNode)
+      const endPoint = getConnectionPoint(targetNode)
+
+      connection.set({
+        x1: startPoint.x,
+        y1: startPoint.y,
+        x2: endPoint.x,
+        y2: endPoint.y
+      })
+      connection.setCoords()
+    }
+  })
+
+  // 2. 更新手动创建的连线
+  const manualConnections = allObjects.filter(obj =>
+    obj.type === 'line' && obj.connectionData &&
+    (obj.connectionData.source === nodeId || obj.connectionData.target === nodeId)
+  )
+
+  manualConnections.forEach(connection => {
+    const sourceNode = findDeviceByScenarioId(connection.connectionData.source)
+    const targetNode = findDeviceByScenarioId(connection.connectionData.target)
+
+    if (sourceNode && targetNode) {
+      connection.set({
+        x1: sourceNode.left,
+        y1: sourceNode.top,
+        x2: targetNode.left,
+        y2: targetNode.top
+      })
+      connection.setCoords()
+
+      // 更新连线上的标签
+      if (connection.labels) {
+        const midX = (sourceNode.left + targetNode.left) / 2
+        const midY = (sourceNode.top + targetNode.top) / 2
+        const angle = Math.atan2(targetNode.top - sourceNode.top, targetNode.left - sourceNode.left)
+        const offsetDistance = 15
+        const offsetX = Math.sin(angle) * offsetDistance
+        const offsetY = -Math.cos(angle) * offsetDistance
+
+        connection.labels.forEach(label => {
+          label.set({
+            left: midX + offsetX,
+            top: midY + offsetY
+          })
+          label.setCoords()
+        })
+      }
+    }
+  })
+
+  // 3. 更新相关的IP标签位置
+  updateIPLabelsForNode(nodeId)
+  canvas.renderAll()
+}
+
+// 更新节点的IP标签位置
+function updateIPLabelsForNode(nodeId) {
+  if (!topology || !topology.canvas) return
+
+  const canvas = topology.canvas
+  const allObjects = canvas.getObjects()
+  const fabricNode = findDeviceByScenarioId(nodeId)
+
+  if (!fabricNode) return
+
+  // 1. 更新节点下方的IP标签
+  const nodeIPLabels = allObjects.filter(obj => obj.nodeId === nodeId)
+
+  nodeIPLabels.forEach(label => {
+    if (label.labelType === 'ip') {
+      // 更新节点下方的IP标签
+      label.set({
+        left: fabricNode.left,
+        top: fabricNode.top + 55
+      })
+      label.setCoords()
+    }
+  })
+
+  // 2. 更新场景模式中防火墙连线上的IP标签
+  const networkConnections = allObjects.filter(obj =>
+    obj.connectionType === 'network' &&
+    (obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId)
+  )
+
+  networkConnections.forEach(connection => {
+    const sourceNode = findDeviceByScenarioId(connection.sourceNodeId)
+    const targetNode = findDeviceByScenarioId(connection.targetNodeId)
+
+    if (sourceNode && targetNode) {
+      // 查找与此连线相关的防火墙IP标签（场景模式使用的标签类型）
+      const connectionLabels = allObjects.filter(obj =>
+        (obj.labelType === 'ip-on-connection' || obj.labelType === 'ip-bg') &&
+        (obj.nodeId === connection.sourceNodeId || obj.nodeId === connection.targetNodeId)
+      )
+
+      if (connectionLabels.length > 0) {
+        const midX = (sourceNode.left + targetNode.left) / 2
+        const midY = (sourceNode.top + targetNode.top) / 2
+
+        const angle = Math.atan2(targetNode.top - sourceNode.top, targetNode.left - sourceNode.left)
+        const offsetDistance = 15
+        const offsetX = Math.sin(angle) * offsetDistance
+        const offsetY = -Math.cos(angle) * offsetDistance
+
+        connectionLabels.forEach(label => {
+          label.set({
+            left: midX + offsetX,
+            top: midY + offsetY
+          })
+          label.setCoords()
+        })
+      }
+    }
+  })
+
+  // 3. 更新手动创建连接线上的防火墙IP标签
+  const manualConnections = allObjects.filter(obj =>
+    obj.type === 'line' && obj.connectionData &&
+    (obj.connectionData.source === nodeId || obj.connectionData.target === nodeId)
+  )
+
+  manualConnections.forEach(connection => {
+    if (connection.labels) {
+      const sourceNode = findDeviceByScenarioId(connection.connectionData.source)
+      const targetNode = findDeviceByScenarioId(connection.connectionData.target)
+
+      if (sourceNode && targetNode) {
+        const midX = (sourceNode.left + targetNode.left) / 2
+        const midY = (sourceNode.top + targetNode.top) / 2
+
+        const angle = Math.atan2(targetNode.top - sourceNode.top, targetNode.left - sourceNode.left)
+        const offsetDistance = 15
+        const offsetX = Math.sin(angle) * offsetDistance
+        const offsetY = -Math.cos(angle) * offsetDistance
+
+        connection.labels.forEach(label => {
+          if (label.labelType === 'firewall-ip' || label.labelType === 'firewall-ip-bg') {
+            label.set({
+              left: midX + offsetX,
+              top: midY + offsetY
+            })
+            label.setCoords()
+          }
+        })
+      }
+    }
+  })
+}
+
+// 清除所有网络连线和IP标签
+function clearNetworkConnections() {
+  if (!topology || !topology.canvas) return
+
+  const canvas = topology.canvas
+  const allObjects = canvas.getObjects()
+
+  // 移除网络连线
+  const networkConnections = allObjects.filter(obj => obj.connectionType === 'network')
+  networkConnections.forEach(connection => {
+    canvas.remove(connection)
+  })
+
+  // 移除IP标签
+  const ipLabels = allObjects.filter(obj =>
+    obj.labelType === 'ip' ||
+    obj.labelType === 'ip-on-connection' ||
+    obj.labelType === 'ip-bg'
+  )
+  ipLabels.forEach(label => {
+    canvas.remove(label)
+  })
+
+  canvas.renderAll()
+  console.log('🧹 已清除所有网络连线和IP标签')
+}
+
+// 全局变量保存场景数据，避免重复生成
+window.globalScenarioData = null
+
+// 设置场景数据的函数
+window.setGlobalScenarioData = function (data) {
+  window.globalScenarioData = data
+  console.log('✅ 全局场景数据已设置，节点数量:', data?.topology?.nodes?.length || 0)
+  console.log('📊 场景数据概览:', {
+    nodes: data?.topology?.nodes?.length || 0,
+    networks: data?.topology?.networks?.length || 0,
+    connections: data?.topology?.connections?.length || 0
+  })
+}
+
+// 清除保存的场景数据（用于测试）
+window.clearSavedScenarioData = function () {
+  localStorage.removeItem('persistentScenarioData')
+  sessionStorage.removeItem('scenarioData')
+  window.globalScenarioData = null
+  console.log('🧹 已清除所有保存的场景数据')
+}
+
+// 获取场景数据的函数（优先级：全局 > 当前 > 空）
+window.getGlobalScenarioData = function () {
+  if (window.globalScenarioData) {
+    console.log('📦 使用全局场景数据')
+    return window.globalScenarioData
+  }
+
+  if (window.currentScenarioData?.data) {
+    console.log('📦 使用当前场景数据')
+    return window.currentScenarioData.data
+  }
+
+  console.log('❌ 没有可用的场景数据')
+  return null
+}
+
+// 便捷测试函数
+window.testNetworkRender = function () {
+  console.log('🧪 测试网络连线渲染...')
+
+  const scenarioData = window.getGlobalScenarioData()
+  if (!scenarioData) {
+    console.error('❌ 没有场景数据，请先调用场景智能体生成数据')
+    return
+  }
+
+  if (typeof window.renderNetworkConnections === 'function') {
+    window.renderNetworkConnections(scenarioData.topology)
+    console.log('✅ 网络连线渲染完成')
+  } else {
+    console.error('❌ renderNetworkConnections 函数不存在')
+  }
+}
+
 // 暴露函数到全局作用域以便调试
 window.renderScenarioTopology = renderScenarioTopology
+window.renderNetworkConnections = renderNetworkConnections
+window.updateConnectionsForNode = updateConnectionsForNode
+window.clearNetworkConnections = clearNetworkConnections
 window.mapNodeTypeToDeviceType = mapNodeTypeToDeviceType
 window.findDeviceByScenarioId = findDeviceByScenarioId
 
@@ -1978,8 +3767,14 @@ window.findDeviceByScenarioId = findDeviceByScenarioId
 function updateNodeScenarioStatus(nodeId, newStatus) {
   if (!topology) return
 
-  const node = topology.findNodeById(nodeId)
-  if (!node) return
+  // 使用现有的 findDeviceByScenarioId 函数查找节点
+  const node = findDeviceByScenarioId(nodeId)
+  if (!node) {
+    console.warn(`⚠️ 未找到节点: ${nodeId}`)
+    return
+  }
+
+  console.log(`🔄 更新节点状态: ${nodeId} -> ${newStatus}`)
 
   // 更新节点样式
   switch (newStatus) {
@@ -1992,6 +3787,10 @@ function updateNodeScenarioStatus(nodeId, newStatus) {
       })
       virtualNodes.value.delete(nodeId)
       runningNodes.value.add(nodeId)
+      // 强制触发Vue响应式更新
+      virtualNodes.value = new Set(virtualNodes.value)
+      runningNodes.value = new Set(runningNodes.value)
+      console.log(`✅ 节点 ${nodeId} 已设置为运行状态，添加到runningNodes`)
       break
     case 'starting':
       node.set({
@@ -2000,6 +3799,7 @@ function updateNodeScenarioStatus(nodeId, newStatus) {
         stroke: '#f39c12',
         strokeWidth: 3
       })
+      console.log(`🟡 节点 ${nodeId} 已设置为启动中状态`)
       break
     case 'stopped':
       node.set({
@@ -2009,6 +3809,9 @@ function updateNodeScenarioStatus(nodeId, newStatus) {
         strokeWidth: 2
       })
       runningNodes.value.delete(nodeId)
+      // 强制触发Vue响应式更新
+      runningNodes.value = new Set(runningNodes.value)
+      console.log(`🔴 节点 ${nodeId} 已设置为停止状态，从runningNodes移除`)
       break
     case 'virtual':
     default:
@@ -2020,21 +3823,139 @@ function updateNodeScenarioStatus(nodeId, newStatus) {
       })
       runningNodes.value.delete(nodeId)
       virtualNodes.value.add(nodeId)
+      // 强制触发Vue响应式更新
+      virtualNodes.value = new Set(virtualNodes.value)
+      runningNodes.value = new Set(runningNodes.value)
+      console.log(`⚪ 节点 ${nodeId} 已设置为虚拟状态，添加到virtualNodes`)
       break
   }
 
   // 更新节点状态数据
   if (node.nodeData) {
     node.nodeData.status = newStatus
+    if (node.nodeData.scenarioData) {
+      node.nodeData.scenarioData.status = newStatus
+    }
   }
 
   topology.canvas.requestRenderAll()
+
+  // 输出当前状态统计
+  console.log(`📊 状态更新后统计:`, {
+    runningNodes: Array.from(runningNodes.value),
+    virtualNodes: Array.from(virtualNodes.value),
+    nodeOpacity: node.opacity,
+    nodeStroke: node.stroke
+  })
 }
+
+// 调试函数：检查所有节点状态
+function debugAllNodeStatus() {
+  console.log('🔍 调试：检查所有节点状态')
+
+  if (!topology || !topology.canvas) {
+    console.log('❌ 拓扑图未初始化')
+    return
+  }
+
+  const allNodes = []
+  topology.canvas.forEachObject((obj) => {
+    if (obj.type === 'device' || obj.nodeData) {
+      const nodeId = obj.nodeData?.scenarioData?.id || obj.nodeData?.id || obj.id
+      allNodes.push({
+        nodeId,
+        name: obj.nodeData?.name,
+        opacity: obj.opacity,
+        stroke: obj.stroke,
+        status: obj.nodeData?.status,
+        scenarioStatus: obj.nodeData?.scenarioData?.status,
+        isInRunningNodes: runningNodes.value.has(nodeId),
+        isInVirtualNodes: virtualNodes.value.has(nodeId)
+      })
+    }
+  })
+
+  console.table(allNodes)
+  console.log('📊 集合状态:', {
+    runningNodes: Array.from(runningNodes.value),
+    virtualNodes: Array.from(virtualNodes.value)
+  })
+}
+
+// 调试函数：检查虚拟节点集合状态
+function debugVirtualNodes() {
+  console.log('🔍 虚拟节点集合调试信息:')
+  console.log('virtualNodes.size:', virtualNodes.value.size)
+  console.log('virtualNodes内容:', Array.from(virtualNodes.value))
+  console.log('runningNodes.size:', runningNodes.value.size)
+  console.log('runningNodes内容:', Array.from(runningNodes.value))
+
+  // 检查画布上的所有节点
+  const canvasNodes = []
+  if (topology && topology.canvas) {
+    topology.canvas.forEachObject((obj) => {
+      if (obj.type === 'device' || obj.nodeData) {
+        const nodeId = obj.nodeData?.scenarioData?.id || obj.nodeData?.id || obj.id
+        canvasNodes.push({
+          nodeId,
+          objectId: obj.id,
+          name: obj.nodeData?.name,
+          opacity: obj.opacity,
+          isInVirtualNodes: virtualNodes.value.has(nodeId),
+          isInRunningNodes: runningNodes.value.has(nodeId)
+        })
+      }
+    })
+  }
+
+  console.log('画布上的节点:', canvasNodes)
+  console.log('画布节点总数:', canvasNodes.length)
+  console.log('虚拟节点数量:', virtualNodes.value.size)
+  console.log('运行节点数量:', runningNodes.value.size)
+}
+
+// 将调试函数暴露到全局
+window.debugAllNodeStatus = debugAllNodeStatus
+window.debugVirtualNodes = debugVirtualNodes
+
 
 // 启用编辑模式
 function enableEditMode() {
   isEditMode.value = true
-  logInfo('系统', '已启用拓扑编辑模式')
+
+  // 使所有节点可拖拽移动
+  if (topology && topology.canvas) {
+    let deviceCount = 0
+    topology.canvas.forEachObject((obj) => {
+      // 检查是否为设备节点（包括各种可能的设备类型）
+      if (obj.type === 'device' ||
+        obj.deviceType ||
+        obj.nodeData ||
+        obj.deviceData ||
+        (obj.id && obj.id.includes('device'))) {
+
+        obj.set({
+          selectable: true,
+          moveable: true,
+          evented: true,
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false
+        })
+        deviceCount++
+        console.log(`✅ 设备 ${obj.id || obj.deviceData?.name || 'unknown'} 已设置为可编辑`)
+      }
+    })
+
+    // 确保画布允许选择
+    topology.canvas.selection = true
+    topology.canvas.requestRenderAll()
+
+    console.log(`📊 总共设置了 ${deviceCount} 个设备为可编辑状态`)
+  }
+
+  logInfo('系统', '已启用拓扑编辑模式，所有节点现在可以拖拽移动和选择')
 }
 
 // 禁用编辑模式
@@ -2048,34 +3969,241 @@ function disableEditMode() {
 
 // 删除选中的节点
 function deleteSelectedNode() {
-  if (!topology || !topology.getActiveObject()) {
+  if (!topology || !topology.canvas?.getActiveObject()) {
     logWarning('系统', '请先选择要删除的节点')
     return
   }
 
-  const selectedObject = topology.getActiveObject()
+  const selectedObject = topology.canvas.getActiveObject()
 
   if (selectedObject.type === 'device' || selectedObject.nodeData) {
-    const nodeId = selectedObject.nodeData?.id || selectedObject.id
+    // 优先使用scenarioData.id，这是我们添加节点时设置的ID
+    const nodeId = selectedObject.nodeData?.scenarioData?.id || selectedObject.nodeData?.id || selectedObject.id
+    const nodeName = selectedObject.nodeData?.name || nodeId
+
+    // 调试信息：删除前的状态
+    console.log('🗑️ 准备删除节点:', {
+      nodeId,
+      nodeName,
+      virtualNodesBefore: Array.from(virtualNodes.value),
+      runningNodesBefore: Array.from(runningNodes.value),
+      virtualNodesSize: virtualNodes.value.size,
+      isInVirtualNodes: virtualNodes.value.has(nodeId),
+      isInRunningNodes: runningNodes.value.has(nodeId),
+      selectedObjectData: {
+        id: selectedObject.id,
+        nodeDataId: selectedObject.nodeData?.id,
+        scenarioDataId: selectedObject.nodeData?.scenarioData?.id,
+        type: selectedObject.type
+      }
+    })
 
     // 确认删除
-    if (confirm(`确定要删除节点 "${selectedObject.nodeData?.name || nodeId}" 吗？`)) {
+    if (confirm(`确定要删除节点 "${nodeName}" 吗？`)) {
       // 删除相关连接
       deleteNodeConnections(nodeId)
 
-      // 删除节点
-      topology.canvas.remove(selectedObject)
+      // 删除节点相关的所有标签（名称标签和IP标签）
+      deleteNodeLabels(selectedObject)
+
+      // 删除与该节点相关的所有防火墙IP标签
+      deleteFirewallIPLabelsForNode(nodeId)
 
       // 从虚拟节点集合中移除
-      virtualNodes.value.delete(nodeId)
-      runningNodes.value.delete(nodeId)
+      console.log('🔍 删除前检查所有可能的节点ID:', {
+        nodeId,
+        selectedObjectId: selectedObject.id,
+        nodeDataId: selectedObject.nodeData?.id,
+        scenarioDataId: selectedObject.nodeData?.scenarioData?.id,
+        virtualNodesBeforeDelete: Array.from(virtualNodes.value),
+        runningNodesBeforeDelete: Array.from(runningNodes.value)
+      })
+
+      // 尝试所有可能的节点ID进行删除
+      const possibleIds = [
+        nodeId,
+        selectedObject.id,
+        selectedObject.nodeData?.id,
+        selectedObject.nodeData?.scenarioData?.id
+      ].filter(id => id) // 过滤掉undefined
+
+      let wasInVirtual = false
+      let wasInRunning = false
+
+      // 尝试删除所有可能的ID
+      possibleIds.forEach(id => {
+        if (virtualNodes.value.has(id)) {
+          virtualNodes.value.delete(id)
+          wasInVirtual = true
+          console.log(`✅ 从virtualNodes删除了ID: ${id}`)
+        }
+        if (runningNodes.value.has(id)) {
+          runningNodes.value.delete(id)
+          wasInRunning = true
+          console.log(`✅ 从runningNodes删除了ID: ${id}`)
+        }
+      })
+
+      // 强制触发Vue响应式更新
+      virtualNodes.value = new Set(virtualNodes.value)
+      runningNodes.value = new Set(runningNodes.value)
+
+      // 标记节点为已删除（防止在生成拓扑数据时被包含）
+      selectedObject._deleted = true
+      selectedObject.isDeleted = true
+
+      // 删除节点本身（在清理完数据后再删除）
+      topology.canvas.remove(selectedObject)
+
+      // 调试信息：删除后的状态
+      console.log('🗑️ 节点删除完成:', {
+        nodeId,
+        nodeName,
+        wasInVirtual,
+        wasInRunning,
+        possibleIds,
+        virtualNodesAfter: Array.from(virtualNodes.value),
+        runningNodesAfter: Array.from(runningNodes.value),
+        virtualNodesSizeAfter: virtualNodes.value.size
+      })
 
       topology.canvas.requestRenderAll()
-      logInfo('系统', `已删除节点: ${selectedObject.nodeData?.name || nodeId}`)
+      logInfo('系统', `已删除节点: ${nodeName}`)
     }
   } else {
     logWarning('系统', '选中的对象不是节点')
   }
+}
+
+// 删除节点的所有标签
+function deleteNodeLabels(fabricNode) {
+  if (!topology || !fabricNode) return
+
+  const nodeId = fabricNode.nodeData?.scenarioData?.id || fabricNode.nodeData?.id || fabricNode.id
+
+  // 查找并删除所有与该节点相关的标签
+  const labelsToRemove = []
+
+  topology.canvas.forEachObject((obj) => {
+    // 删除IP标签
+    if (obj.labelType === 'ip' && obj.nodeId === nodeId) {
+      labelsToRemove.push(obj)
+    }
+    // 删除名称标签（如果有的话）
+    if (obj.labelType === 'name' && obj.nodeId === nodeId) {
+      labelsToRemove.push(obj)
+    }
+    // 删除场景模式的防火墙IP标签
+    if ((obj.labelType === 'ip-on-connection' || obj.labelType === 'ip-bg') && obj.nodeId === nodeId) {
+      labelsToRemove.push(obj)
+    }
+    // 删除手动创建的防火墙IP标签
+    if ((obj.labelType === 'firewall-ip' || obj.labelType === 'firewall-ip-bg') && obj.nodeId === nodeId) {
+      labelsToRemove.push(obj)
+    }
+    // 删除Fabric.js自带的标签
+    if (obj.type === 'text' && obj.nodeId === nodeId) {
+      labelsToRemove.push(obj)
+    }
+    // 删除与节点绑定的标签（通过label属性）
+    if (fabricNode.label && obj === fabricNode.label) {
+      labelsToRemove.push(obj)
+    }
+  })
+
+  // 批量删除标签
+  labelsToRemove.forEach(label => {
+    topology.canvas.remove(label)
+  })
+
+  console.log(`🗑️ 已删除节点 ${nodeId} 的 ${labelsToRemove.length} 个标签`)
+}
+
+// 删除与节点相关的所有防火墙IP标签
+function deleteFirewallIPLabelsForNode(nodeId) {
+  if (!topology) return
+
+  const labelsToRemove = []
+
+  topology.canvas.forEachObject((obj) => {
+    // 删除所有类型的防火墙IP标签
+    const isFirewallIPLabel = (
+      (obj.type === 'text' && (obj.labelType === 'firewall-ip' || obj.labelType === 'ip-on-connection')) ||
+      (obj.type === 'rect' && (obj.labelType === 'firewall-ip-bg' || obj.labelType === 'ip-bg'))
+    )
+
+    if (isFirewallIPLabel) {
+      // 检查标签是否与要删除的节点相关
+      const isRelatedToNode = (
+        obj.nodeId === nodeId ||
+        obj.sourceNodeId === nodeId ||
+        obj.targetNodeId === nodeId ||
+        obj.connectionSourceId === nodeId ||
+        obj.connectionTargetId === nodeId
+      )
+
+      // 检查通过parentConnection关联的标签
+      if (!isRelatedToNode && obj.parentConnection && obj.parentConnection.connectionData) {
+        const connData = obj.parentConnection.connectionData
+        if (connData.source === nodeId || connData.target === nodeId) {
+          labelsToRemove.push(obj)
+          return
+        }
+      }
+
+      if (isRelatedToNode) {
+        labelsToRemove.push(obj)
+      }
+    }
+  })
+
+  // 批量删除防火墙IP标签
+  labelsToRemove.forEach(label => {
+    topology.canvas.remove(label)
+  })
+
+  if (labelsToRemove.length > 0) {
+    console.log(`🗑️ 已删除节点 ${nodeId} 相关的 ${labelsToRemove.length} 个防火墙IP标签`)
+  }
+}
+
+// 更新节点标签位置（只更新节点下方的标签，不包括连线上的IP标签）
+function updateNodeLabelsPosition(fabricNode) {
+  if (!topology || !fabricNode) return
+
+  const nodeId = fabricNode.nodeData?.scenarioData?.id || fabricNode.nodeData?.id || fabricNode.id
+
+  // 更新Fabric.js自带的标签（NetworkTopology创建的）
+  if (fabricNode.label) {
+    fabricNode.label.set({
+      left: fabricNode.left,
+      top: fabricNode.top + fabricNode.height / 2 + 20
+    })
+    fabricNode.label.setCoords()
+  }
+
+  // 更新所有与该节点相关的标签位置（只更新节点下方的标签）
+  topology.canvas.forEachObject((obj) => {
+    // 更新IP标签位置
+    if (obj.labelType === 'ip' && obj.nodeId === nodeId) {
+      obj.set({
+        left: fabricNode.left,
+        top: fabricNode.top + 55 // 节点下方
+      })
+      obj.setCoords()
+    }
+
+    // 更新名称标签位置
+    if (obj.labelType === 'name' && obj.nodeId === nodeId) {
+      obj.set({
+        left: fabricNode.left,
+        top: fabricNode.top + 35 // 节点下方，在IP标签上方
+      })
+      obj.setCoords()
+    }
+  })
+
+  // 注意：连线上的防火墙IP标签由updateConnectionsForNode函数处理，避免重复调用
 }
 
 // 删除节点的所有连接
@@ -2083,86 +4211,341 @@ function deleteNodeConnections(nodeId) {
   if (!topology) return
 
   const objectsToRemove = []
+  const fabricNode = findDeviceByScenarioId(nodeId)
 
-  topology.canvas.forEachObject((obj) => {
-    if (obj.type === 'line' && obj.connectionData) {
-      const connData = obj.connectionData
-      if (connData.source === nodeId || connData.target === nodeId) {
-        objectsToRemove.push(obj)
+  try {
+    // 1. 删除NetworkTopology原生连线
+    if (topology.connections && fabricNode) {
+      const connectionsToRemove = topology.connections.filter(conn =>
+        conn.source === fabricNode || conn.target === fabricNode
+      )
+
+      connectionsToRemove.forEach(conn => {
+        try {
+          // 删除连线及其相关标签
+          if (conn.firewallIPLabel) {
+            topology.canvas.remove(conn.firewallIPLabel)
+          }
+          if (conn.labels) {
+            conn.labels.forEach(label => topology.canvas.remove(label))
+          }
+          topology.canvas.remove(conn)
+
+          // 从connections数组中移除
+          const index = topology.connections.indexOf(conn)
+          if (index > -1) {
+            topology.connections.splice(index, 1)
+          }
+        } catch (error) {
+          console.warn('删除NetworkTopology连线时出错:', error)
+        }
+      })
+
+      if (connectionsToRemove.length > 0) {
+        console.log(`🗑️ 删除了 ${connectionsToRemove.length} 条NetworkTopology连线`)
       }
     }
-  })
 
-  objectsToRemove.forEach(obj => {
-    topology.canvas.remove(obj)
-  })
+    // 2. 删除场景模式的网络连线和手动创建的连线
+    topology.canvas.forEachObject((obj) => {
+      try {
+        // 删除有connectionData的连线（手动创建的）
+        if (obj.type === 'line' && obj.connectionData) {
+          const connData = obj.connectionData
+          if (connData.source === nodeId || connData.target === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
 
-  if (objectsToRemove.length > 0) {
-    logInfo('系统', `已删除 ${objectsToRemove.length} 条相关连接`)
+        // 删除网络连线（场景模式的）
+        if (obj.connectionType === 'network' &&
+          (obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId)) {
+          objectsToRemove.push(obj)
+        }
+
+        // 删除其他类型的连线
+        if (obj.type === 'connection') {
+          const sourceId = obj.source?.nodeData?.scenarioData?.id || obj.source?.nodeData?.id || obj.source?.id
+          const targetId = obj.target?.nodeData?.scenarioData?.id || obj.target?.nodeData?.id || obj.target?.id
+
+          if (sourceId === nodeId || targetId === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+
+        // 删除连线上的防火墙IP标签（手动创建的）
+        if (obj.type === 'text' && obj.labelType === 'firewall-ip') {
+          // 检查标签是否与要删除的节点相关
+          if (obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+
+        // 删除连线上的IP标签背景（手动创建的）
+        if (obj.type === 'rect' && obj.labelType === 'firewall-ip-bg') {
+          // 检查背景是否与要删除的节点相关
+          if (obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+
+        // 删除场景模式的防火墙IP标签
+        if (obj.type === 'text' && obj.labelType === 'ip-on-connection') {
+          // 检查标签是否与要删除的节点相关
+          if (obj.nodeId === nodeId || obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+
+        // 删除场景模式的IP标签背景
+        if (obj.type === 'rect' && obj.labelType === 'ip-bg') {
+          // 检查背景是否与要删除的节点相关
+          if (obj.nodeId === nodeId || obj.sourceNodeId === nodeId || obj.targetNodeId === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+
+        // 删除其他与节点相关的连线标签
+        if (obj.connectionSourceId === nodeId || obj.connectionTargetId === nodeId) {
+          objectsToRemove.push(obj)
+        }
+
+        // 删除通过parentConnection关联的标签
+        if (obj.parentConnection && obj.parentConnection.connectionData) {
+          const connData = obj.parentConnection.connectionData
+          if (connData.source === nodeId || connData.target === nodeId) {
+            objectsToRemove.push(obj)
+          }
+        }
+      } catch (error) {
+        console.warn('检查连线时出错:', error)
+      }
+    })
+
+    // 批量删除
+    objectsToRemove.forEach(obj => {
+      try {
+        topology.canvas.remove(obj)
+      } catch (error) {
+        console.warn('删除连线时出错:', error)
+      }
+    })
+
+    if (objectsToRemove.length > 0) {
+      logInfo('系统', `已删除 ${objectsToRemove.length} 条相关连接`)
+    }
+  } catch (error) {
+    console.error('删除节点连接时出错:', error)
+    logError('系统', `删除连接时出错: ${error.message}`)
   }
 }
 
 // 开始添加节点模式
 function startAddingNode(nodeType) {
+  console.log('🎯 开始添加节点模式:', nodeType)
+
+  // 先停止之前的添加模式（如果有）
+  if (isAddingNode.value) {
+    console.log('🔄 停止之前的添加模式')
+    stopAddingNode()
+  }
+
   isAddingNode.value = true
   selectedNodeType.value = nodeType
 
-  // 设置画布点击监听
-  topology.canvas.on('mouse:down', handleCanvasClickForAddNode)
+  // 确保拓扑图处于选择模式
+  topology.setMode('select')
+
+  // 延迟设置监听器，确保状态更新完成
+  setTimeout(() => {
+    console.log('⏰ 延迟设置监听器, isAddingNode:', isAddingNode.value)
+
+    if (!isAddingNode.value) {
+      console.log('❌ 状态已变化，取消设置监听器')
+      return
+    }
+
+    // 移除之前的监听器（如果存在）
+    topology.canvas.off('mouse:down', handleCanvasClickForAddNode)
+    topology.canvas.off('mouse:up', handleCanvasClickForAddNode)
+
+    // 尝试多种事件监听方式
+    topology.canvas.on('mouse:up', handleCanvasClickForAddNode)
+
+    // 同时在DOM元素上添加监听器作为备用
+    const canvasElement = topology.canvas.getElement()
+    if (canvasElement) {
+      canvasElement.addEventListener('click', handleDOMClickForAddNode)
+      console.log('✅ DOM点击监听器已设置')
+    }
+
+    console.log('✅ 画布点击监听器已设置 (mouse:up)')
+  }, 100)
 
   logInfo('系统', `开始添加 ${nodeType.name} 节点，请在画布上点击位置`)
 }
 
+// DOM点击处理函数
+async function handleDOMClickForAddNode(domEvent) {
+  console.log('🖱️ DOM点击事件触发:', domEvent)
+
+  if (!isAddingNode.value || !selectedNodeType.value) {
+    console.log('❌ 添加节点条件不满足，退出')
+    return
+  }
+
+  // 获取画布相对坐标
+  const rect = topology.canvas.getElement().getBoundingClientRect()
+  const x = domEvent.clientX - rect.left
+  const y = domEvent.clientY - rect.top
+
+  console.log('📍 DOM点击位置:', { x, y })
+
+  // 创建模拟的Fabric事件对象
+  const fabricEvent = {
+    e: domEvent,
+    target: null
+  }
+
+  // 设置指针位置
+  topology.canvas.setPointer({ x, y })
+
+  // 调用原始处理函数
+  await handleCanvasClickForAddNode(fabricEvent)
+}
+
 // 处理画布点击添加节点
-function handleCanvasClickForAddNode(event) {
-  if (!isAddingNode.value || !selectedNodeType.value) return
+async function handleCanvasClickForAddNode(event) {
+  console.log('🖱️ 画布点击事件触发:', {
+    isAddingNode: isAddingNode.value,
+    selectedNodeType: selectedNodeType.value,
+    target: event.target,
+    event: event
+  })
 
-  const pointer = topology.canvas.getPointer(event.e)
+  if (!isAddingNode.value || !selectedNodeType.value) {
+    console.log('❌ 添加节点条件不满足，退出')
+    return
+  }
 
-  // 创建新节点
+  // 如果点击的是现有设备，不创建新节点
+  if (event.target && (event.target.type === 'device' || event.target.nodeData)) {
+    console.log('🚫 点击了现有设备，不创建新节点')
+    return
+  }
+
+  // 获取点击位置
+  let pointer
+  if (event.e) {
+    pointer = topology.canvas.getPointer(event.e)
+  } else {
+    // 如果没有原始事件，使用当前鼠标位置
+    pointer = topology.canvas.getPointer()
+  }
+  console.log('📍 点击位置:', pointer)
+
+  // 创建新节点 - 使用 createDevice 方法
   const newNodeId = `node_${Date.now()}`
-  const newNode = topology.createNode(
-    selectedNodeType.value.type,
-    pointer.x,
-    pointer.y,
-    {
-      id: newNodeId,
-      name: `${selectedNodeType.value.name}_${Date.now()}`,
-      status: 'virtual',
-      fill: ScenarioDataService.getNodeColor(selectedNodeType.value.type),
-      stroke: '#bdc3c7',
-      strokeWidth: 2,
-      opacity: 0.5,
-      strokeDashArray: [5, 5]
-    }
-  )
+  const deviceType = mapNodeTypeToDeviceType(selectedNodeType.value.type)
 
-  // 添加到画布
-  topology.canvas.add(newNode)
+  // 增加该类型节点的计数器
+  nodeTypeCounters.value[selectedNodeType.value.type]++
+  const nodeNumber = nodeTypeCounters.value[selectedNodeType.value.type]
+
+  // 生成规范的节点名称
+  const nodeName = `${selectedNodeType.value.name}${nodeNumber}`
+
+  console.log(`🎯 在位置 (${pointer.x}, ${pointer.y}) 创建新节点:`, {
+    nodeType: selectedNodeType.value.type,
+    deviceType: deviceType,
+    nodeId: newNodeId,
+    nodeName: nodeName
+  })
+
+  const newNode = await topology.createDevice(deviceType, {
+    left: pointer.x,
+    top: pointer.y,
+    deviceData: {
+      id: newNodeId, // 设置节点数据的ID
+      name: nodeName,
+      ip: '192.168.1.100', // 默认IP，用户可以后续修改
+      description: `${selectedNodeType.value.name} - 手动添加`,
+      // 保存场景数据
+      scenarioData: {
+        id: newNodeId,
+        networks: ['default_network'],
+        ip_addresses: { 'default_network': '192.168.1.100' },
+        status: 'virtual',
+        type: selectedNodeType.value.type
+      }
+    }
+  })
+
+  // 确保Fabric.js对象也使用相同的ID
+  newNode.set('id', newNodeId)
+
+  // 设置半透明样式
+  newNode.set({
+    opacity: 0.5,
+    strokeDashArray: [5, 5],
+    stroke: '#bdc3c7',
+    selectable: true,  // 确保节点可选择
+    moveable: true,    // 确保节点可移动
+    evented: true      // 确保节点可响应事件
+  })
 
   // 添加到虚拟节点集合
   virtualNodes.value.add(newNodeId)
+  // 强制触发Vue响应式更新
+  virtualNodes.value = new Set(virtualNodes.value)
+
+  // 重新渲染画布
+  topology.canvas.requestRenderAll()
 
   // 结束添加模式
   stopAddingNode()
 
-  topology.canvas.requestRenderAll()
-  logInfo('系统', `已添加新节点: ${newNode.nodeData.name}`)
+  logInfo('系统', `已添加 ${selectedNodeType.value.name} 节点到位置 (${Math.round(pointer.x)}, ${Math.round(pointer.y)})`)
+  console.log('✅ 新节点创建成功:', newNode)
+
+
 }
+
+
 
 // 停止添加节点模式
 function stopAddingNode() {
+  console.log('🛑 stopAddingNode 被调用，调用栈:', new Error().stack)
+
   isAddingNode.value = false
   selectedNodeType.value = null
 
   // 移除画布点击监听
   topology.canvas.off('mouse:down', handleCanvasClickForAddNode)
+  topology.canvas.off('mouse:up', handleCanvasClickForAddNode)
+
+  // 移除DOM监听器
+  const canvasElement = topology.canvas.getElement()
+  if (canvasElement) {
+    canvasElement.removeEventListener('click', handleDOMClickForAddNode)
+    console.log('🛑 DOM点击监听器已移除')
+  }
+
+  console.log('🛑 画布点击监听器已移除')
 }
 
 // 开始连接节点模式
 function startConnectingNodes() {
   isConnectingNodes.value = true
   selectedNodeForConnection.value = null
+
+  // 禁用选中功能，避免与连接模式冲突
+  topology.canvas.selection = false
+  topology.canvas.forEachObject(obj => {
+    if (obj.type === 'device' || obj.nodeData) {
+      obj.selectable = false
+    }
+  })
 
   // 设置节点点击监听
   topology.canvas.on('mouse:down', handleNodeClickForConnection)
@@ -2175,14 +4558,18 @@ function handleNodeClickForConnection(event) {
   if (!isConnectingNodes.value) return
 
   const target = event.target
-  if (!target || (!target.nodeData && target.type !== 'device')) return
+  if (!target || (!target.nodeData && target.type !== 'device')) {
+    console.log('🔗 点击的不是设备节点:', target)
+    return
+  }
 
-  const nodeId = target.nodeData?.id || target.id
+  const nodeId = target.nodeData?.scenarioData?.id || target.nodeData?.id || target.id
+  console.log('🔗 点击节点进行连接:', { nodeId, target })
 
   if (!selectedNodeForConnection.value) {
     // 选择第一个节点
     selectedNodeForConnection.value = target
-    target.set({ stroke: '#f39c12', strokeWidth: 4 })
+    target.set({ stroke: '#e74c3c', strokeWidth: 4 })
     topology.canvas.requestRenderAll()
     logInfo('系统', `已选择第一个节点: ${target.nodeData?.name || nodeId}，请选择第二个节点`)
   } else {
@@ -2199,47 +4586,52 @@ function handleNodeClickForConnection(event) {
 
 // 创建节点间连接
 function createConnection(sourceNode, targetNode) {
-  const sourceId = sourceNode.nodeData?.id || sourceNode.id
-  const targetId = targetNode.nodeData?.id || targetNode.id
+  const sourceId = sourceNode.nodeData?.scenarioData?.id || sourceNode.nodeData?.id || sourceNode.id
+  const targetId = targetNode.nodeData?.scenarioData?.id || targetNode.nodeData?.id || targetNode.id
+
+  console.log('🔗 创建连接:', { sourceId, targetId, sourceNode, targetNode })
 
   // 检查是否已存在连接
   let connectionExists = false
-  topology.canvas.forEachObject((obj) => {
-    if (obj.type === 'line' && obj.connectionData) {
-      const connData = obj.connectionData
-      if ((connData.source === sourceId && connData.target === targetId) ||
-          (connData.source === targetId && connData.target === sourceId)) {
+
+  // 检查NetworkTopology的连接数组
+  if (topology.connections) {
+    topology.connections.forEach(conn => {
+      if ((conn.source === sourceNode && conn.target === targetNode) ||
+        (conn.source === targetNode && conn.target === sourceNode)) {
         connectionExists = true
       }
-    }
-  })
+    })
+  }
 
   if (connectionExists) {
     logWarning('系统', '节点间已存在连接')
     return
   }
 
-  // 创建连接线
-  const connection = topology.createConnection(
-    sourceNode,
-    targetNode,
-    {
-      stroke: '#95a5a6',
-      strokeWidth: 2,
-      opacity: 0.7,
-      connectionData: {
-        id: `${sourceId}-${targetId}`,
-        source: sourceId,
-        target: targetId,
-        type: 'ethernet'
-      }
+  try {
+    // 使用NetworkTopology的addConnection方法
+    const connection = topology.addConnection(sourceNode, targetNode, 'ethernet')
+
+    if (connection) {
+      // 为连接添加防火墙IP标签（如果其中一个节点是防火墙）
+      addFirewallIPLabelForConnection(sourceNode, targetNode, connection)
+
+      // 清理重复的防火墙IP标签和NetworkTopology自动生成的黄色标签
+      setTimeout(() => {
+        removeNetworkTopologyIPLabels()
+        cleanupDuplicateFirewallIPLabels()
+      }, 100)
+
+      logInfo('系统', `已创建连接: ${sourceNode.nodeData?.name || sourceId} -> ${targetNode.nodeData?.name || targetId}`)
+      console.log('✅ 连接创建成功:', connection)
+    } else {
+      logError('系统', '连接创建失败')
     }
-  )
-
-  topology.canvas.add(connection)
-  topology.canvas.requestRenderAll()
-
-  logInfo('系统', `已创建连接: ${sourceNode.nodeData?.name || sourceId} -> ${targetNode.nodeData?.name || targetId}`)
+  } catch (error) {
+    console.error('❌ 创建连接时出错:', error)
+    logError('系统', `创建连接失败: ${error.message}`)
+  }
 }
 
 // 停止连接节点模式
@@ -2257,8 +4649,470 @@ function stopConnectingNodes() {
     selectedNodeForConnection.value = null
   }
 
+  // 恢复选中功能
+  topology.canvas.selection = true
+  topology.canvas.forEachObject(obj => {
+    if (obj.type === 'device' || obj.nodeData) {
+      obj.selectable = true
+    }
+  })
+
   // 移除节点点击监听
   topology.canvas.off('mouse:down', handleNodeClickForConnection)
+
+  topology.canvas.requestRenderAll()
+}
+
+// 为连接添加防火墙IP标签
+function addFirewallIPLabelForConnection(sourceNode, targetNode, connection) {
+  // 检查哪个节点是防火墙
+  let firewallNode = null
+  let deviceNode = null
+
+  if (isFirewallNode(sourceNode)) {
+    firewallNode = sourceNode
+    deviceNode = targetNode
+  } else if (isFirewallNode(targetNode)) {
+    firewallNode = targetNode
+    deviceNode = sourceNode
+  }
+
+  // 如果没有防火墙节点，不添加IP标签
+  if (!firewallNode || !deviceNode) return
+
+  // 根据设备的网络段获取防火墙IP
+  const deviceNetwork = deviceNode.nodeData?.network
+  if (!deviceNetwork) {
+    console.warn(`⚠️ 设备节点 ${deviceNode.nodeData?.name || deviceNode.id} 没有设置网络段，无法确定防火墙IP`)
+    return
+  }
+
+  const firewallIP = getFirewallIPForNetwork(deviceNetwork)
+  if (!firewallIP) {
+    console.warn(`⚠️ 网络段 ${deviceNetwork} 没有对应的防火墙IP`)
+    return
+  }
+
+  console.log(`🔥 为防火墙连接添加IP标签: ${firewallIP} (网络段: ${deviceNetwork})`)
+
+  // 在连接线上添加防火墙IP标签
+  const midX = (sourceNode.left + targetNode.left) / 2
+  const midY = (sourceNode.top + targetNode.top) / 2
+
+  // 计算偏移位置
+  const angle = Math.atan2(targetNode.top - sourceNode.top, targetNode.left - sourceNode.left)
+  const offsetDistance = 15
+  const offsetX = Math.sin(angle) * offsetDistance
+  const offsetY = -Math.cos(angle) * offsetDistance
+
+  // 获取节点ID用于标签关联
+  const sourceNodeId = sourceNode.nodeData?.scenarioData?.id || sourceNode.nodeData?.id || sourceNode.id
+  const targetNodeId = targetNode.nodeData?.scenarioData?.id || targetNode.nodeData?.id || targetNode.id
+
+  // 创建IP标签背景
+  const labelBg = new fabric.Rect({
+    left: midX + offsetX,
+    top: midY + offsetY,
+    width: firewallIP.length * 6 + 8,
+    height: 16,
+    fill: 'rgba(0, 0, 0, 0.7)',
+    rx: 3,
+    ry: 3,
+    originX: 'center',
+    originY: 'center',
+    selectable: false,
+    evented: false,
+    labelType: 'firewall-ip-bg',
+    connectionId: connection.connectionData?.id,
+    sourceNodeId: sourceNodeId,
+    targetNodeId: targetNodeId,
+    // 绑定到连接线
+    parentConnection: connection
+  })
+
+  // 创建IP标签文本
+  const ipLabel = new fabric.Text(firewallIP, {
+    left: midX + offsetX,
+    top: midY + offsetY,
+    fontSize: 9,
+    fill: '#ffffff',
+    textAlign: 'center',
+    originX: 'center',
+    originY: 'center',
+    selectable: false,
+    evented: false,
+    labelType: 'firewall-ip',
+    connectionId: connection.connectionData?.id,
+    sourceNodeId: sourceNodeId,
+    targetNodeId: targetNodeId,
+    // 绑定到连接线
+    parentConnection: connection
+  })
+
+  // 设置标签移动监听器
+  const updateLabelPosition = () => {
+    const midX = (sourceNode.left + targetNode.left) / 2
+    const midY = (sourceNode.top + targetNode.top) / 2
+    const angle = Math.atan2(targetNode.top - sourceNode.top, targetNode.left - sourceNode.left)
+    const offsetDistance = 15
+    const offsetX = Math.sin(angle) * offsetDistance
+    const offsetY = -Math.cos(angle) * offsetDistance
+
+    labelBg.set({
+      left: midX + offsetX,
+      top: midY + offsetY
+    })
+    labelBg.setCoords()
+
+    ipLabel.set({
+      left: midX + offsetX,
+      top: midY + offsetY
+    })
+    ipLabel.setCoords()
+
+    topology.canvas.requestRenderAll()
+  }
+
+  // 为两个节点添加移动事件监听器
+  sourceNode.on('moving', updateLabelPosition)
+  targetNode.on('moving', updateLabelPosition)
+
+  // 将更新函数保存到标签对象上，便于后续清理
+  labelBg.updatePosition = updateLabelPosition
+  ipLabel.updatePosition = updateLabelPosition
+  labelBg.sourceNode = sourceNode
+  labelBg.targetNode = targetNode
+  ipLabel.sourceNode = sourceNode
+  ipLabel.targetNode = targetNode
+
+  topology.canvas.add(labelBg)
+  topology.canvas.add(ipLabel)
+
+  // 将标签引用保存到连接线上
+  if (!connection.labels) {
+    connection.labels = []
+  }
+  connection.labels.push(labelBg, ipLabel)
+
+  console.log(`🏷️ 为连接添加防火墙IP标签: ${firewallIP}，已设置移动监听器`)
+}
+
+// 清理所有黄色的NetworkTopology自动生成的IP标签
+function removeNetworkTopologyIPLabels() {
+  if (!topology) return
+
+  const labelsToRemove = []
+
+  topology.canvas.forEachObject((obj) => {
+    // 删除NetworkTopology自动生成的黄色IP标签
+    if (obj.type === 'text' && obj.fill === '#ffcc00' && obj.backgroundColor === 'rgba(0,0,0,0.5)') {
+      labelsToRemove.push(obj)
+    }
+  })
+
+  labelsToRemove.forEach(label => {
+    topology.canvas.remove(label)
+  })
+
+  if (labelsToRemove.length > 0) {
+    console.log(`🧹 已清理 ${labelsToRemove.length} 个NetworkTopology自动生成的黄色IP标签`)
+    topology.canvas.requestRenderAll()
+  }
+}
+
+// 清理重复的防火墙IP标签
+function cleanupDuplicateFirewallIPLabels() {
+  if (!topology) return
+
+  const allLabels = topology.canvas.getObjects().filter(obj =>
+    obj.labelType === 'firewall-ip' || obj.labelType === 'ip-on-connection'
+  )
+
+  const labelGroups = new Map()
+
+  // 按连接分组标签
+  allLabels.forEach(label => {
+    const sourceId = label.sourceNodeId
+    const targetId = label.targetNodeId
+
+    if (sourceId && targetId) {
+      const key = [sourceId, targetId].sort().join('-')
+      if (!labelGroups.has(key)) {
+        labelGroups.set(key, [])
+      }
+      labelGroups.get(key).push(label)
+    }
+  })
+
+  // 删除重复的标签，保留手动创建的白色标签（firewall-ip）
+  let removedCount = 0
+  labelGroups.forEach((labels, key) => {
+    if (labels.length > 1) {
+      // 优先保留手动创建的白色标签
+      const manualLabels = labels.filter(l => l.labelType === 'firewall-ip')
+      const sceneLabels = labels.filter(l => l.labelType === 'ip-on-connection')
+
+      if (manualLabels.length > 0 && sceneLabels.length > 0) {
+        // 删除场景标签（黄色），保留手动标签（白色）
+        sceneLabels.forEach(label => {
+          // 同时删除对应的背景标签
+          const bgLabel = topology.canvas.getObjects().find(obj =>
+            obj.labelType === 'ip-bg' &&
+            obj.sourceNodeId === label.sourceNodeId &&
+            obj.targetNodeId === label.targetNodeId
+          )
+          if (bgLabel) {
+            topology.canvas.remove(bgLabel)
+            removedCount++
+          }
+          topology.canvas.remove(label)
+          removedCount++
+        })
+      } else if (labels.length > 2) {
+        // 如果有多个同类型标签，保留第一个
+        labels.slice(1).forEach(label => {
+          topology.canvas.remove(label)
+          removedCount++
+        })
+      }
+    }
+  })
+
+  if (removedCount > 0) {
+    console.log(`🧹 已清理 ${removedCount} 个重复的防火墙IP标签`)
+    topology.canvas.requestRenderAll()
+  }
+}
+
+// 检查节点是否为防火墙
+function isFirewallNode(node) {
+  return node.nodeData?.type === 'firewall' ||
+    node.deviceType === 'firewall' ||
+    (node.nodeData?.id && node.nodeData.id.includes('firewall'))
+}
+
+// 根据网络段获取防火墙IP
+function getFirewallIPForNetwork(networkId) {
+  const firewallIPs = {
+    'dmz_segment': '172.16.100.254',
+    'server_segment': '192.168.200.254',
+    'user_segment': '192.168.100.254',
+    'db_segment': '192.168.214.254',
+    'medical_segment': '192.168.101.254'
+  }
+  return firewallIPs[networkId] || null
+}
+
+// 编辑选中节点的IP
+function editSelectedNodeIP() {
+  const activeObject = topology.canvas.getActiveObject()
+  if (!activeObject || (!activeObject.nodeData && activeObject.type !== 'device')) {
+    logWarning('系统', '请先选择一个节点')
+    return
+  }
+
+  const nodeData = activeObject.nodeData || activeObject
+  editingNode.value = {
+    id: nodeData.id || activeObject.id,
+    name: nodeData.name || activeObject.id || '未命名节点',
+    ip: nodeData.ip || '',
+    network: nodeData.network || ''
+  }
+
+  showIPDialog.value = true
+}
+
+// 保存节点IP设置
+function saveNodeIP() {
+  // 验证节点名称
+  if (!editingNode.value.name || editingNode.value.name.trim() === '') {
+    logWarning('系统', '请输入节点名称')
+    return
+  }
+
+  if (!editingNode.value.ip) {
+    logWarning('系统', '请输入IP地址')
+    return
+  }
+
+  // IP地址格式验证
+  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/
+  if (!ipRegex.test(editingNode.value.ip)) {
+    logWarning('系统', 'IP地址格式不正确')
+    return
+  }
+
+  const activeObject = topology.canvas.getActiveObject()
+  if (activeObject) {
+    const oldName = activeObject.nodeData?.name || activeObject.id || '未命名节点'
+    const newName = editingNode.value.name.trim()
+
+    // 更新节点数据
+    if (activeObject.nodeData) {
+      activeObject.nodeData.name = newName
+      activeObject.nodeData.ip = editingNode.value.ip
+      activeObject.nodeData.network = editingNode.value.network
+    } else {
+      // 为新添加的节点创建nodeData
+      activeObject.nodeData = {
+        id: activeObject.id,
+        name: newName,
+        ip: editingNode.value.ip,
+        network: editingNode.value.network,
+        type: activeObject.deviceType || 'workstation'
+      }
+    }
+
+    // 更新节点显示名称
+    updateNodeDisplayName(activeObject, newName)
+
+    // 更新或创建IP标签
+    updateNodeIPLabel(activeObject)
+
+    // 记录更新日志
+    if (oldName !== newName) {
+      logSuccess('系统', `节点名称已从 "${oldName}" 更新为 "${newName}"`)
+    }
+    logInfo('系统', `已更新节点 ${newName} 的IP: ${editingNode.value.ip}`)
+  }
+
+  closeIPDialog()
+}
+
+// 更新节点显示名称
+function updateNodeDisplayName(fabricNode, newName) {
+  if (!topology || !fabricNode) return
+
+  const nodeId = fabricNode.nodeData?.scenarioData?.id || fabricNode.nodeData?.id || fabricNode.id
+
+  // 1. 更新Fabric.js自带的标签（NetworkTopology创建的）
+  if (fabricNode.label) {
+    fabricNode.label.set('text', newName)
+    fabricNode.label.setCoords()
+  }
+
+  // 2. 查找并更新所有与该节点相关的名称标签
+  const labelsToUpdate = []
+
+  topology.canvas.forEachObject((obj) => {
+    // 更新名称标签
+    if (obj.labelType === 'name' && obj.nodeId === nodeId) {
+      labelsToUpdate.push(obj)
+    }
+    // 更新Fabric.js自带的文本标签
+    if (obj.type === 'text' && obj.nodeId === nodeId && !obj.labelType) {
+      labelsToUpdate.push(obj)
+    }
+  })
+
+  // 批量更新标签文本
+  labelsToUpdate.forEach(label => {
+    label.set('text', newName)
+    label.setCoords()
+  })
+
+  // 3. 如果没有找到名称标签，创建一个新的
+  if (labelsToUpdate.length === 0 && !fabricNode.label) {
+    const nameLabel = new fabric.Text(newName, {
+      left: fabricNode.left,
+      top: fabricNode.top + fabricNode.height / 2 + 35, // 在IP标签下方
+      fontSize: 10,
+      fill: '#ffffff',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'top',
+      selectable: false,
+      evented: false,
+      nodeId: nodeId,
+      labelType: 'name'
+    })
+
+    // 设置名称标签跟随节点移动
+    const updateNameLabelPosition = () => {
+      nameLabel.set({
+        left: fabricNode.left,
+        top: fabricNode.top + fabricNode.height / 2 + 35
+      })
+      nameLabel.setCoords()
+    }
+
+    // 为节点添加移动事件监听器
+    fabricNode.on('moving', updateNameLabelPosition)
+
+    // 将更新函数保存到标签对象上
+    nameLabel.updatePosition = updateNameLabelPosition
+    nameLabel.parentNode = fabricNode
+
+    topology.canvas.add(nameLabel)
+    console.log(`📝 为节点 ${nodeId} 创建新的名称标签: ${newName}`)
+  }
+
+  topology.canvas.requestRenderAll()
+  console.log(`📝 已更新节点 ${nodeId} 的显示名称为: ${newName}`)
+}
+
+// 关闭IP设置对话框
+function closeIPDialog() {
+  showIPDialog.value = false
+  editingNode.value = {
+    id: null,
+    name: '',
+    ip: '',
+    network: ''
+  }
+}
+
+// 更新节点IP标签
+function updateNodeIPLabel(fabricNode) {
+  const nodeId = fabricNode.nodeData?.scenarioData?.id || fabricNode.nodeData?.id || fabricNode.id
+
+  // 移除旧的IP标签
+  const existingLabels = topology.canvas.getObjects().filter(obj =>
+    obj.labelType === 'ip' && obj.nodeId === nodeId
+  )
+  existingLabels.forEach(label => topology.canvas.remove(label))
+
+  // 创建新的IP标签
+  if (fabricNode.nodeData?.ip) {
+    const ipLabel = new fabric.Text(fabricNode.nodeData.ip, {
+      left: fabricNode.left,
+      top: fabricNode.top + 55,
+      fontSize: 10,
+      fill: '#ffffff',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'top',
+      selectable: false,
+      evented: false,
+      nodeId: nodeId,
+      labelType: 'ip',
+      // 绑定到父节点，确保一起移动
+      parentNode: fabricNode
+    })
+
+    // 设置IP标签跟随节点移动
+    const updateIPLabelPosition = () => {
+      ipLabel.set({
+        left: fabricNode.left,
+        top: fabricNode.top + 55
+      })
+      ipLabel.setCoords()
+    }
+
+    // 为节点添加移动事件监听器
+    fabricNode.on('moving', updateIPLabelPosition)
+
+    // 将更新函数保存到标签对象上
+    ipLabel.updatePosition = updateIPLabelPosition
+
+    topology.canvas.add(ipLabel)
+
+    // 将标签引用保存到节点上
+    if (!fabricNode.labels) {
+      fabricNode.labels = []
+    }
+    fabricNode.labels.push(ipLabel)
+  }
 
   topology.canvas.requestRenderAll()
 }
@@ -2268,40 +5122,564 @@ async function deployScenarioContainers() {
   try {
     logInfo('系统', '开始部署场景容器...')
 
-    // 调用后端启动apt-ready场景
-    const containerInfo = await TopologyService.startTopology('apt-ready')
+    // 1. 检查是否有场景数据
+    if (!scenarioData.value) {
+      logWarning('系统', '没有场景数据，请先生成场景')
+      return
+    }
 
-    if (containerInfo && containerInfo.running_services) {
-      // 更新节点状态为运行中
-      containerInfo.running_services.forEach(service => {
-        updateNodeScenarioStatus(service.name, 'running')
-        logInfo('系统', `容器 ${service.name} 已启动`)
-      })
+    // 2. 收集当前拓扑图中的所有虚拟节点
+    const virtualNodesList = Array.from(virtualNodes.value)
+    console.log('🔍 发现虚拟节点:', virtualNodesList)
+    console.log('🔍 虚拟节点集合大小:', virtualNodes.value.size)
 
-      // 更新失败的服务
-      if (containerInfo.failed_services) {
-        containerInfo.failed_services.forEach(service => {
-          updateNodeScenarioStatus(service.name, 'stopped')
-          logWarning('系统', `容器 ${service.name} 启动失败`)
-        })
+    // 3. 如果没有虚拟节点，从场景数据中获取所有节点
+    let nodesToDeploy = virtualNodesList
+    if (nodesToDeploy.length === 0 && scenarioData.value.nodes) {
+      nodesToDeploy = scenarioData.value.nodes
+        .filter(node => node.status === 'virtual')
+        .map(node => node.id)
+      console.log('📋 从场景数据中获取虚拟节点:', nodesToDeploy)
+    }
+
+    if (nodesToDeploy.length === 0) {
+      logWarning('系统', '没有发现需要部署的虚拟节点')
+      return
+    }
+
+    // 4. 为每个节点设置启动状态
+    nodesToDeploy.forEach(nodeId => {
+      updateNodeScenarioStatus(nodeId, 'starting')
+    })
+
+    // 5. 直接启动apt-ready.yml文件（已经生成好的）
+    const containerInfo = await TopologyService.deployAptReadyScenario()
+
+    // 处理场景智能体返回的数据
+    console.log('🔍 容器部署响应:', containerInfo)
+
+    if (containerInfo && containerInfo.status === 'success') {
+      const deploymentData = containerInfo.data
+
+      // 将所有场景中的虚拟节点标记为运行中
+      if (scenarioData.value && scenarioData.value.nodes) {
+        const deployedCount = scenarioData.value.nodes.filter(node => {
+          if (node.status === 'virtual') {
+            updateNodeScenarioStatus(node.id, 'running')
+            logInfo('系统', `节点 ${node.id} 已启动`)
+            return true
+          }
+          return false
+        }).length
+
+        logSuccess('系统', `apt-ready场景容器部署完成，${deployedCount} 个节点已启动`)
+      } else {
+        // 如果没有场景数据，尝试从部署响应中获取信息
+        if (deploymentData && deploymentData.running_services) {
+          deploymentData.running_services.forEach(service => {
+            // 根据服务名映射到节点ID
+            const nodeId = mapServiceNameToNodeId(service.name)
+            if (nodeId) {
+              updateNodeScenarioStatus(nodeId, 'running')
+              logInfo('系统', `容器 ${service.name} (节点: ${nodeId}) 已启动`)
+            }
+          })
+          logSuccess('系统', `场景容器部署完成，${deploymentData.running_services.length} 个容器运行中`)
+        } else {
+          logSuccess('系统', 'apt-ready场景容器部署完成')
+        }
       }
-
-      logSuccess('系统', `场景容器部署完成，${containerInfo.running_services.length} 个容器运行中`)
     } else {
-      throw new Error('容器启动失败，未返回有效信息')
+      throw new Error(containerInfo?.message || '容器启动失败，未返回有效信息')
     }
 
   } catch (error) {
     console.error('部署场景容器失败:', error)
     logError('系统', `容器部署失败: ${error.message}`)
+
+    // 将所有启动中的节点状态重置为虚拟状态
+    const virtualNodesList = Array.from(virtualNodes.value)
+    virtualNodesList.forEach(nodeId => {
+      updateNodeScenarioStatus(nodeId, 'virtual')
+    })
+
     throw error
   }
 }
 
-// 创建预设拓扑图（普通模式）
-async function createPresetTopology() {
-  await TopologyGenerator.createCompanyTopology(topology, true)
-  logInfo('系统', '预设拓扑图创建完成')
+// 生成拓扑数据用于场景智能体
+function generateTopologyDataForScenario() {
+  if (!topology || !topology.canvas) {
+    console.error('❌ 拓扑图未初始化')
+    return null
+  }
+
+  const devices = topology.canvas.getObjects().filter(obj => obj.type === 'device')
+  const nodes = []
+
+  console.log('🔍 生成拓扑数据 - 当前画布设备数量:', devices.length)
+  console.log('🔍 生成拓扑数据 - 当前虚拟节点:', Array.from(virtualNodes.value))
+  const networks = [
+    { id: 'internet', name: 'Internet', subnet: '199.203.100.0/24' },
+    { id: 'dmz_segment', name: 'DMZ', subnet: '172.16.100.0/24' },
+    { id: 'user_segment', name: 'User', subnet: '192.168.100.0/24' },
+    { id: 'server_segment', name: 'Server', subnet: '192.168.200.0/24' },
+    { id: 'db_segment', name: 'Database', subnet: '192.168.214.0/24' },
+    { id: 'medical_segment', name: 'Medical', subnet: '192.168.101.0/24' },
+    { id: 'siem_segment', name: 'SIEM', subnet: '192.168.66.0/24' }
+  ]
+
+  // 为每个虚拟节点生成节点数据
+  devices.forEach(device => {
+    const deviceData = device.nodeData || device.deviceData || {}
+    const nodeId = deviceData.scenarioData?.id || deviceData.id || device.id
+
+    // 检查所有可能的节点ID
+    const possibleIds = [
+      nodeId,
+      device.id,
+      deviceData.id,
+      deviceData.scenarioData?.id
+    ].filter(id => id)
+
+    // 只处理虚拟节点 - 检查所有可能的ID
+    const isVirtualNode = possibleIds.some(id => virtualNodes.value.has(id))
+    if (!isVirtualNode) {
+      console.log(`🚫 跳过非虚拟节点: ${nodeId} (可能的ID: ${possibleIds.join(', ')})`)
+      return
+    }
+
+    // 额外验证：确保节点确实存在于画布上且未被标记为删除
+    if (device._deleted || device.isDeleted) {
+      console.log(`🚫 跳过已删除的节点: ${nodeId}`)
+      return
+    }
+
+    const ip = deviceData.ip || '192.168.1.100'
+    const networkSegment = determineNetworkSegment(ip)
+
+    nodes.push({
+      id: nodeId,
+      name: deviceData.name || nodeId,
+      type: device.deviceType || 'workstation',
+      networks: [networkSegment],
+      ip_addresses: {
+        [networkSegment]: ip
+      },
+      status: 'virtual'
+    })
+
+    console.log(`📦 添加节点: ${nodeId} -> ${ip} (${networkSegment})`)
+  })
+
+  return {
+    nodes: nodes,
+    networks: networks,
+    metadata: {
+      scenario: 'dynamic-deployment',
+      description: '动态部署场景',
+      nodeCount: nodes.length,
+      networkCount: networks.length
+    }
+  }
+}
+
+// 生成动态场景配置（保留用于备用）
+function generateDynamicScenarioConfig() {
+  if (!topology || !topology.canvas) {
+    console.error('❌ 拓扑图未初始化')
+    return null
+  }
+
+  const devices = topology.canvas.getObjects().filter(obj => obj.type === 'device')
+  const services = {}
+  const networks = {
+    'internet': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '199.203.100.0/24', gateway: '199.203.100.1' }]
+      }
+    },
+    'dmz_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '172.16.100.0/24', gateway: '172.16.100.1' }]
+      }
+    },
+    'user_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '192.168.100.0/24', gateway: '192.168.100.1' }]
+      }
+    },
+    'server_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '192.168.200.0/24', gateway: '192.168.200.1' }]
+      }
+    },
+    'db_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '192.168.214.0/24', gateway: '192.168.214.1' }]
+      }
+    },
+    'medical_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '192.168.101.0/24', gateway: '192.168.101.1' }]
+      }
+    },
+    'siem_segment': {
+      driver: 'bridge',
+      ipam: {
+        config: [{ subnet: '192.168.66.0/24', gateway: '192.168.66.1' }]
+      }
+    }
+  }
+
+  // 为每个设备生成服务配置
+  devices.forEach(device => {
+    const deviceData = device.nodeData || device.deviceData || {}
+    const scenarioData = deviceData.scenarioData || {}
+    const nodeId = deviceData.id || scenarioData.id || device.id
+
+    console.log(`🔍 检查设备: ${nodeId}, 虚拟节点集合包含: ${virtualNodes.value.has(nodeId)}`)
+
+    // 只处理虚拟节点
+    if (!virtualNodes.value.has(nodeId)) {
+      console.log(`⏭️ 跳过非虚拟节点: ${nodeId}`)
+      return
+    }
+
+    const serviceName = generateServiceName(nodeId, device.deviceType)
+    const ip = deviceData.ip || '192.168.1.100'
+    const networkSegment = determineNetworkSegment(ip)
+
+    // 保存服务名到节点ID的映射
+    serviceToNodeMap.value.set(serviceName, nodeId)
+
+    services[serviceName] = {
+      build: `../images/${getDockerImageName(device.deviceType)}`,
+      container_name: serviceName,
+      environment: generateEnvironmentVars(deviceData, device.deviceType),
+      networks: {
+        [networkSegment]: {
+          ipv4_address: ip
+        }
+      }
+    }
+
+    console.log(`📦 生成服务配置: ${serviceName} -> ${ip} (${networkSegment})`)
+    console.log(`🗺️ 映射: ${serviceName} -> ${nodeId}`)
+  })
+
+  return {
+    version: '3.8',
+    services: services,
+    networks: networks
+  }
+}
+
+// 生成服务名称
+function generateServiceName(nodeId, deviceType) {
+  // 移除特殊字符，确保符合Docker服务名规范
+  const cleanNodeId = nodeId.replace(/[^a-zA-Z0-9-_]/g, '-')
+  return `${cleanNodeId}-${Date.now()}`
+}
+
+// 根据IP地址确定网络段
+function determineNetworkSegment(ip) {
+  if (ip.startsWith('199.203.100.')) return 'internet'
+  if (ip.startsWith('172.16.100.')) return 'dmz_segment'
+  if (ip.startsWith('192.168.100.')) return 'user_segment'
+  if (ip.startsWith('192.168.200.')) return 'server_segment'
+  if (ip.startsWith('192.168.214.')) return 'db_segment'
+  if (ip.startsWith('192.168.101.')) return 'medical_segment'
+  if (ip.startsWith('192.168.66.')) return 'siem_segment'
+  return 'user_segment' // 默认网段
+}
+
+// 获取Docker镜像名称
+function getDockerImageName(deviceType) {
+  const imageMap = {
+    'firewall': 'fw',
+    'web_server': 'ws-apache',
+    'database': 'db-mysql',
+    'workstation': 'ws-ubuntu',
+    'server': 'srv-ubuntu',
+    'attacker': 'attack-node'
+  }
+  return imageMap[deviceType] || 'ws-ubuntu'
+}
+
+// 生成环境变量
+function generateEnvironmentVars(deviceData, deviceType) {
+  const baseEnv = {
+    COMPANY: 'ACME_CORP',
+    USERNAME: 'admin',
+    PASSWORD: 'admin123',
+    DEPARTMENT: '信息技术部',
+    ROLE: '系统管理员',
+    HOST_TYPE: deviceType.toUpperCase(),
+    EMAIL: 'admin@acmecorp.com'
+  }
+
+  // 根据设备类型添加特定环境变量
+  if (deviceType === 'database') {
+    baseEnv.MYSQL_ROOT_PASSWORD = 'root123'
+    baseEnv.MYSQL_DATABASE = 'company_db'
+  }
+
+  return Object.entries(baseEnv).map(([key, value]) => `${key}=${value}`)
+}
+
+// 服务名到节点ID的映射
+function mapServiceNameToNodeId(serviceName) {
+  // 首先尝试从映射表中获取
+  if (serviceToNodeMap.value.has(serviceName)) {
+    return serviceToNodeMap.value.get(serviceName)
+  }
+
+  // 如果映射表中没有，尝试从服务名中提取节点ID（移除时间戳后缀）
+  const match = serviceName.match(/^(.+)-\d+$/)
+  if (match) {
+    return match[1] // 保持原始格式
+  }
+  return serviceName
+}
+
+// 从当前拓扑图创建简化的场景数据（用于优化连线）
+function createSimplifiedScenarioFromTopology() {
+  if (!topology || !topology.canvas) {
+    console.error('❌ 拓扑图未初始化')
+    return null
+  }
+
+  const devices = topology.canvas.getObjects().filter(obj => obj.type === 'device')
+  console.log(`📊 从拓扑图中找到 ${devices.length} 个设备`)
+
+  const nodes = []
+  const networks = [
+    { id: 'internet', name: 'Internet', subnet: '199.203.100.0/24' },
+    { id: 'dmz_segment', name: 'DMZ', subnet: '172.16.100.0/24' },
+    { id: 'user_segment', name: 'User', subnet: '192.168.100.0/24' },
+    { id: 'server_segment', name: 'Server', subnet: '192.168.200.0/24' },
+    { id: 'siem_segment', name: 'SIEM', subnet: '192.168.66.0/24' },
+    { id: 'vpn_segment', name: 'VPN', subnet: '192.168.110.0/24' },
+    { id: 'db_segment', name: 'Database', subnet: '192.168.214.0/24' }
+  ]
+
+  devices.forEach(device => {
+    const deviceData = device.deviceData || {}
+    const ip = deviceData.ip || '192.168.1.100'
+
+    // 根据IP地址判断设备所属网络
+    let deviceNetworks = []
+    let deviceType = 'server'
+
+    // 根据设备名称和IP确定类型和网络
+    if (deviceData.name?.includes('防火墙') || deviceData.name?.includes('firewall')) {
+      deviceType = 'firewall'
+      // 防火墙连接多个网络
+      if (deviceData.name?.includes('内部') || deviceData.name?.includes('internal')) {
+        deviceNetworks = ['server_segment', 'user_segment', 'siem_segment', 'vpn_segment', 'db_segment']
+      } else if (deviceData.name?.includes('外部') || deviceData.name?.includes('border') || deviceData.name?.includes('dmz')) {
+        deviceNetworks = ['internet', 'dmz_segment']
+      }
+    } else {
+      // 根据IP地址确定网络
+      if (ip.startsWith('199.203.100.')) {
+        deviceNetworks = ['internet']
+        deviceType = 'network'
+      } else if (ip.startsWith('172.16.100.')) {
+        deviceNetworks = ['dmz_segment']
+        deviceType = deviceData.name?.includes('web') || deviceData.name?.includes('Apache') || deviceData.name?.includes('WordPress') ? 'web_server' : 'server'
+      } else if (ip.startsWith('192.168.100.')) {
+        deviceNetworks = ['user_segment']
+        deviceType = 'workstation'
+      } else if (ip.startsWith('192.168.200.')) {
+        deviceNetworks = ['server_segment']
+        deviceType = deviceData.name?.includes('数据库') || deviceData.name?.includes('SQL') ? 'database' : 'server'
+      } else if (ip.startsWith('192.168.66.')) {
+        deviceNetworks = ['siem_segment']
+        deviceType = 'server'
+      } else if (ip.startsWith('192.168.110.')) {
+        deviceNetworks = ['vpn_segment']
+        deviceType = 'server'
+      } else if (ip.startsWith('192.168.214.')) {
+        deviceNetworks = ['db_segment']
+        deviceType = 'database'
+      }
+    }
+
+    const node = {
+      id: deviceData.name?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || `device-${nodes.length}`,
+      name: deviceData.name || 'Unknown Device',
+      type: deviceType,
+      networks: deviceNetworks,
+      ip_addresses: {}
+    }
+
+    // 为每个网络设置IP地址
+    deviceNetworks.forEach(network => {
+      node.ip_addresses[network] = ip
+    })
+
+    nodes.push(node)
+    console.log(`📍 添加设备: ${node.name} (${node.type}) -> ${deviceNetworks.join(', ')}`)
+  })
+
+  const scenarioData = {
+    nodes,
+    networks,
+    // 明确不包含预定义连接，让优化的连线逻辑处理
+    connections: []
+  }
+  console.log('📊 创建的简化场景数据:', scenarioData)
+  return scenarioData
+}
+
+// 优化的网络连线渲染函数（只包含防火墙连线逻辑，不包含预定义连接）
+async function renderOptimizedNetworkConnections(scenarioTopology) {
+  if (!topology || !topology.canvas) {
+    console.error('❌ 拓扑图未初始化')
+    return
+  }
+
+  console.log('🔗 开始渲染优化的网络连线...')
+
+  const { nodes } = scenarioTopology
+
+  // 网络颜色映射
+  const networkColors = {
+    'internet': '#ff6b6b',
+    'dmz_segment': '#4ecdc4',
+    'user_segment': '#45b7d1',
+    'server_segment': '#f9ca24',
+    'db_segment': '#6c5ce7',
+    'medical_segment': '#a29bfe',
+    'siem_segment': '#fd79a8',
+    'vpn_segment': '#74b9ff'
+  }
+
+  // 1. 为非防火墙节点添加IP标签（显示在节点下方）
+  console.log('📍 添加节点IP标签...')
+  nodes.forEach(node => {
+    // 跳过防火墙节点，防火墙的IP只显示在连线上
+    if (node.type === 'firewall') {
+      console.log(`🔥 跳过防火墙节点 ${node.id}，IP将显示在连线上`)
+      return
+    }
+
+    const fabricNode = findDeviceByScenarioId(node.id)
+    if (fabricNode && node.ip_addresses) {
+      const primaryNetwork = node.networks?.[0]
+      const primaryIP = node.ip_addresses[primaryNetwork]
+
+      if (primaryIP) {
+        // 创建IP标签
+        const ipLabel = new fabric.Text(primaryIP, {
+          left: fabricNode.left,
+          top: fabricNode.top + 55, // 节点下方
+          fontSize: 10,
+          fill: '#ffffff',
+          textAlign: 'center',
+          originX: 'center',
+          originY: 'top',
+          selectable: false,
+          evented: false,
+          nodeId: node.id,
+          labelType: 'ip'
+        })
+
+        // 设置IP标签跟随节点移动
+        const updateIPLabelPosition = () => {
+          ipLabel.set({
+            left: fabricNode.left,
+            top: fabricNode.top + 55
+          })
+          ipLabel.setCoords()
+        }
+
+        // 为节点添加移动事件监听器
+        fabricNode.on('moving', updateIPLabelPosition)
+
+        // 将更新函数保存到标签对象上
+        ipLabel.updatePosition = updateIPLabelPosition
+        ipLabel.parentNode = fabricNode
+
+        topology.canvas.add(ipLabel)
+        console.log(`📍 为节点 ${node.id} 添加IP标签: ${primaryIP}，已设置移动监听器`)
+      }
+    }
+  })
+
+  // 2. 创建简化的防火墙连线（避免重复连接）
+  console.log('🔗 创建简化的防火墙连线...')
+
+  // 找到所有防火墙节点
+  const firewallNodes = nodes.filter(node => node.type === 'firewall')
+  console.log(`🔥 找到 ${firewallNodes.length} 个防火墙节点:`, firewallNodes.map(f => f.id))
+
+  // 记录已连接的设备，避免重复连接
+  const connectedDevices = new Set()
+
+  // 按防火墙优先级排序（边界防火墙优先）
+  const sortedFirewalls = firewallNodes.sort((a, b) => {
+    if (a.id.includes('border') || a.id.includes('外部')) return -1
+    if (b.id.includes('border') || b.id.includes('外部')) return 1
+    if (a.id.includes('internal') || a.id.includes('内部')) return -1
+    if (b.id.includes('internal') || b.id.includes('内部')) return 1
+    return 0
+  })
+
+  // 为每个防火墙创建连线
+  sortedFirewalls.forEach(firewallNode => {
+    console.log(`🔥 处理防火墙: ${firewallNode.id}`)
+
+    // 获取防火墙连接的所有网络
+    const firewallNetworks = firewallNode.networks || []
+
+    firewallNetworks.forEach(networkId => {
+      // 找到同一网络中的其他设备（非防火墙）
+      const networkDevices = nodes.filter(node =>
+        node.id !== firewallNode.id &&
+        node.type !== 'firewall' &&  // 排除其他防火墙
+        node.networks &&
+        node.networks.includes(networkId) &&
+        !connectedDevices.has(node.id)  // 避免重复连接
+      )
+
+      // 为防火墙与每个非防火墙设备创建连线
+      networkDevices.forEach(device => {
+        const networkColor = networkColors[networkId] || '#95a5a6'
+        console.log(`🔗 创建防火墙连接: ${firewallNode.id} -> ${device.id} (${networkId})`)
+        createNetworkConnection(firewallNode, device, networkId, networkColor)
+        connectedDevices.add(device.id)  // 标记为已连接
+      })
+    })
+  })
+
+  // 特殊处理：防火墙之间的连接（只连接相邻层级）
+  const borderFirewall = firewallNodes.find(fw => fw.id.includes('border') || fw.id.includes('外部'))
+  const internalFirewall = firewallNodes.find(fw => fw.id.includes('internal') || fw.id.includes('内部'))
+
+  if (borderFirewall && internalFirewall) {
+    // 检查两个防火墙是否有共同网络
+    const commonNetworks = borderFirewall.networks?.filter(net =>
+      internalFirewall.networks?.includes(net)
+    ) || []
+
+    if (commonNetworks.length > 0) {
+      const networkId = commonNetworks[0] // 使用第一个共同网络
+      const networkColor = networkColors[networkId] || '#95a5a6'
+      console.log(`🔗 创建防火墙间连接: ${borderFirewall.id} -> ${internalFirewall.id} (${networkId})`)
+      createNetworkConnection(borderFirewall, internalFirewall, networkId, networkColor)
+    }
+  }
+
+  console.log('✅ 优化的网络连线渲染完成')
 }
 
 // 生成场景 (调用后端并渲染拓扑)
@@ -2329,6 +5707,23 @@ async function generateScenario() {
     } else {
       // 普通模式：创建预设拓扑图（半透明状态）
       await TopologyGenerator.createCompanyTopology(topology, true)
+
+      // 🔧 应用优化后的连线逻辑：清除旧连线并重新创建
+      console.log('🔧 应用优化后的连线逻辑...')
+
+      // 清除现有连线
+      if (typeof window.clearNetworkConnections === 'function') {
+        window.clearNetworkConnections()
+        console.log('🧹 已清除预设拓扑的旧连线')
+      }
+
+      // 创建简化的场景数据用于连线渲染
+      const simplifiedScenario = createSimplifiedScenarioFromTopology()
+      if (simplifiedScenario) {
+        console.log('🔗 使用优化逻辑重新创建连线...')
+        // 直接调用优化的连线逻辑，避免调用renderScenarioTopology
+        await renderOptimizedNetworkConnections(simplifiedScenario)
+      }
     }
 
     // 只在普通模式下执行容器启动
@@ -2494,13 +5889,7 @@ function addAttackEvent(message, fromWebSocket = false) {
   })
 }
 
-// 添加防御事件
-function addDefenseEvent(message) {
-  addEvent({
-    type: 'defense',
-    message: message
-  })
-}
+
 
 function logInfo(source, message) {
   logMessage('info', source, message)
@@ -2598,6 +5987,145 @@ const handleNodesStatusReset = () => {
     canvas.requestRenderAll()
     console.log('✅ 拓扑图节点状态已重置')
   }
+}
+
+// ===================== 虚拟时间轴事件处理 =====================
+
+// 时间轴启动事件
+const onTimelineStarted = () => {
+  console.log('🕒 虚拟时间轴已启动')
+
+  // 添加时间轴启动事件到攻击事件记录
+  if (virtualTimelineRef.value) {
+    virtualTimelineRef.value.addEvent({
+      phase: '准备',
+      type: 'info',
+      message: 'APT攻击演练时间轴已启动',
+      details: {
+        '时间倍速': virtualTimelineRef.value.timeMultiplier + 'x',
+        '演练模式': 'APT医疗场景'
+      }
+    })
+  }
+}
+
+// 时间轴暂停事件
+const onTimelinePaused = () => {
+  console.log('⏸️ 虚拟时间轴已暂停')
+
+  if (virtualTimelineRef.value) {
+    virtualTimelineRef.value.addEvent({
+      phase: '暂停',
+      type: 'warning',
+      message: '攻击演练已暂停',
+      details: {
+        '暂停时间': new Date().toLocaleTimeString()
+      }
+    })
+  }
+}
+
+// 时间轴重置事件
+const onTimelineReset = () => {
+  console.log('🔄 虚拟时间轴已重置')
+
+  // 重置攻击可视化效果
+  if (attackVisualization) {
+    attackVisualization.clearAllEffects()
+  }
+
+  // 重置节点状态
+  if (eventMonitorRef.value) {
+    eventMonitorRef.value.resetAllNodeStatus()
+  }
+}
+
+// 攻击阶段变更事件
+const onPhaseChanged = (newPhase) => {
+  console.log('📊 攻击阶段变更:', newPhase)
+
+  // 更新攻击可视化的当前阶段
+  if (attackVisualization) {
+    attackVisualization.currentPhase = newPhase
+  }
+
+  // 添加阶段变更事件
+  if (virtualTimelineRef.value) {
+    virtualTimelineRef.value.addEvent({
+      phase: newPhase,
+      type: 'success',
+      message: `进入${newPhase}阶段`,
+      details: {
+        '阶段': newPhase,
+        '时间': new Date().toLocaleString()
+      }
+    })
+  }
+}
+
+// 时间倍速变更事件
+const onSpeedChanged = (newSpeed) => {
+  console.log('⚡ 时间倍速已调整:', newSpeed + 'x')
+
+  if (virtualTimelineRef.value) {
+    virtualTimelineRef.value.addEvent({
+      phase: '设置',
+      type: 'info',
+      message: `时间倍速调整为 ${newSpeed}x`,
+      details: {
+        '新倍速': newSpeed + 'x',
+        '说明': newSpeed === 1 ? '真实时间' : `1分钟 = ${Math.floor(newSpeed/60)}小时`
+      }
+    })
+  }
+}
+
+// ===================== 虚拟时间轴辅助函数 =====================
+
+// 将攻击阶段转换为显示名称
+function getPhaseDisplayName(stage) {
+  const phaseMap = {
+    'reconnaissance': '侦察',
+    'weaponization': '武器化',
+    'delivery': '投递',
+    'exploitation': '利用',
+    'installation': '安装',
+    'command_and_control': '命令控制',
+    'actions_on_objectives': '行动'
+  }
+  return phaseMap[stage] || stage
+}
+
+// 将日志级别转换为事件类型
+function getEventType(level) {
+  const typeMap = {
+    'info': 'info',
+    'warning': 'warning',
+    'success': 'success',
+    'error': 'error'
+  }
+  return typeMap[level] || 'info'
+}
+
+// 更新受攻陷资产数量
+function updateCompromisedAssetsCount() {
+  if (!virtualTimelineRef.value) return
+
+  // 统计被攻陷的节点数量
+  let compromisedCount = 0
+  if (window.topologyFabricCanvas) {
+    const canvas = window.topologyFabricCanvas
+    const objects = canvas.getObjects()
+
+    objects.forEach(obj => {
+      if (obj.deviceData && obj.compromised) {
+        compromisedCount++
+      }
+    })
+  }
+
+  virtualTimelineRef.value.updateCompromisedAssets(compromisedCount)
+  console.log('📊 更新受攻陷资产数量:', compromisedCount)
 }
 
 // 处理节点状态刷新
@@ -2739,6 +6267,13 @@ const updateNodeVisualStatus = (node, status) => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 虚拟时间轴区域 */
+.virtual-timeline-section {
+  margin-top: 20px;
+  padding: 0 16px;
+  background: transparent;
 }
 
 .event-monitor-container {
