@@ -122,8 +122,74 @@
       <h2 class="text-xl font-bold mb-4">能力提升建议</h2>
 
       <div class="tabs tabs-boxed mb-4">
-        <a class="tab" :class="{ 'tab-active': activeTab === 'blue' }" @click="activeTab = 'blue'">蓝队能力提升</a>
         <a class="tab" :class="{ 'tab-active': activeTab === 'red' }" @click="activeTab = 'red'">红队能力提升</a>
+        <a class="tab" :class="{ 'tab-active': activeTab === 'blue' }" @click="activeTab = 'blue'">蓝队能力提升</a>
+      </div>
+
+      <!-- 红队提升建议 -->
+      <div v-if="activeTab === 'red'" class="space-y-4">
+        <div class="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>根据您的红队能力画像，我们为您提供以下提升建议</span>
+        </div>
+
+        <div class="card bg-base-200">
+          <div class="card-body">
+            <h3 class="card-title text-primary">优势能力</h3>
+            <p>您在<span class="font-medium">漏洞利用与攻击执行能力</span>和<span
+                class="font-medium">攻击成功率</span>方面表现出色，这为您的红队工作奠定了良好基础。</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200">
+          <div class="card-body">
+            <h3 class="card-title text-warning">待提升能力</h3>
+            <p>您的<span class="font-medium">攻击链完整性与任务完成度</span>和<span class="font-medium">攻击工具使用熟练度</span>相对较弱，建议：</p>
+            <ul class="list-disc list-inside space-y-1 text-base-content/80">
+              <li>系统学习完整的ATT&CK攻击链模型，提升攻击的系统性和完整性</li>
+              <li>深入学习各类攻击工具的高级功能，提高工具使用效率</li>
+              <li>参加更多实战红队演练，锻炼在真实环境中的攻击能力</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card bg-base-200">
+          <div class="card-body">
+            <h3 class="card-title text-info">推荐学习路径</h3>
+            <div class="overflow-x-auto">
+              <table class="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th>课程/实验</th>
+                    <th>难度</th>
+                    <th>预计提升</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ATT&CK框架实战应用</td>
+                    <td>中高级</td>
+                    <td>攻击链完整性与任务完成度 +15%</td>
+                  </tr>
+                  <tr>
+                    <td>红队自动化工具开发</td>
+                    <td>高级</td>
+                    <td>攻击工具使用熟练度 +20%</td>
+                  </tr>
+                  <tr>
+                    <td>高级内存规避技术与反检测方法</td>
+                    <td>高级</td>
+                    <td>攻击成功率 +12%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 蓝队提升建议 -->
@@ -141,7 +207,7 @@
           <div class="card-body">
             <h3 class="card-title text-secondary">优势能力</h3>
             <p>您在<span class="font-medium">事件检测能力</span>和<span
-                class="font-medium">防御知识覆盖能力</span>方面表现出色，建议继续保持并深入学习高级检测技术。</p>
+                class="font-medium">防御成功率</span>方面表现出色，建议继续保持并深入学习高级检测技术。</p>
           </div>
         </div>
 
@@ -178,78 +244,12 @@
                   <tr>
                     <td>SIEM系统高级配置与告警优化</td>
                     <td>中高级</td>
-                    <td>工具使用熟练度 +20%</td>
+                    <td>防御工具使用熟练度 +20%</td>
                   </tr>
                   <tr>
                     <td>自动化响应流程构建实战</td>
                     <td>高级</td>
                     <td>事件响应能力 +12%</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 红队提升建议 -->
-      <div v-if="activeTab === 'red'" class="space-y-4">
-        <div class="alert alert-info">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span>根据您的红队能力画像，我们为您提供以下提升建议</span>
-        </div>
-
-        <div class="card bg-base-200">
-          <div class="card-body">
-            <h3 class="card-title text-primary">优势能力</h3>
-            <p>您在<span class="font-medium">漏洞利用与攻击执行能力</span>和<span
-                class="font-medium">攻击知识覆盖能力</span>方面表现出色，这为您的红队工作奠定了良好基础。</p>
-          </div>
-        </div>
-
-        <div class="card bg-base-200">
-          <div class="card-body">
-            <h3 class="card-title text-warning">待提升能力</h3>
-            <p>您的<span class="font-medium">隐蔽性与对抗规避能力</span>和<span class="font-medium">攻击链完整性</span>相对较弱，建议：</p>
-            <ul class="list-disc list-inside space-y-1 text-base-content/80">
-              <li>学习更多反检测和反取证技术，提高攻击隐蔽性</li>
-              <li>系统学习完整的ATT&CK攻击链模型，提升攻击的系统性和完整性</li>
-              <li>参加更多实战红队演练，锻炼在真实环境中的攻击能力</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card bg-base-200">
-          <div class="card-body">
-            <h3 class="card-title text-info">推荐学习路径</h3>
-            <div class="overflow-x-auto">
-              <table class="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th>课程/实验</th>
-                    <th>难度</th>
-                    <th>预计提升</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>高级内存规避技术与反检测方法</td>
-                    <td>高级</td>
-                    <td>隐蔽性与对抗规避能力 +18%</td>
-                  </tr>
-                  <tr>
-                    <td>ATT&CK框架实战应用</td>
-                    <td>中高级</td>
-                    <td>攻击链完整性 +15%</td>
-                  </tr>
-                  <tr>
-                    <td>红队自动化工具开发</td>
-                    <td>高级</td>
-                    <td>攻击工具使用熟练度 +20%</td>
                   </tr>
                 </tbody>
               </table>
@@ -314,25 +314,22 @@ const activeTab = ref('blue');
 
 // 蓝队能力指标
 const blueTeamMetrics = [
+  { label: '防御成功率', value: 80 },
   { label: '攻击预防能力', value: 78 },
   { label: '防御加固能力', value: 82 },
   { label: '反制能力', value: 65 },
   { label: '事件检测能力', value: 88 },
   { label: '事件响应能力', value: 75 },
-  { label: '防御知识覆盖能力', value: 85 },
-  { label: '防御工具使用熟练度', value: 68 },
-  { label: '防御成功率', value: 80 }
+  { label: '防御工具使用熟练度', value: 68 }
 ];
 
 // 红队能力指标
 const redTeamMetrics = [
+  { label: '攻击成功率', value: 72 },
   { label: '漏洞利用与攻击执行能力', value: 86 },
   { label: '横向移动与权限提升能力', value: 75 },
-  { label: '隐蔽性与对抗规避能力', value: 62 },
   { label: '攻击链完整性与任务完成度', value: 68 },
-  { label: '攻击知识覆盖能力', value: 84 },
-  { label: '攻击工具使用熟练度', value: 79 },
-  { label: '攻击成功率', value: 72 }
+  { label: '攻击工具使用熟练度', value: 79 }
 ];
 
 // 最近参与的演练

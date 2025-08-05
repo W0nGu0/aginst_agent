@@ -53,12 +53,49 @@
     <!-- 报告描述 -->
     <div class="glass-panel p-6 space-y-4">
       <h2 class="text-xl font-semibold text-primary">AI 攻防演练评估报告</h2>
-      <p class="text-base-content/70">根据本次攻防演练的数据分析，系统整体安全防护能力处于中等水平。红队在渗透测试中展现出较强的攻击能力，成功发现多个关键漏洞。蓝队的防御响应较为及时，但在威胁检测准确性上仍有提升空间。建议加强以下几方面：</p>
+      <p class="text-base-content/70">一、综合评估概览</p>
       <ul class="list-disc list-inside space-y-1 text-base-content/70">
-        <li>提升漏洞修复效率，优化修复流程</li>
-        <li>增强威胁检测准确性，降低误报率</li>
-        <li>完善应急响应机制，提高防御效率</li>
+        <li>演练总览：本轮攻防演练覆盖企业级内网环境，包含共计 8 台目标主机及 12 个关键资产节点。</li>
+        <li>防护等级评估：当前系统防护能力水平为中等，可应对大部分常见攻击场景，但在精准识别与策略响应效率上仍有优化空间。</li>
+        <li>风险评级：系统风险等级为高风险，建议加强关键节点的入侵检测与响应机制。</li>
       </ul>
+      <p class="text-base-content/70">二、攻防行为统计</p>
+      <ul class="list-disc list-inside space-y-1 text-base-content/70">
+        <li>攻击策略覆盖数：红队 Agent 尝试共计 18 种攻击策略，涵盖信息收集、漏洞利用、横向移动、持久化建立等多个阶段。</li>
+        <li>防御策略响应数：蓝队 Agent 启用 12 种防御策略，包括防火墙动态更新、行为异常检测、访问控制规则自动下发等。</li>
+        <li>攻击路径评估:成功完成攻击路径数:4 条; 被成功阻断路径数:3 条; 部分中断路径数:2 条。</li>
+        <li>关键攻击阶段识别：首次入侵检测时间:T+13秒; 横向移动检测覆盖率:85%; 持久化企图检测率:71%。</li>
+
+      </ul>
+      <p class="text-base-content/70">三、预警详情</p>
+      <ul class="list-disc list-inside space-y-1 text-base-content/70">
+        <li>告警事件分:告警总次数:126 次; 有效告警(与真实攻击对应):89 次; 虚警率:29.4%。</li>
+        <li>主要告警类型:异常端口扫描、非授权访问、未知进程执行、工具签名命中(Metasploit/Nmap)。</li>
+      </ul>
+      <p class="text-base-content/70">四、重点分析建议</p>
+      <ul class="list-disc list-inside space-y-1 text-base-content/70">
+        <li>攻击链处置分析：在“初始访问—漏洞利用—横向移动”路径中，防御 Agent 在横向移动阶段表现出较强响应，但对初始入侵侦测延迟较长。</li>
+        <li>防御策略优化建议：增强防护策略自动演化能力，根据攻击演化轨迹自适应调整规则集。引入基于图谱节点权重的防御资源动态分配算法。</li>
+        <li>日志与告警改进建议：减少重复与低优先级告警条目，提升 SOC 处理效率。提高告警与攻击路径的对应精度，建议优化行为图谱与日志事件映射策略。</li>
+      </ul>
+      <p class="text-base-content/70">五、关键指标量化结果（节选）</p>
+<table class="w-full border-collapse mt-2 mb-4">
+  <thead>
+    <tr class="bg-base-200">
+      <th class="border border-base-300 p-3 text-left text-base-content/80">指标名称</th>
+      <th class="border border-base-300 p-3 text-left text-base-content/80">本次评估</th>
+      <th class="border border-base-300 p-3 text-left text-base-content/80">评估说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr v-for="(item, index) in keyIndicators" :key="index" class="hover:bg-base-100">
+      <td class="border border-base-300 p-3 text-base-content/70">{{ item.name }}</td>
+      <td class="border border-base-300 p-3 text-base-content/70 font-medium">{{ item.result }}</td>
+      <td class="border border-base-300 p-3 text-base-content/70">{{ item.description }}</td>
+    </tr>
+  </tbody>
+</table>
+
     </div>
 
     <!-- 指标与系统状态 -->
@@ -146,6 +183,34 @@ const metrics = [
   { label: '漏洞修复率', value: 76, bar: 'bg-primary' },
   { label: '威胁检测精度', value: 82, bar: 'bg-secondary' }
 ]
+// 关键指标量化结果数据
+const keyIndicators = [
+  {
+    name: "漏洞修复效率",
+    result: "76%",
+    description: "针对已识别漏洞的修复操作响应及时率"
+  },
+  {
+    name: "威胁检测精度",
+    result: "82%",
+    description: "实际威胁命中率（排除虚警）"
+  },
+  {
+    name: "响应延迟",
+    result: "1.8 分钟",
+    description: "从告警生成至响应动作执行的平均延迟"
+  },
+  {
+    name: "图谱覆盖度",
+    result: "91%",
+    description: "行为图谱节点覆盖演练关键行为的比例"
+  },
+  {
+    name: "可解释性指数",
+    result: "96%",
+    description: "每个评分项可追溯至具体日志与图谱节点的占比"
+  }
+];
 
 // 初始化图表
 onMounted(() => {

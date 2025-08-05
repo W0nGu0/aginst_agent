@@ -1,26 +1,36 @@
 <template>
   <div class="home-view">
-    <!-- 高科技图形展示区 -->
-    <div class="relative h-96 mb-20 rounded-2xl overflow-hidden cyber-bg">
+    <!-- 动态靶场头部展示区 -->
+    <div class="relative h-96 mb-20 rounded-2xl overflow-hidden against-hero-bg">
+      <!-- 背景图片层 -->
+      <div class="absolute inset-0">
+        <img
+          src="/Against_background.png"
+          alt="Against Background"
+          class="w-full h-full object-cover"
+        />
+        <!-- 虚化遮罩层 -->
+        <div class="absolute inset-0 bg-gradient-to-br from-base-100/60 via-base-200/40 to-base-300/60 backdrop-blur-sm"></div>
+        <!-- 额外的深色遮罩确保文字可读性 -->
+        <div class="absolute inset-0 bg-black/20"></div>
+      </div>
+
+      <!-- 动态图形效果层 -->
       <div class="absolute inset-0 flex items-center justify-center">
-        <div class="cyber-graphic">
-          <div class="cyber-circle animate-pulse-slow"></div>
-          <div class="cyber-grid"></div>
-          <div class="cyber-nodes"></div>
-          <div class="pulse-waves"></div>
+        <div class="against-graphic">
+          <div class="against-circle animate-pulse-slow"></div>
+          <div class="against-grid"></div>
+          <div class="against-nodes"></div>
+          <div class="against-waves"></div>
         </div>
 
         <div class="z-10 text-center max-w-3xl px-4">
-          <h1 class="text-4xl md:text-5xl font-bold mb-6 text-gradient leading-tight">
+          <h1 class="text-4xl md:text-5xl font-bold mb-6 text-gradient-bright leading-tight animate-title-glow">
             AI 驱动的动态攻防推演靶场
           </h1>
-          <p class="text-base-content/80 text-lg max-w-2xl mx-auto">
+          <p class="text-base-content/60 text-lg max-w-2xl mx-auto font-normal animate-fade-in-up">
             通过智能AI创建逼真攻防场景，训练与提升网络安全技能，体验真实环境下的攻防对抗
           </p>
-          <div class="mt-8 flex justify-center gap-4">
-            <button class="btn btn-primary">立即开始</button>
-            <button class="btn btn-outline">了解更多</button>
-          </div>
         </div>
       </div>
 
@@ -30,24 +40,44 @@
 
     <!-- 动态滚动提示词胶卷 -->
     <div class="mb-20 relative">
-      <div class="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-base-200 to-transparent z-10"></div>
-      <div class="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-base-200 to-transparent z-10"></div>
+      <!-- 左右渐变遮罩 -->
+      <div class="absolute left-0 top-0 w-40 h-full bg-gradient-to-r from-base-200 via-base-200/80 to-transparent z-10 pointer-events-none"></div>
+      <div class="absolute right-0 top-0 w-40 h-full bg-gradient-to-l from-base-200 via-base-200/80 to-transparent z-10 pointer-events-none"></div>
 
-      <h2 class="text-2xl font-bold mb-8 text-base-content flex items-center">
-        <span class="text-primary mr-2">#</span> 热门场景提示
-        <span class="ml-2 badge badge-glowing">智能推荐</span>
-      </h2>
+      <div class="mb-8 text-center">
+        <h2 class="text-3xl font-bold text-base-content flex items-center justify-center">
+          <span class="text-accent mr-3 text-4xl animate-pulse">#</span>
+          <span class="text-gradient-bright animate-title-glow">热门场景推荐</span>
+        </h2>
+        <div class="mt-2 w-24 h-1 bg-gradient-to-r from-primary via-accent to-secondary mx-auto rounded-full animate-pulse"></div>
+      </div>
 
-      <div class="scene-prompts-container overflow-hidden">
-        <div class="scene-prompts flex space-x-4" :style="scrollStyle" ref="scrollContainer">
-          <ScenePromptCard v-for="(prompt, index) in displayPrompts" :key="index" :prompt="prompt"
-            @click="navigateToSceneDetail" />
+      <div class="scene-prompts-container overflow-hidden rounded-xl border border-accent/20 shadow-lg">
+        <!-- 装饰性顶部条纹 -->
+        <div class="h-1 bg-gradient-to-r from-primary via-accent to-secondary animate-pulse"></div>
+
+        <div
+          class="scene-prompts flex space-x-8 py-4"
+          :style="scrollStyle"
+          ref="scrollContainer"
+          @mouseenter="handleMouseEnter"
+          @mouseleave="handleMouseLeave"
+        >
+          <ScenePromptCard
+            v-for="(prompt, index) in displayPrompts"
+            :key="`${prompt.type}-${index}`"
+            :prompt="prompt"
+            @click="navigateToSceneDetail"
+          />
         </div>
+
+        <!-- 装饰性底部条纹 -->
+        <div class="h-1 bg-gradient-to-r from-secondary via-accent to-primary animate-pulse"></div>
       </div>
     </div>
 
     <!-- 场景生成输入区 -->
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-6xl mx-auto">
       <h2 class="text-2xl font-bold mb-8 text-base-content flex items-center">
         <span class="text-primary mr-2">#</span> 自定义场景生成
       </h2>
@@ -113,50 +143,7 @@
         </div>
       </div>
 
-      <!-- 功能介绍区 -->
-      <div class="mt-20">
-        <h2 class="text-2xl font-bold mb-8 text-base-content flex items-center">
-          <span class="text-primary mr-2">#</span> 平台特色
-        </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="glass-panel p-6">
-            <div class="text-primary text-3xl mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">可视化网络拓扑</h3>
-            <p class="text-base-content/70">通过直观的拖放式界面，轻松设计和构建复杂的网络拓扑结构</p>
-          </div>
-
-          <div class="glass-panel p-6">
-            <div class="text-secondary text-3xl mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">实时攻防演练</h3>
-            <p class="text-base-content/70">模拟真实网络环境中的攻击与防御过程，提供沉浸式学习体验</p>
-          </div>
-
-          <div class="glass-panel p-6">
-            <div class="text-accent text-3xl mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">AI驱动推荐</h3>
-            <p class="text-base-content/70">智能分析您的技能水平和学习需求，推荐个性化的场景和挑战</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -164,17 +151,16 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAppStore } from '../../../stores/app'
 import ScenePromptCard from '../components/ScenePromptCard.vue'
 
 const router = useRouter()
-const appStore = useAppStore()
 const scenePrompt = ref('')
 const isLoading = ref(false)
 const scrollContainer = ref(null)
 const scrollPosition = ref(0)
-const scrollSpeed = 0.5 // 滚动速度，数值越大滚动越快
+const scrollSpeed = 1.2 // 滚动速度，数值越大滚动越快
 const scrollInterval = ref(null)
+const isScrollPaused = ref(false)
 
 // 新增：场景配置选项
 const selectedAttackType = ref('')
@@ -257,25 +243,26 @@ const displayPrompts = computed(() => {
 const scrollStyle = computed(() => {
   return {
     transform: `translateX(${-scrollPosition.value}px)`,
-    // 不使用transition，让动画更加平滑
+    transition: isScrollPaused.value ? 'transform 0.3s ease-out' : 'none',
   }
 })
 
 // 启动滚动
 function startScroll() {
-  if (scrollInterval.value) return
+  if (scrollInterval.value || isScrollPaused.value) return
 
-  // 计算一组卡片的总宽度
-  const cardWidth = 336 // 卡片宽度(320) + 间距(16)
+  // 计算一组卡片的总宽度 - 增加间距
+  const cardWidth = 368 // 卡片宽度(320) + 间距(48)
   const totalWidth = scenePrompts.length * cardWidth
 
   // 设置初始位置为负值，这样卡片会从右侧进入
   if (scrollPosition.value === 0) {
-    // 只在初始化时设置，避免重置滚动时跳回
-    scrollPosition.value = -cardWidth * 2 // 从右侧开始，显示2个卡片的宽度
+    scrollPosition.value = -cardWidth * 1.5 // 从右侧开始
   }
 
   scrollInterval.value = setInterval(() => {
+    if (isScrollPaused.value) return
+
     // 增加位置，实现从右向左滚动
     scrollPosition.value += scrollSpeed
 
@@ -297,33 +284,32 @@ function pauseScroll() {
 
 // 鼠标悬停时暂停滚动
 function handleMouseEnter() {
+  isScrollPaused.value = true
   pauseScroll()
 }
 
 // 鼠标离开时恢复滚动
 function handleMouseLeave() {
-  startScroll()
+  isScrollPaused.value = false
+  setTimeout(() => {
+    if (!isScrollPaused.value) {
+      startScroll()
+    }
+  }, 100) // 短暂延迟，避免快速移动鼠标时的闪烁
 }
 
 // 组件挂载时启动滚动
 onMounted(() => {
-  startScroll()
-
-  // 添加鼠标事件监听
-  if (scrollContainer.value) {
-    scrollContainer.value.addEventListener('mouseenter', handleMouseEnter)
-    scrollContainer.value.addEventListener('mouseleave', handleMouseLeave)
-  }
+  // 延迟启动滚动，确保DOM完全渲染
+  setTimeout(() => {
+    startScroll()
+  }, 500)
 })
 
 // 组件卸载前清除定时器和事件监听
 onBeforeUnmount(() => {
+  isScrollPaused.value = true
   pauseScroll()
-
-  if (scrollContainer.value) {
-    scrollContainer.value.removeEventListener('mouseenter', handleMouseEnter)
-    scrollContainer.value.removeEventListener('mouseleave', handleMouseLeave)
-  }
 })
 
 // 跳转到场景详情页
@@ -398,42 +384,159 @@ async function generateScene() {
     isLoading.value = false
   }
 }
-
-// 获取随机颜色
-function getRandomColor() {
-  const colors = [
-    'var(--primary)',
-    'var(--secondary)',
-    'var(--accent)'
-  ]
-  return colors[Math.floor(Math.random() * colors.length)]
-}
 </script>
 
 <style scoped>
-@keyframes float {
+/* 字体和文字效果优化 */
+.text-gradient-bright {
+  background: linear-gradient(135deg,
+    #ffffff 0%,
+    rgba(var(--primary-rgb), 1) 25%,
+    rgba(var(--accent-rgb), 1) 50%,
+    rgba(var(--secondary-rgb), 1) 75%,
+    #ffffff 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 3s ease-in-out infinite;
+}
 
-  0%,
-  100% {
-    transform: translate(0, 0);
+/* 标题发光动画 */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-title-glow {
+  text-shadow:
+    0 0 10px rgba(var(--primary-rgb), 0.5),
+    0 0 20px rgba(var(--accent-rgb), 0.3),
+    0 0 30px rgba(var(--secondary-rgb), 0.2);
+  animation: titleGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  from {
+    text-shadow:
+      0 0 10px rgba(var(--primary-rgb), 0.5),
+      0 0 20px rgba(var(--accent-rgb), 0.3),
+      0 0 30px rgba(var(--secondary-rgb), 0.2);
   }
-
-  25% {
-    transform: translate(10px, -10px);
-  }
-
-  50% {
-    transform: translate(15px, 5px);
-  }
-
-  75% {
-    transform: translate(-10px, 10px);
+  to {
+    text-shadow:
+      0 0 15px rgba(var(--primary-rgb), 0.8),
+      0 0 25px rgba(var(--accent-rgb), 0.6),
+      0 0 35px rgba(var(--secondary-rgb), 0.4);
   }
 }
 
+.animate-fade-in-up {
+  animation: fadeInUp 1s ease-out 0.5s both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 动态靶场专用背景样式 */
+.against-hero-bg {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    rgba(var(--base-100-rgb), 0.95) 0%,
+    rgba(var(--base-200-rgb), 0.9) 30%,
+    rgba(var(--base-300-rgb), 0.85) 70%,
+    rgba(var(--base-100-rgb), 0.9) 100%
+  );
+}
+
+.against-graphic {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.6;
+}
+
+.against-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20rem;
+  height: 20rem;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.3), inset 0 0 40px rgba(var(--accent-rgb), 0.1);
+  animation: rotate 20s linear infinite;
+}
+
+.against-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.15) 1px, transparent 1px);
+  background-size: 30px 30px;
+  animation: gridMove 15s linear infinite;
+}
+
+.against-nodes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.against-nodes::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 25% 35%, rgba(var(--accent-rgb), 0.12) 0%, transparent 50%),
+             radial-gradient(circle at 75% 65%, rgba(var(--secondary-rgb), 0.12) 0%, transparent 50%),
+             radial-gradient(circle at 50% 20%, rgba(var(--primary-rgb), 0.08) 0%, transparent 40%);
+}
+
+.against-waves {
+  position: absolute;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, transparent 60%, rgba(var(--primary-rgb), 0.08) 61%, transparent 65%);
+  animation: pulse-against 12s infinite ease-in-out;
+}
+
+/* 滚动容器优化 */
 .scene-prompts-container {
   position: relative;
-  padding: 1rem 0;
+  background: linear-gradient(135deg,
+    rgba(var(--base-200-rgb), 0.4) 0%,
+    rgba(var(--base-100-rgb), 0.2) 30%,
+    rgba(var(--base-100-rgb), 0.2) 70%,
+    rgba(var(--base-200-rgb), 0.4) 100%
+  );
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .scene-prompts {
@@ -441,15 +544,32 @@ function getRandomColor() {
   white-space: nowrap;
 }
 
-.scene-prompt-card {
-  display: inline-block;
-  margin-right: 1rem;
-  min-width: 256px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* 动画定义 */
+@keyframes rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-.scene-prompt-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 30px; }
+}
+
+@keyframes pulse-against {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.6;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(10px, -10px); }
+  50% { transform: translate(15px, 5px); }
+  75% { transform: translate(-10px, 10px); }
 }
 </style>

@@ -100,6 +100,11 @@
   box-shadow: 0 0 50px rgba(var(--primary-rgb), 0.25);
 }
 
+/* 当在容器中时，重置位置 */
+.cyber-circle-with-logo .cyber-circle {
+  @apply top-0 left-0 translate-x-0 translate-y-0 w-full h-full;
+}
+
 .cyber-grid {
   @apply absolute inset-0 opacity-30;
   background-image: 
@@ -120,7 +125,10 @@
 }
 
 .pulse-waves {
-  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full;
+  @apply absolute w-96 h-96 rounded-full;
+  top: 50%;
+  left: calc(50% + 200px); /* 与同心圆同步向右移动200px */
+  transform: translate(-50%, -50%);
   background: radial-gradient(circle, transparent 65%, rgba(var(--accent-rgb), 0.05) 66%, transparent 70%);
   animation: pulse 8s infinite linear;
 }
@@ -146,6 +154,36 @@
 
 .scene-prompt-item {
   @apply transition-all hover:shadow-md hover:shadow-primary/20;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--primary-rgb), 0.3);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--primary-rgb), 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox 滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--primary-rgb), 0.3) transparent;
 }
 
 .scene-prompt-item:hover {
