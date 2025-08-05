@@ -3002,11 +3002,11 @@ function calculateFixedPosition(nodeData, allNodes, networkAnalysis) {
     if (name.includes('medical')) {
       return { x: 250, y: 480 } // 医疗文件服务器
     } else if (name.includes('crt-files') || name.includes('files')) {
-      return { x: 270, y: 100 } // 文件服务器，确保与medical间距120px
+      return { x: 270, y: 80 } // 文件服务器，确保与medical间距120px
     } else if (name.includes('update')) {
-      return { x: 390, y: 100 } // 更新服务器，确保与files间距120px
+      return { x: 390, y: 80 } // 更新服务器，确保与files间距120px
     } else if (name.includes('syslog') || name.includes('log')) {
-      return { x: 510, y: 100 } // 日志服务器，与其他服务器同一水平线
+      return { x: 510, y: 80 } // 日志服务器，与其他服务器同一水平线
     } else {
       const serverNodes = allNodes.filter(n =>
         n.type.includes('server') &&
@@ -3020,9 +3020,9 @@ function calculateFixedPosition(nodeData, allNodes, networkAnalysis) {
   // 5. DNS服务器 - 如果不在DMZ，放在服务器区域右侧
   if (type === 'dns_server' || name.includes('dns')) {
     if (nodeData.networks?.[0] === 'dmz_segment') {
-      return { x: 790, y: 100 } // DMZ中的DNS
+      return { x: 790, y: 80 } // DMZ中的DNS
     } else {
-      return { x: 510, y: 100 } // 内网DNS，确保与update服务器间距120px
+      return { x: 510, y: 80 } // 内网DNS，确保与update服务器间距120px
     }
   }
 
@@ -3030,7 +3030,7 @@ function calculateFixedPosition(nodeData, allNodes, networkAnalysis) {
   if (type === 'database') {
     // 根据实际的数据库节点名称进行布局
     if (name.includes('cnt-sql')) {
-      return { x: 150, y: 100 } // cnt-sql数据库
+      return { x: 150, y: 80 } // cnt-sql数据库
     } else if (name === 'database') {
       return { x: 350, y: 480 } // database节点，间距200px
     } else if (name.includes('medical-db')) {
