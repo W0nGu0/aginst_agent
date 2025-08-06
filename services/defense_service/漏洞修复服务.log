@@ -1,0 +1,44 @@
+
+
++- FastMCP 2.0 ---------------------------------------------------------------+
+|                                                                             |
+|                                                                             |
+|         _ __ ___ ______           __  __  _____________       ____          |
+|     ____                                                                    |
+|        _ __ ___ / ____/___ ______/ /_/  |/  / ____/ __ \     |___ \  /      |
+|     __ \                                                                    |
+|       _ __ ___ / /_  / __ `/ ___/ __/ /|_/ / /   / /_/ /     ___/ / / /     |
+|     / /                                                                     |
+|      _ __ ___ / __/ / /_/ (__  ) /_/ /  / / /___/ ____/     /  __/_/        |
+|     /_/ /                                                                   |
+|     _ __ ___ /_/    \__,_/____/\__/_/  /_/\____/_/                          |
+|     /_____(_)____/                                                          |
+|                                                                             |
+|                                                                             |
+|                                                                             |
+|     \U0001f5a5\ufe0f  Server name:     Vulnerability_Remediation_Service                   |
+|     \U0001f4e6 Transport:       Streamable-HTTP                                     |
+|     \U0001f517 Server URL:      http://127.0.0.1:8009/mcp/                          |
+|                                                                             |
+|     \U0001f4da Docs:            https://gofastmcp.com                               |
+|     \U0001f680 Deploy:          https://fastmcp.cloud                               |
+|                                                                             |
+|     \U0001f3ce\ufe0f  FastMCP version: 2.10.2                                              |
+|     \U0001f91d MCP version:     1.10.1                                              |
+|                                                                             |
+|                                                                             |
++-----------------------------------------------------------------------------+
+
+
+[08/06/25 17:12:51] INFO     Starting MCP server                 server.py:1429
+                             'Vulnerability_Remediation_Service'               
+                             with transport 'http' on                          
+                             http://127.0.0.1:8009/mcp/                        
+C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+  warnings.warn(  # deprecated in 14.0 - 2024-11-09
+C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+  from websockets.server import WebSocketServerProtocol
+INFO:     Started server process [4628]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8009 (Press CTRL+C to quit)

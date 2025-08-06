@@ -1,0 +1,11 @@
+2025-08-06 17:20:51,696 - attribution-agent - INFO - ChatDeepSeek初始化成功
+2025-08-06 17:20:51,705 - attribution-agent - INFO - FastMCP代理连接成功: http://127.0.0.1:8010/mcp/
+2025-08-06 17:20:51,723 - attribution-agent - INFO - 攻击溯源智能体创建成功
+C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+  warnings.warn(  # deprecated in 14.0 - 2024-11-09
+C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+  from websockets.server import WebSocketServerProtocol
+INFO:     Started server process [40348]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8013 (Press CTRL+C to quit)
