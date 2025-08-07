@@ -58,12 +58,36 @@ async def connect_to_backend():
         logger.error(f"连接后端WebSocket失败: {e}")
         return False
 
+# 日志去重缓存
+_log_cache = {}
+_log_cache_timeout = 5.0  # 5秒内的相同日志不重复发送
+
 async def send_log_to_backend(level: str, source: str, message: str, defense_info: dict = None):
-    """发送防御日志到后端WebSocket"""
-    global backend_ws
+    """发送防御日志到后端WebSocket（带去重功能）"""
+    global backend_ws, _log_cache
+    
+    # 日志去重检查
+    import hashlib
+    current_time = asyncio.get_event_loop().time()
+    log_key = hashlib.md5(f"{source}:{message}".encode('utf-8')).hexdigest()
+    
+    # 检查是否是重复日志
+    if log_key in _log_cache:
+        last_time = _log_cache[log_key]
+        if current_time - last_time < _log_cache_timeout:
+            logger.debug(f"跳过重复日志: {message[:50]}...")
+            return
+    
+    # 记录日志时间
+    _log_cache[log_key] = current_time
+    
+    # 清理过期的缓存条目
+    expired_keys = [k for k, t in _log_cache.items() if current_time - t > _log_cache_timeout * 2]
+    for k in expired_keys:
+        del _log_cache[k]
     
     log_data = {
-        "timestamp": asyncio.get_event_loop().time(),
+        "timestamp": current_time,
         "level": level,
         "source": source,
         "message": message,

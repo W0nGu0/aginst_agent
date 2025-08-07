@@ -89,12 +89,19 @@ class BattleJudge:
         """发送裁判日志"""
         if self.ws_connection:
             try:
+                # 转换set为list以支持JSON序列化
+                serializable_state = self.battle_state.copy()
+                serializable_state["compromised_assets"] = list(self.battle_state["compromised_assets"])
+                serializable_state["recovered_assets"] = list(self.battle_state["recovered_assets"])
+                serializable_state["blocked_ips"] = list(self.battle_state["blocked_ips"])
+                serializable_state["patched_vulnerabilities"] = list(self.battle_state["patched_vulnerabilities"])
+                
                 log_data = {
                     "level": level,
                     "source": "攻防演练裁判",
                     "message": message,
                     "timestamp": asyncio.get_event_loop().time(),
-                    "battle_state": self.battle_state
+                    "battle_state": serializable_state
                 }
                 await self.ws_connection.send(json.dumps(log_data, ensure_ascii=False))
             except Exception as e:
@@ -106,16 +113,16 @@ class BattleJudge:
         
         if "完成目标侦察" in log_message or "侦察阶段完成" in log_message:
             self.battle_state["attack_progress"]["reconnaissance"] = True
-            logger.info("攻击进度更新: 侦察阶段完成")
+            logger.info("🔍 攻击进度更新: 侦察阶段完成")
         elif "完成恶意载荷制作" in log_message or "武器化完成" in log_message:
             self.battle_state["attack_progress"]["weaponization"] = True
-            logger.info("攻击进度更新: 武器化阶段完成")
+            logger.info("🔨 攻击进度更新: 武器化阶段完成")
         elif "钓鱼邮件成功投递" in log_message or "投递阶段完成" in log_message:
             self.battle_state["attack_progress"]["delivery"] = True
-            logger.info("攻击进度更新: 投递阶段完成")
+            logger.info("📧 攻击进度更新: 投递阶段完成")
         elif "获得目标主机访问权限" in log_message or "漏洞被利用" in log_message or "利用阶段完成" in log_message:
             self.battle_state["attack_progress"]["exploitation"] = True
-            logger.info("攻击进度更新: 利用阶段完成")
+            logger.info("💥 攻击进度更新: 利用阶段完成")
             # 提取被攻陷的资产
             if "主机" in log_message:
                 import re
@@ -125,14 +132,14 @@ class BattleJudge:
                     logger.info(f"资产被攻陷: {host}")
         elif "安装后门" in log_message or "持久化访问" in log_message or "安装阶段完成" in log_message:
             self.battle_state["attack_progress"]["installation"] = True
-            logger.info("攻击进度更新: 安装阶段完成")
+            logger.info("🔧 攻击进度更新: 安装阶段完成")
         elif "建立c2通信" in message or "命令控制" in log_message or "c2阶段完成" in log_message:
             self.battle_state["attack_progress"]["command_and_control"] = True
-            logger.info("攻击进度更新: C2阶段完成")
+            logger.info("📡 攻击进度更新: C2阶段完成")
         elif "数据窃取" in log_message or "数据被窃取" in log_message or "目标行动完成" in log_message or "攻击链完成" in log_message:
             self.battle_state["attack_progress"]["actions_on_objectives"] = True
             self.battle_state["attack_progress"]["data_exfiltrated"] = True
-            logger.info("攻击进度更新: 数据窃取完成 - 这可能触发攻击方胜利")
+            logger.info("💀 攻击进度更新: 数据窃取完成 - 这可能触发攻击方胜利")
     
     async def update_defense_actions(self, log_message: str, log_source: str):
         """更新防御行动"""
@@ -141,46 +148,46 @@ class BattleJudge:
         if "威胁阻断" in log_source:
             if "检测到" in log_message or "发现" in log_message:
                 self.battle_state["defense_actions"]["threat_detected"] = True
-                logger.info("防御进度更新: 威胁检测完成")
+                logger.info("🛡️ 防御进度更新: 威胁检测完成")
             elif "阻断" in log_message or "黑名单" in log_message:
                 self.battle_state["defense_actions"]["ip_blocked"] = True
-                logger.info("防御进度更新: IP阻断完成")
+                logger.info("🚫 防御进度更新: IP阻断完成")
                 # 提取被阻断的IP
                 import re
                 ips = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', log_message)
                 for ip in ips:
                     self.battle_state["blocked_ips"].add(ip)
-                    logger.info(f"IP已阻断: {ip}")
+                    logger.info(f"🚫 IP已阻断: {ip}")
         
         elif "漏洞修复" in log_source:
             if "修复" in log_message or "补丁" in log_message:
                 self.battle_state["defense_actions"]["vulnerability_patched"] = True
-                logger.info("防御进度更新: 漏洞修复完成")
+                logger.info("🔧 防御进度更新: 漏洞修复完成")
                 # 提取修复的漏洞
                 import re
                 cves = re.findall(r'CVE-\d{4}-\d+', log_message)
                 for cve in cves:
                     self.battle_state["patched_vulnerabilities"].add(cve)
-                    logger.info(f"漏洞已修复: {cve}")
+                    logger.info(f"🔧 漏洞已修复: {cve}")
             elif "恢复" in log_message or "加固" in log_message:
                 self.battle_state["defense_actions"]["system_recovered"] = True
-                logger.info("防御进度更新: 系统恢复完成")
+                logger.info("🔄 防御进度更新: 系统恢复完成")
                 # 提取恢复的资产
                 import re
                 hosts = re.findall(r'主机\s+([^\s]+)', log_message)
                 for host in hosts:
                     self.battle_state["recovered_assets"].add(host)
-                    logger.info(f"资产已恢复: {host}")
+                    logger.info(f"🔄 资产已恢复: {host}")
         
         elif "攻击溯源" in log_source:
             if "溯源" in log_message or "分析" in log_message:
                 self.battle_state["defense_actions"]["attack_traced"] = True
-                logger.info("防御进度更新: 攻击溯源完成")
+                logger.info("🔍 防御进度更新: 攻击溯源完成")
             elif "证据" in log_message or "报告" in log_message:
                 self.battle_state["defense_actions"]["evidence_collected"] = True
-                logger.info("防御进度更新: 证据收集完成")
+                logger.info("📋 防御进度更新: 证据收集完成")
                 # 攻击溯源完成报告生成后，立即触发最终判定
-                logger.info("攻击溯源报告已生成，准备进行最终胜负判定")
+                logger.info("🎯 攻击溯源报告已生成，准备进行最终胜负判定")
                 await self.check_defense_completion()
         
         # 检查防御工作是否全部完成
@@ -225,30 +232,38 @@ class BattleJudge:
         self.battle_state["end_time"] = datetime.now().isoformat()
         
         if winner == "attack_victory":
-            await self.send_log("critical", "🔴 攻防演练结束 - 攻击方胜利！")
-            await self.send_log("info", "攻击方成功完成攻击目标，防御方响应不及时")
+            await self.send_log("critical", "🔴 ═══════════════════════════════════════")
+            await self.send_log("critical", "💀 攻防演练结束 - 攻击方胜利！")
+            await self.send_log("critical", "🎯 红队成功突破防线，完成攻击目标")
+            await self.send_log("warning", "🛡️ 蓝队防御响应不及时，需要加强防护")
             
             # 详细战果统计
             compromised_count = len(self.battle_state["compromised_assets"])
             recovered_count = len(self.battle_state["recovered_assets"])
             
-            await self.send_log("info", f"战果统计 - 被攻陷资产: {compromised_count}, 已恢复资产: {recovered_count}")
+            await self.send_log("info", f"📊 战果统计 - 被攻陷资产: {compromised_count} | 已恢复资产: {recovered_count}")
             
             if self.battle_state["attack_progress"]["data_exfiltrated"]:
-                await self.send_log("critical", "关键数据已被窃取，造成重大安全损失")
+                await self.send_log("critical", "💥 关键数据已被窃取，造成重大安全损失")
+            
+            await self.send_log("critical", "🔴 ═══════════════════════════════════════")
             
         elif winner == "defense_victory":
-            await self.send_log("success", "🟢 攻防演练结束 - 防御方胜利！")
-            await self.send_log("info", "防御方成功阻断攻击并恢复系统安全")
+            await self.send_log("success", "🟢 ═══════════════════════════════════════")
+            await self.send_log("success", "🛡️ 攻防演练结束 - 防御方胜利！")
+            await self.send_log("success", "🎉 蓝队成功阻断攻击并恢复系统安全")
+            await self.send_log("info", "⚔️ 红队攻击被有效遏制，防线坚固")
             
             # 详细防御统计
             blocked_ips_count = len(self.battle_state["blocked_ips"])
             patched_vulns_count = len(self.battle_state["patched_vulnerabilities"])
             
-            await self.send_log("info", f"防御统计 - 阻断IP: {blocked_ips_count}, 修复漏洞: {patched_vulns_count}")
+            await self.send_log("info", f"📊 防御统计 - 阻断IP: {blocked_ips_count} | 修复漏洞: {patched_vulns_count}")
             
             if not self.battle_state["attack_progress"]["data_exfiltrated"]:
-                await self.send_log("success", "成功保护关键数据，未发生数据泄露")
+                await self.send_log("success", "🔒 成功保护关键数据，未发生数据泄露")
+            
+            await self.send_log("success", "🟢 ═══════════════════════════════════════")
         
         # 生成详细战报
         await self.generate_battle_report()
@@ -317,7 +332,10 @@ class BattleJudge:
             # 初始化战斗状态
             if not self.battle_state["start_time"] and "攻击智能体" in log_source:
                 self.battle_state["start_time"] = datetime.now().isoformat()
-                await self.send_log("info", "🚀 攻防演练开始！")
+                await self.send_log("critical", "🚀 ═══════════════════════════════════════")
+                await self.send_log("critical", "🎯 攻防演练正式开始！")
+                await self.send_log("critical", "⚔️  红蓝对抗演练现在开始，请各方做好准备")
+                await self.send_log("critical", "🚀 ═══════════════════════════════════════")
             
             # 更新攻击进度
             if "攻击智能体" in log_source:

@@ -1,13 +1,393 @@
-2025-08-07 22:10:11,821 - threat-blocking-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
-2025-08-07 22:10:11,831 - threat-blocking-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8008/mcp/
+2025-08-08 01:21:51,629 - threat-blocking-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
+2025-08-08 01:21:51,639 - threat-blocking-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8008/mcp/
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\langchain_core\tools\base.py:1314: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
   fields = getattr(cls, "model_fields", {}) or getattr(cls, "__fields__", {})
-2025-08-07 22:10:11,875 - threat-blocking-agent - INFO - ÍşĞ²×è¶ÏÖÇÄÜÌå´´½¨³É¹¦
+2025-08-08 01:21:51,669 - threat-blocking-agent - INFO - ÍşĞ²×è¶ÏÖÇÄÜÌå´´½¨³É¹¦
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [53272]
+INFO:     Started server process [62808]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8011 (Press CTRL+C to quit)
+C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\threat_blocking_agent.py:47: DeprecationWarning: websockets.client.connect is deprecated
+  backend_ws = await websockets.client.connect(BACKEND_WS_URL)
+2025-08-08 01:23:04,594 - threat-blocking-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+2025-08-08 01:23:04,844 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:10,857 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:10,858 - mcp.client.streamable_http - INFO - Received session ID: 2e06e32b2bdd4e51b1c64da8500b422c
+2025-08-08 01:23:10,859 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:10,867 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:10,870 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:10,872 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:12,893 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:12,902 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:12,976 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:17,981 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:17,981 - mcp.client.streamable_http - INFO - Received session ID: 44c6080cea1e483b82fa0e2fd8eb8276
+2025-08-08 01:23:17,982 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:17,988 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:17,991 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:17,994 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:18,511 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:18,519 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:18,590 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:23,036 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:23,036 - mcp.client.streamable_http - INFO - Received session ID: 0a6d201474e142f39831891b2fa4f69f
+2025-08-08 01:23:23,037 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:23,044 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:23,045 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:23,049 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:24,073 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:24,081 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:24,150 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:34,218 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:39,956 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:39,957 - mcp.client.streamable_http - INFO - Received session ID: bc52ea42ee864825ab61d8438d09fd71
+2025-08-08 01:23:39,957 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:39,964 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:39,965 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:39,969 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:41,982 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:41,990 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:42,062 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,328 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,329 - mcp.client.streamable_http - INFO - Received session ID: 767623453ab34571868463e9cea9a825
+2025-08-08 01:23:47,329 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:47,335 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:47,337 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,340 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,863 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,870 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:47,937 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,084 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,084 - mcp.client.streamable_http - INFO - Received session ID: fca2c50667b74fa5a8fcc97b173f27c2
+2025-08-08 01:23:53,085 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:23:53,091 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:23:53,094 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,100 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,104 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,104 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:53,105 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,137 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,140 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,142 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,147 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,165 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,245 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 01:23:54,266 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+
+
+[1m> Entering new AgentExecutor chain...[0m
+[32;1m[1;3m
+Invoking: `detect_network_threats` with `{'target_network': '192.168.0.0/16', 'scan_duration': 30}`
+
+
+[0m[36;1m[1;3m{
+  "scan_network": "192.168.0.0/16",
+  "scan_duration": 30,
+  "threats_found": 0,
+  "threats": [],
+  "scan_completed": "2025-08-08T01:23:12.885895"
+}[0m[32;1m[1;3m
+Invoking: `get_firewall_status` with `{}`
+
+
+[0m[33;1m[1;3m{
+  "firewall_status": "active",
+  "whitelist_count": 8,
+  "blacklist_count": 1,
+  "whitelist": [
+    "192.168.100.50",
+    "192.168.200.10",
+    "192.168.200.20",
+    "172.16.100.10",
+    "172.16.100.20",
+    "192.168.1.1",
+    "8.8.8.8",
+    "114.114.114.114"
+  ],
+  "blacklist": [
+    "192.168.100.200"
+  ],
+  "total_rules": 1,
+  "last_updated": "2025-08-07T22:19:52.167187",
+  "policy": "default_deny"
+}[0m[32;1m[1;3m
+Invoking: `get_threat_intelligence` with `{}`
+
+
+[0m[36;1m[1;3m{
+  "update_time": "2025-08-08T01:23:24.065896",
+  "new_threats": [
+    {
+      "name": "APT-2024-001",
+      "type": "targeted_attack",
+      "severity": "critical",
+      "description": "Õë¶ÔÒ½ÁÆĞĞÒµµÄ¶¨Ïò¹¥»÷»î¶¯",
+      "iocs": [
+        "evil-medical-corp.com",
+        "192.168.100.200",
+        "medical-update.exe"
+      ]
+    },
+    {
+      "name": "Phishing-Campaign-2024",
+      "type": "phishing",
+      "severity": "high",
+      "description": "´ó¹æÄ£µöÓãÓÊ¼ş»î¶¯",
+      "iocs": [
+        "secure-login-update.com",
+        "account-verification.net"
+      ]
+    }
+  ],
+  "blocked_indicators": 2,
+  "threat_level": "elevated"
+}[0m
+
+[1m> Entering new AgentExecutor chain...[0m
+[32;1m[1;3m
+Invoking: `detect_network_threats` with `{'target_network': '192.168.0.0/16'}`
+
+
+[0m[36;1m[1;3m{
+  "scan_network": "192.168.0.0/16",
+  "scan_duration": 30,
+  "threats_found": 0,
+  "threats": [],
+  "scan_completed": "2025-08-08T01:23:41.974749"
+}[0m[32;1m[1;3m
+Invoking: `get_firewall_status` with `{}`
+
+
+[0m[33;1m[1;3m{
+  "firewall_status": "active",
+  "whitelist_count": 8,
+  "blacklist_count": 1,
+  "whitelist": [
+    "192.168.100.50",
+    "192.168.200.10",
+    "192.168.200.20",
+    "172.16.100.10",
+    "172.16.100.20",
+    "192.168.1.1",
+    "8.8.8.8",
+    "114.114.114.114"
+  ],
+  "blacklist": [
+    "192.168.100.200"
+  ],
+  "total_rules": 1,
+  "last_updated": "2025-08-07T22:19:52.167187",
+  "policy": "default_deny"
+}[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'evil-medical-corp.com', 'category': 'targeted_attack'}`
+responded: ¸ù¾İ¼ì²â½á¹ûºÍÍşĞ²Çé±¨£¬ÒÔÏÂÊÇ·ÖÎöºÍĞĞ¶¯²½Öè£º
+
+### 1. **¼ì²â½á¹û**
+- Ä¿±êÍøÂç `192.168.0.0/16` µÄÉ¨ÃèÎ´·¢ÏÖµ±Ç°»î¶¯ÍşĞ²¡£
+- ·À»ğÇ½×´Ì¬Õı³££¬ºÚÃûµ¥ÖĞÒÑÓĞÒ»¸öIPµØÖ· `192.168.100.200`¡£
+
+### 2. **ÍşĞ²Çé±¨·ÖÎö**
+- **APT-2024-001**£¨ÑÏÖØÍşĞ²£©£º
+  - ÀàĞÍ£º¶¨Ïò¹¥»÷£¨Õë¶ÔÒ½ÁÆĞĞÒµ£©
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`evil-medical-corp.com`
+    - IPµØÖ·£º`192.168.100.200`£¨ÒÑÔÚºÚÃûµ¥ÖĞ£©
+    - ÎÄ¼ş£º`medical-update.exe`
+  
+- **Phishing-Campaign-2024**£¨¸ßÎ£ÍşĞ²£©£º
+  - ÀàĞÍ£ºµöÓã»î¶¯
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`secure-login-update.com` ºÍ `account-verification.net`
+
+### 3. **×è¶Ï´ëÊ©**
+- **APT-2024-001**£º
+  - IPµØÖ· `192.168.100.200` ÒÑÔÚºÚÃûµ¥ÖĞ£¬ÎŞĞè¶îÍâ²Ù×÷¡£
+  - ÓòÃû `evil-medical-corp.com` ĞèÒª×è¶Ï¡£
+
+- **Phishing-Campaign-2024**£º
+  - ÓòÃû `secure-login-update.com` ºÍ `account-verification.net` ĞèÒª×è¶Ï¡£
+
+### 4. **Ö´ĞĞ×è¶Ï²Ù×÷**
+- ×è¶Ï¶ñÒâÓòÃû£º
+  - `evil-medical-corp.com`
+  - `secure-login-update.com`
+  - `account-verification.net`
+
+### 5. **¸üĞÂ·À»¤²ßÂÔ**
+- ¸ù¾İ×îĞÂÍşĞ²Çé±¨£¬½¨Òé³ÖĞø¼à¿ØÏà¹ØIOC£¬²¢¸üĞÂ·À»ğÇ½¹æÔòÒÔ·À·¶ÀàËÆÍşĞ²¡£
+
+ÏÖÔÚ½«Ö´ĞĞ×è¶Ï²Ù×÷£º
+
+[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'secure-login-update.com', 'category': 'phishing'}`
+responded: ¸ù¾İ¼ì²â½á¹ûºÍÍşĞ²Çé±¨£¬ÒÔÏÂÊÇ·ÖÎöºÍĞĞ¶¯²½Öè£º
+
+### 1. **¼ì²â½á¹û**
+- Ä¿±êÍøÂç `192.168.0.0/16` µÄÉ¨ÃèÎ´·¢ÏÖµ±Ç°»î¶¯ÍşĞ²¡£
+- ·À»ğÇ½×´Ì¬Õı³££¬ºÚÃûµ¥ÖĞÒÑÓĞÒ»¸öIPµØÖ· `192.168.100.200`¡£
+
+### 2. **ÍşĞ²Çé±¨·ÖÎö**
+- **APT-2024-001**£¨ÑÏÖØÍşĞ²£©£º
+  - ÀàĞÍ£º¶¨Ïò¹¥»÷£¨Õë¶ÔÒ½ÁÆĞĞÒµ£©
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`evil-medical-corp.com`
+    - IPµØÖ·£º`192.168.100.200`£¨ÒÑÔÚºÚÃûµ¥ÖĞ£©
+    - ÎÄ¼ş£º`medical-update.exe`
+  
+- **Phishing-Campaign-2024**£¨¸ßÎ£ÍşĞ²£©£º
+  - ÀàĞÍ£ºµöÓã»î¶¯
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`secure-login-update.com` ºÍ `account-verification.net`
+
+### 3. **×è¶Ï´ëÊ©**
+- **APT-2024-001**£º
+  - IPµØÖ· `192.168.100.200` ÒÑÔÚºÚÃûµ¥ÖĞ£¬ÎŞĞè¶îÍâ²Ù×÷¡£
+  - ÓòÃû `evil-medical-corp.com` ĞèÒª×è¶Ï¡£
+
+- **Phishing-Campaign-2024**£º
+  - ÓòÃû `secure-login-update.com` ºÍ `account-verification.net` ĞèÒª×è¶Ï¡£
+
+### 4. **Ö´ĞĞ×è¶Ï²Ù×÷**
+- ×è¶Ï¶ñÒâÓòÃû£º
+  - `evil-medical-corp.com`
+  - `secure-login-update.com`
+  - `account-verification.net`
+
+### 5. **¸üĞÂ·À»¤²ßÂÔ**
+- ¸ù¾İ×îĞÂÍşĞ²Çé±¨£¬½¨Òé³ÖĞø¼à¿ØÏà¹ØIOC£¬²¢¸üĞÂ·À»ğÇ½¹æÔòÒÔ·À·¶ÀàËÆÍşĞ²¡£
+
+ÏÖÔÚ½«Ö´ĞĞ×è¶Ï²Ù×÷£º
+
+[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'account-verification.net', 'category': 'phishing'}`
+responded: ¸ù¾İ¼ì²â½á¹ûºÍÍşĞ²Çé±¨£¬ÒÔÏÂÊÇ·ÖÎöºÍĞĞ¶¯²½Öè£º
+
+### 1. **¼ì²â½á¹û**
+- Ä¿±êÍøÂç `192.168.0.0/16` µÄÉ¨ÃèÎ´·¢ÏÖµ±Ç°»î¶¯ÍşĞ²¡£
+- ·À»ğÇ½×´Ì¬Õı³££¬ºÚÃûµ¥ÖĞÒÑÓĞÒ»¸öIPµØÖ· `192.168.100.200`¡£
+
+### 2. **ÍşĞ²Çé±¨·ÖÎö**
+- **APT-2024-001**£¨ÑÏÖØÍşĞ²£©£º
+  - ÀàĞÍ£º¶¨Ïò¹¥»÷£¨Õë¶ÔÒ½ÁÆĞĞÒµ£©
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`evil-medical-corp.com`
+    - IPµØÖ·£º`192.168.100.200`£¨ÒÑÔÚºÚÃûµ¥ÖĞ£©
+    - ÎÄ¼ş£º`medical-update.exe`
+  
+- **Phishing-Campaign-2024**£¨¸ßÎ£ÍşĞ²£©£º
+  - ÀàĞÍ£ºµöÓã»î¶¯
+  - Ïà¹ØIOC£º
+    - ÓòÃû£º`secure-login-update.com` ºÍ `account-verification.net`
+
+### 3. **×è¶Ï´ëÊ©**
+- **APT-2024-001**£º
+  - IPµØÖ· `192.168.100.200` ÒÑÔÚºÚÃûµ¥ÖĞ£¬ÎŞĞè¶îÍâ²Ù×÷¡£
+  - ÓòÃû `evil-medical-corp.com` ĞèÒª×è¶Ï¡£
+
+- **Phishing-Campaign-2024**£º
+  - ÓòÃû `secure-login-update.com` ºÍ `account-verification.net` ĞèÒª×è¶Ï¡£
+
+### 4. **Ö´ĞĞ×è¶Ï²Ù×÷**
+- ×è¶Ï¶ñÒâÓòÃû£º
+  - `evil-medical-corp.com`
+  - `secure-login-update.com`
+  - `account-verification.net`
+
+### 5. **¸üĞÂ·À»¤²ßÂÔ**
+- ¸ù¾İ×îĞÂÍşĞ²Çé±¨£¬½¨Òé³ÖĞø¼à¿ØÏà¹ØIOC£¬²¢¸üĞÂ·À»ğÇ½¹æÔòÒÔ·À·¶ÀàËÆÍşĞ²¡£
+
+ÏÖÔÚ½«Ö´ĞĞ×è¶Ï²Ù×÷£º
+
+[0m[32;1m[1;3m
+Invoking: `get_threat_intelligence` with `{}`
+
+
+[0m[31;1m[1;3m{
+  "action": "domain_blocked",
+  "domain": "evil-medical-corp.com",
+  "category": "targeted_attack",
+  "category_description": "Î´ÖªÀà±ğ",
+  "dns_sinkhole": "127.0.0.1",
+  "blocked_at": "2025-08-08T01:23:54.117237",
+  "status": "success",
+  "affected_users": 46
+}[0m[31;1m[1;3m{
+  "action": "domain_blocked",
+  "domain": "secure-login-update.com",
+  "category": "phishing",
+  "category_description": "µöÓãÍøÕ¾",
+  "dns_sinkhole": "127.0.0.1",
+  "blocked_at": "2025-08-08T01:23:54.118237",
+  "status": "success",
+  "affected_users": 22
+}[0m[31;1m[1;3m{
+  "action": "domain_blocked",
+  "domain": "account-verification.net",
+  "category": "phishing",
+  "category_description": "µöÓãÍøÕ¾",
+  "dns_sinkhole": "127.0.0.1",
+  "blocked_at": "2025-08-08T01:23:54.118938",
+  "status": "success",
+  "affected_users": 39
+}[0m[36;1m[1;3m{
+  "update_time": "2025-08-08T01:23:54.119859",
+  "new_threats": [
+    {
+      "name": "APT-2024-001",
+      "type": "targeted_attack",
+      "severity": "critical",
+      "description": "Õë¶ÔÒ½ÁÆĞĞÒµµÄ¶¨Ïò¹¥»÷»î¶¯",
+      "iocs": [
+        "evil-medical-corp.com",
+        "192.168.100.200",
+        "medical-update.exe"
+      ]
+    },
+    {
+      "name": "Phishing-Campaign-2024",
+      "type": "phishing",
+      "severity": "high",
+      "description": "´ó¹æÄ£µöÓãÓÊ¼ş»î¶¯",
+      "iocs": [
+        "secure-login-update.com",
+        "account-verification.net"
+      ]
+    }
+  ],
+  "blocked_indicators": 2,
+  "threat_level": "elevated"
+}[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'evil-medical-corp.com', 'category': 'targeted_attack'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'secure-login-update.com', 'category': 'phishing'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `block_malicious_domain` with `{'domain': 'account-verification.net', 'category': 'phishing'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `add_to_firewall_blacklist` with `{'ip_address': '192.168.100.200', 'reason': '¶¨Ïò¹¥»÷»î¶¯'}`
+
+
+[0m2025-08-08 01:24:05,564 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:05,564 - mcp.client.streamable_http - INFO - Received session ID: d51102ba47e440a3bf0f3141c121ef74
+2025-08-08 01:24:05,565 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 01:24:05,572 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 01:24:05,574 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:05,581 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:05,584 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:05,585 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:05,586 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,604 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,615 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,617 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,620 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,637 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8008/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 01:24:06,717 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"

@@ -1084,6 +1084,350 @@ class FabricAttackVisualization {
   }
 
   /**
+   * 标记节点为被攻陷状态（红色脉冲）
+   * @param {fabric.Object} node - 节点对象
+   */
+  markNodeAsCompromised(node) {
+    if (!node) return;
+
+    console.log('🔴 标记节点为被攻陷状态:', node.deviceData?.name || node.id);
+
+    // 移除之前的状态效果
+    this.removeNodeStatusEffects(node);
+
+    // 标记节点为被攻陷
+    node.compromised = true;
+    node.compromisedTime = new Date();
+
+    // 创建持续的红色脉冲动画
+    this.createCompromisedPulse(node);
+
+    // 添加被攻陷标记
+    this.addCompromisedIndicator(node);
+  }
+
+  /**
+   * 创建被攻陷节点的红色脉冲动画
+   * @param {fabric.Object} node - 节点对象
+   */
+  createCompromisedPulse(node) {
+    const center = node.getCenterPoint();
+    const baseRadius = Math.max(node.width, node.height) / 2;
+    const pulseId = `compromised_pulse_${node.id || Date.now()}`;
+
+    // 停止之前的脉冲动画
+    this.stopContinuousAnimation(pulseId);
+
+    const createPulse = () => {
+      // 检查节点是否仍然被攻陷
+      if (!node.compromised) {
+        console.log('🟢 节点已修复，停止红色脉冲');
+        return;
+      }
+
+      const pulse = new fabric.Circle({
+        left: center.x,
+        top: center.y,
+        radius: baseRadius + 5,
+        fill: 'transparent',
+        stroke: '#dc2626', // 红色
+        strokeWidth: 3,
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        originY: 'center',
+        opacity: 0.8
+      });
+
+      pulse.nodeStatusEffect = true;
+      pulse.targetNode = node;
+      pulse.effectType = 'compromised_pulse';
+
+      this.canvas.add(pulse);
+      this.attackEffects.push(pulse);
+
+      const animation = pulse.animate({
+        radius: baseRadius + 25,
+        opacity: 0
+      }, {
+        duration: 1500,
+        easing: fabric.util.ease.easeOutQuad,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          this.removeEffect(pulse);
+          // 继续下一个脉冲
+          if (node.compromised) {
+            setTimeout(createPulse, 800);
+          }
+        }
+      });
+
+      this.activeAnimations.push(animation);
+    };
+
+    // 开始脉冲动画
+    this.continuousAnimations.set(pulseId, true);
+    createPulse();
+  }
+
+  /**
+   * 添加被攻陷指示器
+   * @param {fabric.Object} node - 节点对象
+   */
+  addCompromisedIndicator(node) {
+    const center = node.getCenterPoint();
+
+    // 创建被攻陷图标
+    const compromisedIcon = new fabric.Text('⚠️', {
+      left: center.x + node.width / 2 - 10,
+      top: center.y - node.height / 2 - 10,
+      fontSize: 20,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center'
+    });
+
+    compromisedIcon.nodeStatusEffect = true;
+    compromisedIcon.targetNode = node;
+    compromisedIcon.effectType = 'compromised_indicator';
+
+    this.canvas.add(compromisedIcon);
+    this.attackEffects.push(compromisedIcon);
+
+    // 闪烁动画
+    const blink = () => {
+      if (!node.compromised) return;
+
+      compromisedIcon.animate('opacity', 0.3, {
+        duration: 500,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          compromisedIcon.animate('opacity', 1, {
+            duration: 500,
+            onChange: () => this.canvas.renderAll(),
+            onComplete: () => {
+              if (node.compromised) {
+                setTimeout(blink, 1000);
+              }
+            }
+          });
+        }
+      });
+    };
+
+    blink();
+  }
+
+  /**
+   * 修复被攻陷的节点（绿色动画）
+   * @param {fabric.Object} node - 节点对象
+   */
+  repairCompromisedNode(node) {
+    if (!node || !node.compromised) return;
+
+    console.log('🔧 开始修复被攻陷节点:', node.deviceData?.name || node.id);
+
+    // 显示修复动画
+    this.createRepairAnimation(node);
+
+    // 延迟标记为已修复
+    setTimeout(() => {
+      this.markNodeAsRepaired(node);
+    }, 2000);
+  }
+
+  /**
+   * 创建修复动画（扳手图标）
+   * @param {fabric.Object} node - 节点对象
+   */
+  createRepairAnimation(node) {
+    const center = node.getCenterPoint();
+
+    // 创建扳手图标
+    const repairIcon = new fabric.Text('🔧', {
+      left: center.x,
+      top: center.y - 40,
+      fontSize: 24,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center',
+      opacity: 0
+    });
+
+    this.canvas.add(repairIcon);
+    this.attackEffects.push(repairIcon);
+
+    // 扳手出现动画
+    const appearAnimation = repairIcon.animate({
+      opacity: 1,
+      top: center.y - 50
+    }, {
+      duration: 300,
+      easing: fabric.util.ease.easeOutBack,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 扳手工作动画（旋转）
+        this.createRepairWorkAnimation(repairIcon, () => {
+          // 扳手消失动画
+          const disappearAnimation = repairIcon.animate({
+            opacity: 0,
+            scaleX: 1.5,
+            scaleY: 1.5
+          }, {
+            duration: 500,
+            onChange: () => this.canvas.renderAll(),
+            onComplete: () => this.removeEffect(repairIcon)
+          });
+          this.activeAnimations.push(disappearAnimation);
+        });
+      }
+    });
+
+    this.activeAnimations.push(appearAnimation);
+  }
+
+  /**
+   * 创建修复工作动画
+   * @param {fabric.Object} repairIcon - 修复图标
+   * @param {Function} onComplete - 完成回调
+   */
+  createRepairWorkAnimation(repairIcon, onComplete) {
+    let rotationCount = 0;
+    const maxRotations = 3;
+
+    const rotate = () => {
+      if (rotationCount >= maxRotations) {
+        onComplete();
+        return;
+      }
+
+      const rotateAnimation = repairIcon.animate('angle', repairIcon.angle + 360, {
+        duration: 600,
+        easing: fabric.util.ease.easeInOutQuad,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          rotationCount++;
+          setTimeout(rotate, 200);
+        }
+      });
+
+      this.activeAnimations.push(rotateAnimation);
+    };
+
+    rotate();
+  }
+
+  /**
+   * 标记节点为已修复状态（绿色脉冲）
+   * @param {fabric.Object} node - 节点对象
+   */
+  markNodeAsRepaired(node) {
+    if (!node) return;
+
+    console.log('🟢 标记节点为已修复状态:', node.deviceData?.name || node.id);
+
+    // 移除被攻陷状态
+    node.compromised = false;
+    node.repairedTime = new Date();
+
+    // 移除红色脉冲和攻陷指示器
+    this.removeNodeStatusEffects(node);
+
+    // 创建绿色修复完成脉冲
+    this.createRepairedPulse(node);
+
+    // 添加修复完成指示器
+    this.addRepairedIndicator(node);
+  }
+
+  /**
+   * 创建修复完成的绿色脉冲
+   * @param {fabric.Object} node - 节点对象
+   */
+  createRepairedPulse(node) {
+    const center = node.getCenterPoint();
+    const baseRadius = Math.max(node.width, node.height) / 2;
+
+    // 创建多层绿色脉冲
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const pulse = new fabric.Circle({
+          left: center.x,
+          top: center.y,
+          radius: baseRadius + 5,
+          fill: 'transparent',
+          stroke: '#16a34a', // 绿色
+          strokeWidth: 3,
+          selectable: false,
+          evented: false,
+          originX: 'center',
+          originY: 'center',
+          opacity: 0.8
+        });
+
+        this.canvas.add(pulse);
+        this.attackEffects.push(pulse);
+
+        const animation = pulse.animate({
+          radius: baseRadius + 30,
+          opacity: 0
+        }, {
+          duration: 1200,
+          easing: fabric.util.ease.easeOutQuad,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => this.removeEffect(pulse)
+        });
+
+        this.activeAnimations.push(animation);
+      }, i * 400);
+    }
+  }
+
+  /**
+   * 添加修复完成指示器
+   * @param {fabric.Object} node - 节点对象
+   */
+  addRepairedIndicator(node) {
+    const center = node.getCenterPoint();
+
+    // 创建修复完成图标
+    const repairedIcon = new fabric.Text('✅', {
+      left: center.x + node.width / 2 - 10,
+      top: center.y - node.height / 2 - 10,
+      fontSize: 20,
+      selectable: false,
+      evented: false,
+      originX: 'center',
+      originY: 'center',
+      opacity: 0
+    });
+
+    this.canvas.add(repairedIcon);
+    this.attackEffects.push(repairedIcon);
+
+    // 出现动画
+    const appearAnimation = repairedIcon.animate('opacity', 1, {
+      duration: 300,
+      onChange: () => this.canvas.renderAll(),
+      onComplete: () => {
+        // 3秒后消失
+        setTimeout(() => {
+          const fadeAnimation = repairedIcon.animate('opacity', 0, {
+            duration: 500,
+            onChange: () => this.canvas.renderAll(),
+            onComplete: () => this.removeEffect(repairedIcon)
+          });
+          this.activeAnimations.push(fadeAnimation);
+        }, 3000);
+      }
+    });
+
+    this.activeAnimations.push(appearAnimation);
+  }
+
+  /**
    * 创建成功动画
    * @param {fabric.Object} node - 节点对象
    * @param {number} duration - 持续时间（秒）

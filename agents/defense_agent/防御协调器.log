@@ -1,4 +1,4 @@
-2025-08-07 22:10:24,735 - defense-coordinator - INFO - 防御协调器已启动
-C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\defense_coordinator.py:86: DeprecationWarning: websockets.client.connect is deprecated
+2025-08-08 01:25:45,879 - defense-coordinator - INFO - 防御协调器已启动
+C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\defense_coordinator.py:101: DeprecationWarning: websockets.client.connect is deprecated
   self.ws_connection = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-07 22:10:26,801 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs
+2025-08-08 01:25:47,942 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs

@@ -1,4 +1,61 @@
-2025-08-07 22:10:29,769 - battle-judge - INFO - 攻防演练裁判系统已启动
+2025-08-08 01:22:09,577 - battle-judge - INFO - 攻防演练裁判系统已启动
 C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\battle_judge.py:81: DeprecationWarning: websockets.client.connect is deprecated
   self.ws_connection = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-07 22:10:32,074 - battle-judge - INFO - 攻防演练裁判系统已连接到WebSocket
+2025-08-08 01:22:11,637 - battle-judge - INFO - 攻防演练裁判系统已连接到WebSocket
+2025-08-08 01:23:04,604 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:04,605 - battle-judge - INFO - \U0001f6ab IP已阻断: 192.168.0.0
+2025-08-08 01:23:09,197 - battle-judge - INFO - \U0001f50d 攻击进度更新: 侦察阶段完成
+2025-08-08 01:23:12,904 - battle-judge - INFO - \U0001f6e1\ufe0f 防御进度更新: 威胁检测完成
+2025-08-08 01:23:16,707 - battle-judge - INFO - \U0001f528 攻击进度更新: 武器化阶段完成
+2025-08-08 01:23:40,149 - battle-judge - INFO - \U0001f4e7 攻击进度更新: 投递阶段完成
+2025-08-08 01:23:42,163 - battle-judge - INFO - \U0001f4a5 攻击进度更新: 利用阶段完成
+2025-08-08 01:23:42,164 - battle-judge - INFO - 资产被攻陷: ws-user-01
+2025-08-08 01:23:43,171 - battle-judge - INFO - \U0001f4a5 攻击进度更新: 利用阶段完成
+2025-08-08 01:23:43,171 - battle-judge - INFO - 资产被攻陷: ws-user-01
+2025-08-08 01:23:44,181 - battle-judge - INFO - \U0001f527 攻击进度更新: 安装阶段完成
+2025-08-08 01:23:45,192 - battle-judge - INFO - \U0001f527 攻击进度更新: 安装阶段完成
+2025-08-08 01:23:46,208 - battle-judge - INFO - \U0001f4e1 攻击进度更新: C2阶段完成
+2025-08-08 01:23:48,232 - battle-judge - INFO - \U0001f480 攻击进度更新: 数据窃取完成 - 这可能触发攻击方胜利
+2025-08-08 01:23:52,555 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:52,556 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:52,557 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:54,150 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:54,152 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:23:54,155 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:24:04,954 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:24:04,955 - battle-judge - INFO - \U0001f6ab IP已阻断: 192.168.100.200
+2025-08-08 01:24:06,487 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:24:06,640 - battle-judge - INFO - \U0001f6ab 防御进度更新: IP阻断完成
+2025-08-08 01:24:06,640 - battle-judge - INFO - \U0001f6ab IP已阻断: 192.168.100.200
+2025-08-08 01:24:07,712 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:24:14,450 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:24:18,094 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:24:28,127 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:28,127 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:28,128 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:28,128 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:33,787 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:33,787 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:33,796 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:33,796 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:37,182 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:24:38,817 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:38,817 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:42,358 - battle-judge - INFO - \U0001f4cb 防御进度更新: 证据收集完成
+2025-08-08 01:24:42,358 - battle-judge - INFO - \U0001f3af 攻击溯源报告已生成，准备进行最终胜负判定
+2025-08-08 01:24:44,157 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:24:47,711 - battle-judge - INFO - \U0001f527 防御进度更新: 漏洞修复完成
+2025-08-08 01:24:47,712 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:24:47,712 - battle-judge - INFO - 攻击方胜利条件满足
+2025-08-08 01:24:53,468 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:24:57,110 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:04,212 - battle-judge - INFO - \U0001f527 防御进度更新: 漏洞修复完成
+2025-08-08 01:25:04,212 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:05,682 - battle-judge - INFO - \U0001f527 防御进度更新: 漏洞修复完成
+2025-08-08 01:25:05,682 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:11,034 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:12,848 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:25:12,848 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:21,737 - battle-judge - INFO - \U0001f50d 防御进度更新: 攻击溯源完成
+2025-08-08 01:25:21,738 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定
+2025-08-08 01:25:30,575 - battle-judge - INFO - \U0001f6e1\ufe0f 所有防御工作已完成，通知裁判进行最终胜负判定

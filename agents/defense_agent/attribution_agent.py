@@ -125,6 +125,12 @@ async def analyze_attack_timeline(start_time: str = None, end_time: str = None) 
     try:
         await send_log_to_backend("info", "攻击溯源智能体", "开始分析攻击时间线")
         
+        # 如果时间参数为None，使用默认值
+        if start_time is None:
+            start_time = ""
+        if end_time is None:
+            end_time = ""
+        
         async with attribution_service.client as client:
             response = await client.call_tool(
                 "analyze_attack_timeline",

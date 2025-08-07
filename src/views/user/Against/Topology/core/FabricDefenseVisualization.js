@@ -45,149 +45,24 @@ class FabricDefenseVisualization {
   }
 
   /**
-   * 创建威胁阻断动画
+   * 创建节点隔离动画
    * @param {fabric.Object} targetNode - 目标节点
-   * @param {string} threatType - 威胁类型
    */
-  createThreatBlockingAnimation(targetNode, threatType = 'malicious_ip') {
-    const config = this.config.threatBlocking;
+  createNodeIsolationAnimation(targetNode) {
+    console.log('🔒 创建节点隔离动画:', targetNode.deviceData?.name || targetNode.id);
+
     const center = targetNode.getCenterPoint();
+    const nodeRadius = Math.max(targetNode.width, targetNode.height) / 2;
 
-    // 创建现代化的防护盾牌 - 使用更美观的SVG路径
-    const shield = new fabric.Path(
-      'M12 2L4 7V13C4 19.08 7.05 24.68 12 26C16.95 24.68 20 19.08 20 13V7L12 2Z',
-      {
-        left: center.x,
-        top: center.y - 60, // 提高位置避免与名称重叠
-        fill: config.shieldColor,
-        stroke: '#ffffff',
-        strokeWidth: 1.5,
-        scaleX: 2,
-        scaleY: 2,
-        originX: 'center',
-        originY: 'center',
-        selectable: false,
-        evented: false,
-        opacity: 0,
-        shadow: new fabric.Shadow({
-          color: 'rgba(16, 185, 129, 0.4)',
-          blur: 8,
-          offsetX: 0,
-          offsetY: 2
-        })
-      }
-    );
-
-    this.canvas.add(shield);
-    this.defenseEffects.push(shield);
-
-    // 盾牌出现动画
-    const shieldAnimation = shield.animate({
-      opacity: 1,
-      scaleX: 2,
-      scaleY: 2
-    }, {
-      duration: 500,
-      easing: fabric.util.ease.easeOutBack,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        // 创建阻断效果
-        this.createBlockEffect(center, threatType);
-        
-        // 延迟移除盾牌
-        setTimeout(() => {
-          const fadeOut = shield.animate({
-            opacity: 0,
-            scaleX: 1,
-            scaleY: 1
-          }, {
-            duration: 500,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(shield)
-          });
-          this.activeDefenseAnimations.push(fadeOut);
-        }, 2000);
-      }
-    });
-
-    this.activeDefenseAnimations.push(shieldAnimation);
-
-    // 添加阻断文字 - 放在节点上方
-    const blockText = new fabric.Text(`🛡️ 威胁已阻断`, {
+    // 创建隔离屏障圈
+    const isolationBarrier = new fabric.Circle({
       left: center.x,
-      top: center.y - 90, // 放在节点上方
-      fontSize: 16,
-      fill: config.shieldColor,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      padding: 8,
-      cornerStyle: 'round',
-      cornerSize: 4
-    });
-
-    this.canvas.add(blockText);
-    this.defenseEffects.push(blockText);
-
-    // 文字动画
-    const textAnimation = blockText.animate({ opacity: 1 }, {
-      duration: 300,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        setTimeout(() => {
-          const textFadeOut = blockText.animate({ opacity: 0 }, {
-            duration: 500,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(blockText)
-          });
-          this.activeDefenseAnimations.push(textFadeOut);
-        }, 2000);
-      }
-    });
-
-    this.activeDefenseAnimations.push(textAnimation);
-  }
-
-  /**
-   * 创建阻断效果
-   * @param {Object} center - 中心点坐标
-   * @param {string} threatType - 威胁类型
-   */
-  createBlockEffect(center, threatType) {
-    const config = this.config.threatBlocking;
-
-    // 创建现代化的阻断标志 - 使用圆形背景
-    const blockBg = new fabric.Circle({
-      left: center.x + 40,
-      top: center.y - 40,
-      radius: 18,
-      fill: '#dc2626',
-      stroke: '#ffffff',
-      strokeWidth: 2,
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0,
-      shadow: new fabric.Shadow({
-        color: 'rgba(220, 38, 38, 0.4)',
-        blur: 6,
-        offsetX: 0,
-        offsetY: 2
-      })
-    });
-
-    const blockSymbol = new fabric.Text('✕', {
-      left: center.x + 40,
-      top: center.y - 40,
-      fontSize: 20,
-      fill: '#ffffff',
-      fontWeight: 'bold',
+      top: center.y,
+      radius: nodeRadius + 15,
+      fill: 'transparent',
+      stroke: '#dc2626',
+      strokeWidth: 4,
+      strokeDashArray: [8, 4],
       originX: 'center',
       originY: 'center',
       selectable: false,
@@ -195,235 +70,10 @@ class FabricDefenseVisualization {
       opacity: 0
     });
 
-    this.canvas.add(blockBg);
-    this.canvas.add(blockSymbol);
-    this.defenseEffects.push(blockBg, blockSymbol);
-
-    // 背景和符号同时出现动画
-    const bgAnimation = blockBg.animate({
-      opacity: 0.9,
-      scaleX: 1.2,
-      scaleY: 1.2
-    }, {
-      duration: 400,
-      easing: fabric.util.ease.easeOutBack,
-      onChange: () => this.canvas.renderAll()
-    });
-
-    const symbolAnimation = blockSymbol.animate({
-      opacity: 1,
-      scaleX: 1.1,
-      scaleY: 1.1
-    }, {
-      duration: 400,
-      easing: fabric.util.ease.easeOutBack,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        setTimeout(() => {
-          const bgFadeOut = blockBg.animate({
-            opacity: 0,
-            scaleX: 1,
-            scaleY: 1
-          }, {
-            duration: 600,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(blockBg)
-          });
-          
-          const symbolFadeOut = blockSymbol.animate({
-            opacity: 0,
-            scaleX: 1,
-            scaleY: 1
-          }, {
-            duration: 600,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(blockSymbol)
-          });
-          
-          this.activeDefenseAnimations.push(bgFadeOut, symbolFadeOut);
-        }, 2000);
-      }
-    });
-
-    this.activeDefenseAnimations.push(symbolAnimation);
-  }
-
-  /**
-   * 创建漏洞修复动画
-   * @param {fabric.Object} targetNode - 目标节点
-   * @param {string} vulnerabilityType - 漏洞类型
-   */
-  createVulnerabilityFixAnimation(targetNode, vulnerabilityType = 'security_patch') {
-    const config = this.config.vulnerabilityFix;
-    const center = targetNode.getCenterPoint();
-
-    // 恢复节点正常状态（移除攻陷效果）
-    this.restoreNodeToNormalState(targetNode);
-
-    // 创建修复工具图标 - 放在节点上方
-    const repairTool = new fabric.Text('🔧', {
-      left: center.x,
-      top: center.y - 70, // 提高位置
-      fontSize: config.toolSize + 4,
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0,
-      angle: 0,
-      shadow: new fabric.Shadow({
-        color: 'rgba(59, 130, 246, 0.4)',
-        blur: 6,
-        offsetX: 0,
-        offsetY: 2
-      })
-    });
-
-    this.canvas.add(repairTool);
-    this.defenseEffects.push(repairTool);
-
-    // 工具出现和旋转动画
-    const toolAnimation = repairTool.animate({
-      opacity: 1,
-      angle: 360
-    }, {
-      duration: 1000,
-      easing: fabric.util.ease.easeInOutQuad,
-      onChange: () => this.canvas.renderAll()
-    });
-
-    this.activeDefenseAnimations.push(toolAnimation);
-
-    // 创建修复进度条
-    this.createRepairProgressBar(center, config);
-
-    // 添加修复文字 - 放在节点上方
-    const repairText = new fabric.Text('🔒 系统加固中...', {
-      left: center.x,
-      top: center.y - 100, // 放在节点上方
-      fontSize: 14,
-      fill: config.repairColor,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      padding: 6,
-      cornerStyle: 'round',
-      cornerSize: 4
-    });
-
-    this.canvas.add(repairText);
-    this.defenseEffects.push(repairText);
-
-    // 文字动画
-    const textAnimation = repairText.animate({ opacity: 1 }, {
-      duration: 300,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        // 修复完成后更新文字
-        setTimeout(() => {
-          repairText.set({ text: '✅ 修复完成', fill: config.progressColor });
-          this.canvas.renderAll();
-          
-          // 延迟移除所有效果
-          setTimeout(() => {
-            this.removeDefenseEffect(repairTool);
-            this.removeDefenseEffect(repairText);
-          }, 1500);
-        }, 2000);
-      }
-    });
-
-    this.activeDefenseAnimations.push(textAnimation);
-  }
-
-  /**
-   * 创建修复进度条
-   * @param {Object} center - 中心点坐标
-   * @param {Object} config - 配置对象
-   */
-  createRepairProgressBar(center, config) {
-    // 进度条背景 - 放在节点上方
-    const progressBg = new fabric.Rect({
-      left: center.x - 50,
-      top: center.y - 45, // 放在节点上方
-      width: 100,
-      height: 8,
-      fill: '#374151',
-      rx: 4,
-      ry: 4,
-      selectable: false,
-      evented: false,
-      stroke: '#6b7280',
-      strokeWidth: 1
-    });
-
-    // 进度条前景
-    const progressFg = new fabric.Rect({
-      left: center.x - 50,
-      top: center.y - 45,
-      width: 0,
-      height: 8,
-      fill: config.progressColor,
-      rx: 4,
-      ry: 4,
-      selectable: false,
-      evented: false,
-      shadow: new fabric.Shadow({
-        color: 'rgba(34, 197, 94, 0.4)',
-        blur: 4,
-        offsetX: 0,
-        offsetY: 1
-      })
-    });
-
-    this.canvas.add(progressBg);
-    this.canvas.add(progressFg);
-    this.defenseEffects.push(progressBg, progressFg);
-
-    // 进度条动画 - 更流畅的进度效果
-    const progressAnimation = progressFg.animate({ width: 100 }, {
-      duration: 2500,
-      easing: fabric.util.ease.easeInOutQuad,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        // 进度完成后闪烁效果
-        let flashCount = 0;
-        const flashInterval = setInterval(() => {
-          progressFg.set({ opacity: flashCount % 2 === 0 ? 1 : 0.3 });
-          this.canvas.renderAll();
-          flashCount++;
-          if (flashCount >= 4) {
-            clearInterval(flashInterval);
-            setTimeout(() => {
-              this.removeDefenseEffect(progressBg);
-              this.removeDefenseEffect(progressFg);
-            }, 500);
-          }
-        }, 200);
-      }
-    });
-
-    this.activeDefenseAnimations.push(progressAnimation);
-  }
-
-  /**
-   * 创建攻击溯源动画
-   * @param {fabric.Object} sourceNode - 源节点
-   * @param {fabric.Object} targetNode - 目标节点
-   * @param {Array} attackPath - 攻击路径
-   */
-  createAttackTracingAnimation(sourceNode, targetNode, attackPath = []) {
-    const config = this.config.attackTracing;
-
-    // 创建溯源分析图标
-    const analyzeIcon = new fabric.Text('🔍', {
-      left: targetNode.getCenterPoint().x,
-      top: targetNode.getCenterPoint().y - 40,
+    // 创建隔离警告图标
+    const warningIcon = new fabric.Text('⚠️', {
+      left: center.x + nodeRadius + 25,
+      top: center.y - nodeRadius - 25,
       fontSize: 24,
       originX: 'center',
       originY: 'center',
@@ -432,125 +82,168 @@ class FabricDefenseVisualization {
       opacity: 0
     });
 
-    this.canvas.add(analyzeIcon);
-    this.defenseEffects.push(analyzeIcon);
-
-    // 分析图标动画
-    const iconAnimation = analyzeIcon.animate({
-      opacity: 1,
-      fontSize: 32
-    }, {
-      duration: 500,
-      easing: fabric.util.ease.easeOutBack,
-      onChange: () => this.canvas.renderAll()
-    });
-
-    this.activeDefenseAnimations.push(iconAnimation);
-
-    // 创建溯源路径
-    if (sourceNode && targetNode) {
-      this.createTracePath(sourceNode, targetNode, config);
-    }
-
-    // 添加溯源文字
-    const traceText = new fabric.Text('🎯 攻击溯源中...', {
-      left: targetNode.getCenterPoint().x,
-      top: targetNode.getCenterPoint().y + 50,
-      fontSize: 12,
-      fill: config.traceColor,
+    // 创建隔离标签
+    const isolationLabel = new fabric.Text('已隔离', {
+      left: center.x,
+      top: center.y + nodeRadius + 35,
+      fontSize: 14,
+      fill: '#dc2626',
       fontWeight: 'bold',
       textAlign: 'center',
       originX: 'center',
       originY: 'center',
       selectable: false,
       evented: false,
-      opacity: 0
+      opacity: 0,
+      backgroundColor: 'rgba(220, 38, 38, 0.1)',
+      padding: 4
     });
 
-    this.canvas.add(traceText);
-    this.defenseEffects.push(traceText);
+    this.canvas.add(isolationBarrier);
+    this.canvas.add(warningIcon);
+    this.canvas.add(isolationLabel);
+    this.defenseEffects.push(isolationBarrier, warningIcon, isolationLabel);
 
-    // 文字动画
-    const textAnimation = traceText.animate({ opacity: 1 }, {
-      duration: 300,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        // 溯源完成后更新文字
-        setTimeout(() => {
-          traceText.set({ text: '📍 溯源完成', fill: '#22c55e' });
-          this.canvas.renderAll();
-          
-          // 延迟移除效果
-          setTimeout(() => {
-            this.removeDefenseEffect(analyzeIcon);
-            this.removeDefenseEffect(traceText);
-          }, 2000);
-        }, 1500);
-      }
+    // 隔离屏障出现动画
+    isolationBarrier.animate('opacity', 0.8, {
+      duration: 600,
+      onChange: () => this.canvas.renderAll()
     });
 
-    this.activeDefenseAnimations.push(textAnimation);
+    // 警告图标弹出
+    setTimeout(() => {
+      warningIcon.animate({
+        opacity: 1,
+        scaleX: 1.2,
+        scaleY: 1.2
+      }, {
+        duration: 400,
+        easing: fabric.util.ease.easeOutBack,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 300);
+
+    // 标签淡入
+    setTimeout(() => {
+      isolationLabel.animate('opacity', 1, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 600);
+
+    // 创建持续的隔离脉冲
+    this.createIsolationPulse(targetNode, isolationBarrier);
+
+    // 标记节点为隔离状态
+    targetNode.isolated = true;
+    targetNode.isolationTime = new Date();
   }
 
   /**
-   * 创建溯源路径
-   * @param {fabric.Object} sourceNode - 源节点
+   * 创建隔离脉冲动画
    * @param {fabric.Object} targetNode - 目标节点
-   * @param {Object} config - 配置对象
+   * @param {fabric.Object} barrier - 隔离屏障
    */
-  createTracePath(sourceNode, targetNode, config) {
+  createIsolationPulse(targetNode, barrier) {
+    const center = targetNode.getCenterPoint();
+    const baseRadius = Math.max(targetNode.width, targetNode.height) / 2;
+
+    const createPulse = () => {
+      if (!targetNode.isolated) return;
+
+      const pulse = new fabric.Circle({
+        left: center.x,
+        top: center.y,
+        radius: baseRadius + 15,
+        fill: 'transparent',
+        stroke: '#dc2626',
+        strokeWidth: 2,
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+        opacity: 0.6
+      });
+
+      this.canvas.add(pulse);
+      this.defenseEffects.push(pulse);
+
+      pulse.animate({
+        radius: baseRadius + 35,
+        opacity: 0
+      }, {
+        duration: 2000,
+        easing: fabric.util.ease.easeOutQuad,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          this.removeDefenseEffect(pulse);
+          if (targetNode.isolated) {
+            setTimeout(createPulse, 1000);
+          }
+        }
+      });
+    };
+
+    createPulse();
+  }
+
+  /**
+   * 创建威胁阻断动画
+   * @param {fabric.Object} sourceNode - 威胁源节点
+   * @param {fabric.Object} targetNode - 目标节点
+   * @param {string} threatType - 威胁类型
+   */
+  createThreatBlockingAnimation(sourceNode, targetNode, threatType = 'malicious_traffic') {
+    console.log('🛡️ 创建威胁阻断动画:', threatType);
+
     const sourceCenter = sourceNode.getCenterPoint();
     const targetCenter = targetNode.getCenterPoint();
+    const midPoint = {
+      x: (sourceCenter.x + targetCenter.x) / 2,
+      y: (sourceCenter.y + targetCenter.y) / 2
+    };
 
-    // 创建溯源路径线
-    const traceLine = new fabric.Line([
-      targetCenter.x, targetCenter.y,
+    // 创建威胁路径（红色虚线）
+    const threatPath = new fabric.Line([
+      sourceCenter.x, sourceCenter.y,
       targetCenter.x, targetCenter.y
     ], {
-      stroke: config.traceColor,
-      strokeWidth: config.pathWidth,
+      stroke: '#dc2626',
+      strokeWidth: 3,
       strokeDashArray: [8, 4],
       selectable: false,
       evented: false,
-      opacity: 0.8
+      opacity: 0.7
     });
 
-    this.canvas.add(traceLine);
-    this.defenseEffects.push(traceLine);
+    this.canvas.add(threatPath);
+    this.defenseEffects.push(threatPath);
 
-    // 路径动画
-    const pathAnimation = traceLine.animate({
-      x2: sourceCenter.x,
-      y2: sourceCenter.y
-    }, {
-      duration: config.duration,
-      easing: fabric.util.ease.easeInOutQuad,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => {
-        // 在源节点显示攻击者标记
-        this.markAttackerSource(sourceNode);
-        
-        // 延迟移除路径
-        setTimeout(() => {
-          this.removeDefenseEffect(traceLine);
-        }, 2000);
-      }
+    // 创建阻断盾牌
+    const blockShield = new fabric.Circle({
+      left: midPoint.x,
+      top: midPoint.y,
+      radius: 25,
+      fill: '#10b981',
+      stroke: '#ffffff',
+      strokeWidth: 3,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      shadow: new fabric.Shadow({
+        color: 'rgba(16, 185, 129, 0.5)',
+        blur: 10,
+        offsetX: 0,
+        offsetY: 0
+      })
     });
 
-    this.activeDefenseAnimations.push(pathAnimation);
-  }
-
-  /**
-   * 标记攻击者来源
-   * @param {fabric.Object} sourceNode - 源节点
-   */
-  markAttackerSource(sourceNode) {
-    const center = sourceNode.getCenterPoint();
-
-    // 创建攻击者标记
-    const attackerMark = new fabric.Text('⚠️', {
-      left: center.x + 25,
-      top: center.y - 25,
+    // 创建阻断图标
+    const blockIcon = new fabric.Text('🛡️', {
+      left: midPoint.x,
+      top: midPoint.y,
       fontSize: 20,
       originX: 'center',
       originY: 'center',
@@ -559,80 +252,343 @@ class FabricDefenseVisualization {
       opacity: 0
     });
 
-    this.canvas.add(attackerMark);
-    this.defenseEffects.push(attackerMark);
+    this.canvas.add(blockShield);
+    this.canvas.add(blockIcon);
+    this.defenseEffects.push(blockShield, blockIcon);
 
-    // 标记动画
-    const markAnimation = attackerMark.animate({
+    // 盾牌出现动画
+    blockShield.animate({
       opacity: 1,
-      fontSize: 24
+      scaleX: 1.2,
+      scaleY: 1.2
     }, {
-      duration: 300,
-      easing: fabric.util.ease.easeOutBounce,
+      duration: 400,
+      easing: fabric.util.ease.easeOutBack,
       onChange: () => this.canvas.renderAll(),
       onComplete: () => {
-        // 持续显示一段时间后移除
-        setTimeout(() => {
-          const fadeOut = attackerMark.animate({ opacity: 0 }, {
-            duration: 500,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(attackerMark)
-          });
-          this.activeDefenseAnimations.push(fadeOut);
-        }, 3000);
+        // 图标出现
+        blockIcon.animate('opacity', 1, {
+          duration: 200,
+          onChange: () => this.canvas.renderAll()
+        });
+
+        // 创建阻断冲击波
+        this.createBlockShockwave(midPoint);
       }
     });
 
-    this.activeDefenseAnimations.push(markAnimation);
+    // 威胁路径被阻断效果
+    setTimeout(() => {
+      threatPath.animate({
+        opacity: 0,
+        strokeDashArray: [2, 8]
+      }, {
+        duration: 800,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 600);
+
+    // 延迟清理
+    setTimeout(() => {
+      [threatPath, blockShield, blockIcon].forEach(obj => {
+        this.removeDefenseEffect(obj);
+      });
+    }, 3000);
   }
 
   /**
-   * 创建防火墙更新动画
-   * @param {fabric.Object} firewallNode - 防火墙节点
-   * @param {string} updateType - 更新类型
+   * 创建阻断冲击波
+   * @param {Object} center - 中心点 {x, y}
    */
-  createFirewallUpdateAnimation(firewallNode, updateType = 'rule_update') {
-    const config = this.config.firewallUpdate;
+  createBlockShockwave(center) {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const shockwave = new fabric.Circle({
+          left: center.x,
+          top: center.y,
+          radius: 5,
+          fill: 'transparent',
+          stroke: '#10b981',
+          strokeWidth: 2,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          opacity: 0.8
+        });
+
+        this.canvas.add(shockwave);
+        this.defenseEffects.push(shockwave);
+
+        shockwave.animate({
+          radius: 40 + i * 10,
+          opacity: 0
+        }, {
+          duration: 1000,
+          easing: fabric.util.ease.easeOutQuad,
+          onChange: () => this.canvas.renderAll(),
+          onComplete: () => this.removeDefenseEffect(shockwave)
+        });
+      }, i * 200);
+    }
+  }
+
+  /**
+   * 创建IP黑名单阻断动画
+   * @param {string} maliciousIP - 恶意IP地址
+   * @param {fabric.Object} firewallNode - 防火墙节点
+   */
+  createIPBlacklistAnimation(maliciousIP, firewallNode) {
+    console.log('🚫 创建IP黑名单阻断动画:', maliciousIP);
+
     const center = firewallNode.getCenterPoint();
 
-    // 创建更新指示器
-    const updateIndicator = new fabric.Circle({
+    // 创建IP地址标签
+    const ipLabel = new fabric.Text(maliciousIP, {
       left: center.x,
-      top: center.y,
+      top: center.y - 60,
+      fontSize: 14,
+      fill: '#dc2626',
+      fontFamily: 'monospace',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      backgroundColor: 'rgba(220, 38, 38, 0.1)',
+      padding: 6
+    });
+
+    // 创建禁止图标
+    const banIcon = new fabric.Text('🚫', {
+      left: center.x + 80,
+      top: center.y - 60,
+      fontSize: 24,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    // 创建黑名单标签
+    const blacklistLabel = new fabric.Text('已加入黑名单', {
+      left: center.x,
+      top: center.y - 30,
+      fontSize: 12,
+      fill: '#ffffff',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      padding: 4
+    });
+
+    this.canvas.add(ipLabel);
+    this.canvas.add(banIcon);
+    this.canvas.add(blacklistLabel);
+    this.defenseEffects.push(ipLabel, banIcon, blacklistLabel);
+
+    // 动画序列
+    ipLabel.animate('opacity', 1, {
+      duration: 400,
+      onChange: () => this.canvas.renderAll()
+    });
+
+    setTimeout(() => {
+      banIcon.animate({
+        opacity: 1,
+        scaleX: 1.3,
+        scaleY: 1.3
+      }, {
+        duration: 300,
+        easing: fabric.util.ease.easeOutBack,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 200);
+
+    setTimeout(() => {
+      blacklistLabel.animate('opacity', 1, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 500);
+
+    // 延迟清理
+    setTimeout(() => {
+      [ipLabel, banIcon, blacklistLabel].forEach(obj => {
+        this.removeDefenseEffect(obj);
+      });
+    }, 4000);
+  }
+
+  /**
+   * 创建攻击溯源动画
+   * @param {fabric.Object} sourceNode - 源节点（攻击者）
+   * @param {fabric.Object} targetNode - 目标节点
+   */
+  createAttackTracingAnimation(sourceNode, targetNode) {
+    console.log('🔍 创建攻击溯源动画');
+
+    const sourceCenter = sourceNode.getCenterPoint();
+    const targetCenter = targetNode.getCenterPoint();
+    const config = this.config.attackTracing;
+
+    // 创建溯源路径
+    const tracePath = new fabric.Line([
+      sourceCenter.x, sourceCenter.y,
+      targetCenter.x, targetCenter.y
+    ], {
+      stroke: config.traceColor,
+      strokeWidth: config.pathWidth,
+      strokeDashArray: [10, 5],
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    this.canvas.add(tracePath);
+    this.defenseEffects.push(tracePath);
+
+    // 创建分析脉冲
+    const analysisPulse = new fabric.Circle({
+      left: targetCenter.x,
+      top: targetCenter.y,
       radius: 5,
-      fill: config.updateColor,
-      stroke: '#ffffff',
+      fill: 'transparent',
+      stroke: config.traceColor,
       strokeWidth: 2,
       originX: 'center',
       originY: 'center',
       selectable: false,
       evented: false,
-      opacity: 0.8
-    });
-
-    this.canvas.add(updateIndicator);
-    this.defenseEffects.push(updateIndicator);
-
-    // 更新动画
-    const updateAnimation = updateIndicator.animate({
-      radius: 30,
       opacity: 0
-    }, {
-      duration: config.duration,
-      easing: fabric.util.ease.easeOutQuad,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => this.removeDefenseEffect(updateIndicator)
     });
 
-    this.activeDefenseAnimations.push(updateAnimation);
+    this.canvas.add(analysisPulse);
+    this.defenseEffects.push(analysisPulse);
 
-    // 添加更新文字
-    const updateText = new fabric.Text('🔄 防火墙规则更新', {
-      left: center.x,
-      top: center.y - 50,
+    // 创建溯源标签
+    const traceLabel = new fabric.Text('攻击溯源中...', {
+      left: (sourceCenter.x + targetCenter.x) / 2,
+      top: (sourceCenter.y + targetCenter.y) / 2 - 20,
       fontSize: 12,
-      fill: config.updateColor,
+      fill: config.traceColor,
       fontWeight: 'bold',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      padding: 4
+    });
+
+    this.canvas.add(traceLabel);
+    this.defenseEffects.push(traceLabel);
+
+    // 路径出现动画
+    tracePath.animate('opacity', 0.8, {
+      duration: 600,
+      onChange: () => this.canvas.renderAll()
+    });
+
+    // 标签出现
+    setTimeout(() => {
+      traceLabel.animate('opacity', 1, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 300);
+
+    // 分析脉冲动画
+    setTimeout(() => {
+      analysisPulse.animate({
+        opacity: 0.8,
+        radius: config.analyzeRadius
+      }, {
+        duration: 800,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          // 脉冲消失
+          analysisPulse.animate({
+            opacity: 0,
+            radius: config.analyzeRadius + 20
+          }, {
+            duration: 600,
+            onChange: () => this.canvas.renderAll()
+          });
+        }
+      });
+    }, 600);
+
+    // 溯源完成
+    setTimeout(() => {
+      traceLabel.set('text', '溯源完成');
+      traceLabel.set('fill', '#10b981');
+      this.canvas.renderAll();
+
+      // 延迟清理
+      setTimeout(() => {
+        [tracePath, analysisPulse, traceLabel].forEach(obj => {
+          this.removeDefenseEffect(obj);
+        });
+      }, 2000);
+    }, config.duration);
+  }
+
+  /**
+   * 创建漏洞修复动画
+   * @param {fabric.Object} targetNode - 目标节点
+   * @param {string} fixType - 修复类型
+   */
+  createVulnerabilityFixAnimation(targetNode, fixType = 'vulnerability_fixed') {
+    console.log('🔧 创建漏洞修复动画:', fixType);
+
+    const center = targetNode.getCenterPoint();
+    const config = this.config.vulnerabilityFix;
+
+    // 创建修复工具图标
+    const repairTool = new fabric.Text('🔧', {
+      left: center.x - 30,
+      top: center.y - 30,
+      fontSize: config.toolSize,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      angle: 0
+    });
+
+    // 创建进度圆环
+    const progressRing = new fabric.Circle({
+      left: center.x,
+      top: center.y,
+      radius: 25,
+      fill: 'transparent',
+      stroke: config.repairColor,
+      strokeWidth: 4,
+      strokeDashArray: [0, 157], // 圆周长约157
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      angle: -90
+    });
+
+    // 创建修复标签
+    const fixLabel = new fabric.Text('修复中...', {
+      left: center.x,
+      top: center.y + 45,
+      fontSize: 12,
+      fill: config.repairColor,
       textAlign: 'center',
       originX: 'center',
       originY: 'center',
@@ -641,26 +597,189 @@ class FabricDefenseVisualization {
       opacity: 0
     });
 
-    this.canvas.add(updateText);
-    this.defenseEffects.push(updateText);
+    this.canvas.add(repairTool);
+    this.canvas.add(progressRing);
+    this.canvas.add(fixLabel);
+    this.defenseEffects.push(repairTool, progressRing, fixLabel);
 
-    // 文字动画
-    const textAnimation = updateText.animate({ opacity: 1 }, {
+    // 工具出现并旋转
+    repairTool.animate({
+      opacity: 1,
+      angle: 360
+    }, {
+      duration: 800,
+      easing: fabric.util.ease.easeOutBack,
+      onChange: () => this.canvas.renderAll()
+    });
+
+    // 进度环出现
+    setTimeout(() => {
+      progressRing.animate('opacity', 0.8, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 200);
+
+    // 标签出现
+    setTimeout(() => {
+      fixLabel.animate('opacity', 1, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 400);
+
+    // 进度动画
+    setTimeout(() => {
+      progressRing.animate('strokeDashArray', [157, 0], {
+        duration: config.duration - 1000,
+        onChange: () => this.canvas.renderAll(),
+        onComplete: () => {
+          // 修复完成
+          progressRing.set('stroke', config.progressColor);
+          fixLabel.set('text', '修复完成');
+          fixLabel.set('fill', config.progressColor);
+          this.canvas.renderAll();
+
+          // 成功图标
+          const successIcon = new fabric.Text('✅', {
+            left: center.x + 30,
+            top: center.y - 30,
+            fontSize: 20,
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+            opacity: 0
+          });
+
+          this.canvas.add(successIcon);
+          this.defenseEffects.push(successIcon);
+
+          successIcon.animate({
+            opacity: 1,
+            scaleX: 1.2,
+            scaleY: 1.2
+          }, {
+            duration: 400,
+            easing: fabric.util.ease.easeOutBack,
+            onChange: () => this.canvas.renderAll()
+          });
+
+          // 延迟清理
+          setTimeout(() => {
+            [repairTool, progressRing, fixLabel, successIcon].forEach(obj => {
+              this.removeDefenseEffect(obj);
+            });
+          }, 2000);
+        }
+      });
+    }, 800);
+  }
+
+  /**
+   * 创建防火墙规则更新动画
+   * @param {fabric.Object} firewallNode - 防火墙节点
+   * @param {string} ruleType - 规则类型
+   */
+  createFirewallRuleUpdateAnimation(firewallNode, ruleType = 'block_rule') {
+    console.log('🔧 创建防火墙规则更新动画:', ruleType);
+
+    const center = firewallNode.getCenterPoint();
+
+    // 创建更新指示器
+    const updateIndicator = new fabric.Circle({
+      left: center.x,
+      top: center.y,
+      radius: 30,
+      fill: 'transparent',
+      stroke: '#3b82f6',
+      strokeWidth: 3,
+      strokeDashArray: [6, 3],
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    // 创建齿轮图标
+    const gearIcon = new fabric.Text('⚙️', {
+      left: center.x,
+      top: center.y,
+      fontSize: 24,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      angle: 0
+    });
+
+    // 创建更新标签
+    const updateLabel = new fabric.Text('规则更新中...', {
+      left: center.x,
+      top: center.y + 50,
+      fontSize: 12,
+      fill: '#3b82f6',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    this.canvas.add(updateIndicator);
+    this.canvas.add(gearIcon);
+    this.canvas.add(updateLabel);
+    this.defenseEffects.push(updateIndicator, gearIcon, updateLabel);
+
+    // 指示器出现
+    updateIndicator.animate('opacity', 0.8, {
+      duration: 400,
+      onChange: () => this.canvas.renderAll()
+    });
+
+    // 齿轮出现并旋转
+    gearIcon.animate('opacity', 1, {
       duration: 300,
       onChange: () => this.canvas.renderAll(),
       onComplete: () => {
-        setTimeout(() => {
-          const textFadeOut = updateText.animate({ opacity: 0 }, {
-            duration: 500,
-            onChange: () => this.canvas.renderAll(),
-            onComplete: () => this.removeDefenseEffect(updateText)
-          });
-          this.activeDefenseAnimations.push(textFadeOut);
-        }, 1500);
+        // 持续旋转
+        const rotate = () => {
+          if (gearIcon.opacity > 0) {
+            gearIcon.animate('angle', gearIcon.angle + 360, {
+              duration: 1000,
+              onChange: () => this.canvas.renderAll(),
+              onComplete: rotate
+            });
+          }
+        };
+        rotate();
       }
     });
 
-    this.activeDefenseAnimations.push(textAnimation);
+    // 标签出现
+    setTimeout(() => {
+      updateLabel.animate('opacity', 1, {
+        duration: 400,
+        onChange: () => this.canvas.renderAll()
+      });
+    }, 200);
+
+    // 更新完成
+    setTimeout(() => {
+      updateLabel.set('text', '规则更新完成');
+      updateLabel.set('fill', '#10b981');
+      this.canvas.renderAll();
+
+      // 延迟清理
+      setTimeout(() => {
+        [updateIndicator, gearIcon, updateLabel].forEach(obj => {
+          this.removeDefenseEffect(obj);
+        });
+      }, 2000);
+    }, 2500);
   }
 
   /**
@@ -681,7 +800,7 @@ class FabricDefenseVisualization {
   /**
    * 清除所有防御效果
    */
-  clearAllDefenseEffects() {
+  clearAllEffects() {
     // 停止所有动画
     this.activeDefenseAnimations.forEach(animation => {
       if (animation && typeof animation.cancel === 'function') {
@@ -708,107 +827,6 @@ class FabricDefenseVisualization {
     this.defenseEffects = [];
 
     this.canvas.renderAll();
-  }
-
-  /**
-   * 根据防御日志触发对应动画
-   * @param {Object} logEntry - 日志条目
-   * @param {fabric.Object} targetNode - 目标节点
-   */
-  triggerDefenseAnimationFromLog(logEntry, targetNode) {
-    const { level, source, message } = logEntry;
-
-    if (source.includes('威胁阻断') || message.includes('阻断') || message.includes('封锁')) {
-      this.createThreatBlockingAnimation(targetNode, 'threat_blocked');
-    } else if (source.includes('漏洞修复') || message.includes('修复') || message.includes('补丁')) {
-      this.createVulnerabilityFixAnimation(targetNode, 'vulnerability_fixed');
-    } else if (source.includes('攻击溯源') || message.includes('溯源') || message.includes('分析')) {
-      // 需要找到攻击源节点
-      const sourceNode = this.findNodeByType('internet') || targetNode;
-      this.createAttackTracingAnimation(sourceNode, targetNode);
-    } else if (message.includes('防火墙') || message.includes('规则')) {
-      const firewallNode = this.findNodeByType('firewall') || targetNode;
-      this.createFirewallUpdateAnimation(firewallNode, 'rule_update');
-    }
-  }
-
-  /**
-   * 恢复节点到正常状态
-   * @param {fabric.Object} targetNode - 目标节点
-   */
-  restoreNodeToNormalState(targetNode) {
-    if (!targetNode) return;
-
-    // 移除攻陷状态的视觉效果
-    targetNode.set({
-      stroke: '#ffffff',
-      strokeWidth: 1,
-      strokeDashArray: null,
-      opacity: 1.0
-    });
-
-    // 移除红色脉冲动画
-    if (targetNode._pulseAnimation) {
-      targetNode._pulseAnimation.cancel();
-      delete targetNode._pulseAnimation;
-    }
-
-    // 添加绿色恢复脉冲效果
-    this.createRecoveryPulse(targetNode);
-
-    this.canvas.renderAll();
-  }
-
-  /**
-   * 创建恢复脉冲效果
-   * @param {fabric.Object} targetNode - 目标节点
-   */
-  createRecoveryPulse(targetNode) {
-    const center = targetNode.getCenterPoint();
-    
-    // 创建绿色脉冲圆圈
-    const pulse = new fabric.Circle({
-      left: center.x,
-      top: center.y,
-      radius: 5,
-      fill: 'transparent',
-      stroke: '#22c55e',
-      strokeWidth: 3,
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0.8
-    });
-
-    this.canvas.add(pulse);
-    this.defenseEffects.push(pulse);
-
-    // 脉冲动画
-    const pulseAnimation = pulse.animate({
-      radius: 40,
-      opacity: 0
-    }, {
-      duration: 1500,
-      easing: fabric.util.ease.easeOutQuad,
-      onChange: () => this.canvas.renderAll(),
-      onComplete: () => this.removeDefenseEffect(pulse)
-    });
-
-    this.activeDefenseAnimations.push(pulseAnimation);
-  }
-
-  /**
-   * 根据类型查找节点
-   * @param {string} nodeType - 节点类型
-   * @returns {fabric.Object|null} - 找到的节点
-   */
-  findNodeByType(nodeType) {
-    const objects = this.canvas.getObjects();
-    return objects.find(obj => 
-      obj.type === 'device' && 
-      (obj.deviceType === nodeType || obj.nodeData?.type === nodeType)
-    ) || null;
   }
 }
 

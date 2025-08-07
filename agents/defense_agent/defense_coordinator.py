@@ -39,10 +39,12 @@ class DefenseCoordinator:
         self.ws_connection = None
         self.running = True  # 初始化为True
         self.processed_messages = set()  # 用于去重
+        self.message_timestamps = {}  # 用于时间窗口去重
+        self.last_trigger_time = {}  # 记录每个智能体的最后触发时间
         
-        # 日志模式匹配规则
+        # 改进的防御触发规则 - 按攻击阶段有序响应
         self.defense_patterns = {
-            # 威胁阻断触发模式
+            # 威胁阻断 - 在攻击早期阶段触发
             "threat_blocking": [
                 r"攻击者.*扫描.*防火墙",
                 r"检测到.*端口扫描",
@@ -51,33 +53,46 @@ class DefenseCoordinator:
                 r"恶意.*IP.*访问",
                 r"检测到.*暴力破解",
                 r"发现.*恶意域名",
-                r"攻击者.*建立.*C2通信",
-                r"检测到.*数据外泄"
+                r"攻击者.*尝试.*连接",
+                r"检测到.*异常流量"
             ],
             
-            # 漏洞修复触发模式
+            # 漏洞修复 - 在攻击中期阶段触发
             "vulnerability_remediation": [
-                r".*漏洞.*被利用",
                 r"攻击者.*获得.*访问权限",
                 r".*系统.*被攻陷",
-                r"发现.*安全漏洞",
-                r".*补丁.*需要更新",
+                r"攻击者.*利用.*漏洞",
+                r"发现.*CVE.*漏洞",
                 r"攻击者.*安装.*后门",
-                r".*配置.*存在缺陷",
-                r"系统.*需要加固"
+                r"系统.*需要.*修复",
+                r"发现.*权限提升",
+                r"攻击者.*执行.*命令"
             ],
             
-            # 攻击溯源触发模式
+            # 攻击溯源 - 在攻击后期或完成后触发
             "attack_attribution": [
                 r"攻击.*完成",
-                r"攻击者.*完全.*攻陷",
                 r"数据.*被窃取",
                 r"攻击.*成功",
-                r"需要.*溯源.*分析",
-                r"攻击.*路径.*分析",
-                r"威胁.*归因.*分析",
-                r"收集.*数字证据"
+                r"攻击者.*完成.*目标",
+                r"检测到.*数据外泄",
+                r"攻击.*达成.*目标",
+                r"需要.*事件.*分析"
             ]
+        }
+        
+        # 防御智能体优先级和触发间隔
+        self.agent_priority = {
+            "threat_blocking": 1,      # 最高优先级，立即响应
+            "vulnerability_remediation": 2,  # 中等优先级
+            "attack_attribution": 3    # 最低优先级，在攻击完成后执行
+        }
+        
+        # 不同智能体的最小触发间隔
+        self.agent_intervals = {
+            "threat_blocking": 5.0,           # 威胁阻断可以频繁触发
+            "vulnerability_remediation": 15.0, # 漏洞修复需要更长间隔
+            "attack_attribution": 30.0        # 攻击溯源间隔最长
         }
     
     async def connect_to_backend(self):
@@ -107,6 +122,20 @@ class DefenseCoordinator:
     def analyze_log_for_defense_triggers(self, log_message: str, log_source: str) -> List[str]:
         """分析日志消息，确定需要触发的防御智能体"""
         triggered_agents = []
+        
+        # 只对攻击相关的智能体日志进行防御响应
+        attack_agent_sources = [
+            '中控智能体',
+            '攻击智能体',
+            'attack_agent',
+            'central_agent'
+        ]
+        
+        # 检查是否来自攻击智能体
+        is_from_attack_agent = any(agent_source in log_source for agent_source in attack_agent_sources)
+        
+        if not is_from_attack_agent:
+            return triggered_agents
         
         # 跳过防御智能体自己的日志，避免循环触发
         if any(agent in log_source for agent in ["威胁阻断", "漏洞修复", "攻击溯源", "防御协调器"]):
@@ -177,6 +206,56 @@ class DefenseCoordinator:
         
         return context
     
+    def extract_semantic_key(self, log_message: str, log_source: str) -> str:
+        """提取消息的语义关键字，用于语义去重"""
+        import hashlib
+        
+        # 提取关键信息，忽略时间戳、具体数值等变化的部分
+        semantic_parts = []
+        
+        # 添加消息来源
+        semantic_parts.append(log_source)
+        
+        # 提取主要动作词
+        action_words = ['攻击', '扫描', '阻断', '修复', '溯源', '检测', '发现', '获得', '建立', '窃取']
+        for word in action_words:
+            if word in log_message:
+                semantic_parts.append(word)
+        
+        # 提取IP地址模式（但不包含具体IP）
+        import re
+        if re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', log_message):
+            semantic_parts.append('IP_ADDRESS')
+        
+        # 提取主机/设备模式
+        host_patterns = ['主机', '设备', '服务器', '节点', '防火墙']
+        for pattern in host_patterns:
+            if pattern in log_message:
+                semantic_parts.append(pattern)
+                break
+        
+        # 提取攻击阶段
+        phases = ['侦察', '武器化', '投递', '利用', '安装', '命令', '控制', '目标']
+        for phase in phases:
+            if phase in log_message:
+                semantic_parts.append(phase)
+                break
+        
+        # 生成语义键
+        semantic_content = ':'.join(semantic_parts)
+        return hashlib.md5(semantic_content.encode('utf-8')).hexdigest()
+    
+    def cleanup_old_timestamps(self, current_time: float, max_age: float):
+        """清理过期的时间戳记录"""
+        expired_keys = []
+        for key, timestamp in self.message_timestamps.items():
+            if current_time - timestamp > max_age:
+                expired_keys.append(key)
+        
+        for key in expired_keys:
+            del self.message_timestamps[key]
+            self.processed_messages.discard(key)
+    
     async def trigger_defense_agent(self, agent_type: str, context: Dict[str, Any]):
         """触发特定的防御智能体"""
         if agent_type not in DEFENSE_AGENTS:
@@ -240,19 +319,39 @@ class DefenseCoordinator:
             log_message = message_data.get("message", "")
             log_source = message_data.get("source", "")
             log_level = message_data.get("level", "info")
+            current_time = asyncio.get_event_loop().time()
             
-            # 创建消息唯一标识符用于去重 - 使用更稳定的哈希方法
+            # 改进的去重逻辑
             import hashlib
+            
+            # 1. 基于内容的去重（短期）
             message_content = f"{log_source}:{log_message}".encode('utf-8')
             message_id = hashlib.md5(message_content).hexdigest()
             
-            # 检查是否是重复消息
-            if message_id in self.processed_messages:
-                logger.debug(f"跳过重复消息: {log_source} - {log_message[:50]}...")
-                return
+            # 2. 时间窗口去重（5秒内的相同消息只处理一次）
+            time_window = 5.0
+            if message_id in self.message_timestamps:
+                last_time = self.message_timestamps[message_id]
+                if current_time - last_time < time_window:
+                    logger.debug(f"跳过时间窗口内的重复消息: {log_source} - {log_message[:50]}...")
+                    return
             
-            # 记录已处理的消息
-            self.processed_messages.add(message_id)
+            # 3. 基于语义的去重（相似消息的去重）
+            semantic_key = self.extract_semantic_key(log_message, log_source)
+            if semantic_key in self.processed_messages:
+                last_time = self.message_timestamps.get(semantic_key, 0)
+                if current_time - last_time < time_window * 2:  # 语义去重使用更长的时间窗口
+                    logger.debug(f"跳过语义重复消息: {log_source} - {log_message[:50]}...")
+                    return
+            
+            # 记录消息时间戳
+            self.message_timestamps[message_id] = current_time
+            self.message_timestamps[semantic_key] = current_time
+            self.processed_messages.add(semantic_key)
+            
+            # 清理过期的时间戳记录（避免内存泄漏）
+            self.cleanup_old_timestamps(current_time, time_window * 10)
+            
             logger.debug(f"处理新消息: {log_source} - {log_message[:50]}...")
             
             # 检查是否是演练结束消息
@@ -276,14 +375,32 @@ class DefenseCoordinator:
                 await self.send_log("info", f"检测到攻击活动，准备触发防御响应: {', '.join(triggered_agents)}")
                 logger.info(f"日志触发防御响应: {log_message[:100]}... -> {triggered_agents}")
                 
-                # 并行触发所有相关的防御智能体
+                # 按优先级排序触发防御智能体
+                triggered_agents.sort(key=lambda x: self.agent_priority.get(x, 999))
+                
                 tasks = []
                 for agent_type in triggered_agents:
-                    task = self.trigger_defense_agent(agent_type, context)
-                    tasks.append(task)
+                    # 使用智能体特定的触发间隔
+                    last_trigger = self.last_trigger_time.get(agent_type, 0)
+                    min_interval = self.agent_intervals.get(agent_type, 10.0)
+                    
+                    if current_time - last_trigger >= min_interval:
+                        self.last_trigger_time[agent_type] = current_time
+                        task = self.trigger_defense_agent(agent_type, context)
+                        tasks.append(task)
+                        logger.info(f"触发防御智能体: {agent_type} (优先级: {self.agent_priority.get(agent_type, 999)})")
+                    else:
+                        remaining_time = min_interval - (current_time - last_trigger)
+                        logger.debug(f"跳过频繁触发的防御智能体: {agent_type} (还需等待 {remaining_time:.1f}s)")
                 
                 if tasks:
-                    await asyncio.gather(*tasks, return_exceptions=True)
+                    # 按优先级顺序执行，而不是并行执行
+                    for task in tasks:
+                        try:
+                            await task
+                            await asyncio.sleep(1)  # 智能体之间间隔1秒执行
+                        except Exception as e:
+                            logger.error(f"执行防御任务失败: {e}")
                     
         except Exception as e:
             logger.error(f"处理日志消息失败: {e}")

@@ -83,6 +83,11 @@
           <div class="flex gap-2 flex-wrap">
             <!-- 场景模式按钮 -->
             <template v-if="isScenarioMode">
+              <button @click="saveExerciseInfo" class="btn btn-sm"
+                :class="battleCompleted ? 'btn-success' : 'btn-disabled'" :disabled="!battleCompleted"
+                :title="battleCompleted ? '点击保存演练记录' : '等待裁判公布结果后可保存'">
+                💾 保存演练信息
+              </button>
               <button @click="generateScenario" class="btn btn-sm btn-success" :disabled="virtualNodes.size === 0">
                 🚀 部署容器 ({{ virtualNodes.size }})
               </button>
@@ -134,8 +139,8 @@
       @close="showAttackerDialog = false" @attack="handleAttack" />
 
     <!-- 防火墙对话框 -->
-    <FirewallDialog :show="showFirewallDialog" :firewall="selectedFirewall" @close="showFirewallDialog = false"
-      @save="handleFirewallSave" @firewall-updated="handleFirewallUpdated" />
+    <NewFirewallDialog :show="showFirewallDialog" :firewall-device="selectedFirewall"
+      @close="showFirewallDialog = false" @save="handleFirewallSave" />
 
     <!-- 主机信息对话框 -->
     <HostInfoDialog :show="showHostInfoDialog" :host="selectedHost" @close="showHostInfoDialog = false" />
@@ -194,7 +199,7 @@ import AttackAgentService from './services/AttackAgentService'
 import AttackTaskService from './services/AttackTaskService'
 import WebSocketService from './services/WebSocketService'
 import AttackerDialog from './components/AttackerDialog.vue'
-import FirewallDialog from './components/FirewallDialog.vue'
+import NewFirewallDialog from './components/NewFirewallDialog.vue'
 import HostInfoDialog from './components/HostInfoDialog.vue'
 import ContainerConfigDialog from './components/ContainerConfigDialog.vue'
 import EventMonitor from './components/EventMonitor.vue'
@@ -275,6 +280,10 @@ const nodeTypeCounters = ref({
 
 // 选中状态
 const selectedObject = ref(null)
+
+// 演练状态
+const battleCompleted = ref(false)
+const battleResult = ref(null)
 
 // IP设置对话框状态
 const showIPDialog = ref(false)
@@ -526,6 +535,12 @@ function handleWebSocketMessage(message) {
       if (shouldShowAnimation) {
         triggerAttackVisualizationFromLog(message)
       }
+
+      // 检查是否有节点被攻陷
+      if (message.message.includes('攻陷') || message.message.includes('获得') ||
+        message.message.includes('控制') || message.message.includes('权限')) {
+        handleNodeCompromised(message)
+      }
     }
 
     // 基于防御日志触发防御可视化动画
@@ -534,6 +549,28 @@ function handleWebSocketMessage(message) {
       if (shouldShowDefenseAnimation) {
         console.log('🛡️ 触发防御可视化动画:', message.source, message.message)
         triggerDefenseVisualizationFromLog(message)
+      }
+
+      // 检查是否有节点被修复
+      if (message.source.includes('漏洞修复') &&
+        (message.message.includes('修复') || message.message.includes('已修复'))) {
+        handleNodeRepaired(message)
+      }
+
+      // 检查是否有威胁阻断
+      if (message.source.includes('威胁阻断') &&
+        (message.message.includes('阻断') || message.message.includes('拦截'))) {
+        handleThreatBlocked(message)
+      }
+
+      // 检查是否有节点隔离
+      if (message.message.includes('隔离') || message.message.includes('已隔离')) {
+        handleNodeIsolated(message)
+      }
+
+      // 检查是否有IP黑名单更新
+      if (message.message.includes('黑名单') || message.message.includes('IP.*阻断')) {
+        handleIPBlacklist(message)
       }
     }
 
@@ -569,6 +606,9 @@ function handleWebSocketMessage(message) {
       } else if (message.message.includes('攻防演练开始') || message.message.includes('🚀')) {
         // 演练开始
         showBattleResult('battle_start', message.message);
+      } else if (message.message.includes('演练结束')) {
+        // 演练结束
+        showBattleResult('battle_end', message.message);
       } else if (message.message.includes('战报') || message.message.includes('📊')) {
         // 战报信息
         showBattleReport(message.message);
@@ -1535,6 +1575,26 @@ const attackSpeedMultiplier = ref(0.2) // 更慢速度，便于观察攻击过�
 
 // 判断是否应该触发攻击动画
 function shouldTriggerAttackAnimation(message) {
+  const source = message.source || ''
+  const msg = message.message || ''
+
+  // 只对攻击相关的智能体日志进行攻击可视化
+  const attackAgentSources = [
+    '中控智能体',
+    '攻击智能体',
+    'attack_agent',
+    'central_agent'
+  ]
+
+  // 检查是否来自攻击智能体
+  const isFromAttackAgent = attackAgentSources.some(agentSource => 
+    source.includes(agentSource) || source.toLowerCase().includes(agentSource.toLowerCase())
+  )
+
+  if (!isFromAttackAgent) {
+    return false
+  }
+
   // 检查当前攻击任务状态
   if (currentAttackTaskId.value) {
     const taskStatus = AttackTaskService.getTaskStatus(currentAttackTaskId.value)
@@ -1552,6 +1612,7 @@ function shouldTriggerAttackAnimation(message) {
         isRunning,
         isNotPreparation,
         shouldShow: isRunning && isNotPreparation,
+        source: source,
         message: message.message
       })
 
@@ -1559,8 +1620,8 @@ function shouldTriggerAttackAnimation(message) {
     }
   }
 
-  // 如果没有任务状态，使用消息内容判断
-  const animationType = getLogAnimationType(message.message?.toLowerCase() || '', message.source?.toLowerCase() || '')
+  // 如果没有任务状态，使用消息内容判断（但仍需要是攻击智能体的日志）
+  const animationType = getLogAnimationType(msg.toLowerCase(), source.toLowerCase())
   return animationType !== null
 }
 
@@ -6044,6 +6105,781 @@ async function destroyScenario() {
 
 
 
+// 处理节点被攻陷
+function handleNodeCompromised(message) {
+  if (!attackVisualization || !topology) return;
+
+  console.log('🔴 处理节点被攻陷:', message.message);
+
+  // 从消息中提取节点信息
+  const nodeInfo = extractNodeInfoFromMessage(message.message);
+  if (!nodeInfo) return;
+
+  // 查找对应的节点
+  const targetNode = findNodeByInfo(nodeInfo);
+  if (!targetNode) {
+    console.log('⚠️ 未找到对应的节点:', nodeInfo);
+    return;
+  }
+
+  // 标记节点为被攻陷状态
+  attackVisualization.markNodeAsCompromised(targetNode);
+
+  // 记录到日志
+  logWarning('系统', `节点 "${targetNode.deviceData?.name || nodeInfo.name}" 已被攻陷，需要漏洞修复智能体进行修复`);
+}
+
+// 处理节点修复
+function handleNodeRepaired(message) {
+  if (!attackVisualization || !topology) return;
+
+  console.log('🔧 处理节点修复:', message.message);
+
+  // 从消息中提取节点信息
+  const nodeInfo = extractNodeInfoFromMessage(message.message);
+  if (!nodeInfo) return;
+
+  // 查找对应的节点
+  const targetNode = findNodeByInfo(nodeInfo);
+  if (!targetNode) {
+    console.log('⚠️ 未找到对应的节点:', nodeInfo);
+    return;
+  }
+
+  // 修复被攻陷的节点
+  attackVisualization.repairCompromisedNode(targetNode);
+
+  // 记录到日志
+  logSuccess('系统', `节点 "${targetNode.deviceData?.name || nodeInfo.name}" 已成功修复`);
+}
+
+// 从消息中提取节点信息
+function extractNodeInfoFromMessage(message) {
+  // 尝试匹配各种节点名称模式
+  const patterns = [
+    /主机\s+([^\s]+)/,
+    /节点\s+([^\s]+)/,
+    /服务器\s+([^\s]+)/,
+    /设备\s+([^\s]+)/,
+    /容器\s+([^\s]+)/,
+    /([a-zA-Z0-9\-_]+)\s*\([0-9.]+\)/,
+    /([a-zA-Z0-9\-_]+)\s+因/,
+    /([a-zA-Z0-9\-_]+)\s+数据/,
+    /([a-zA-Z0-9\-_]+)\s+需要/
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return {
+        name: match[1],
+        type: 'unknown'
+      };
+    }
+  }
+
+  // 如果没有匹配到具体节点，尝试根据消息内容推断
+  if (message.includes('数据库')) {
+    return { name: 'internal-db-01', type: 'database' };
+  } else if (message.includes('Web') || message.includes('网站')) {
+    return { name: 'cnt-dmz-wp1', type: 'web' };
+  } else if (message.includes('用户') || message.includes('PC')) {
+    return { name: 'ws-user-01', type: 'workstation' };
+  }
+
+  return null;
+}
+
+// 根据节点信息查找对应的fabric对象
+function findNodeByInfo(nodeInfo) {
+  if (!topology || !topology.devices) return null;
+
+  const devices = Object.values(topology.devices);
+
+  // 首先尝试精确匹配名称
+  let targetNode = devices.find(device => {
+    const deviceName = device.deviceData?.name || device.nodeData?.name || '';
+    return deviceName.toLowerCase().includes(nodeInfo.name.toLowerCase()) ||
+      nodeInfo.name.toLowerCase().includes(deviceName.toLowerCase());
+  });
+
+  // 如果没找到，尝试根据类型匹配
+  if (!targetNode && nodeInfo.type !== 'unknown') {
+    targetNode = devices.find(device => {
+      const deviceType = device.deviceType || device.nodeData?.type || '';
+      return deviceType === nodeInfo.type;
+    });
+  }
+
+  // 如果还没找到，尝试根据IP地址匹配
+  if (!targetNode) {
+    const ipMatch = nodeInfo.name.match(/\d+\.\d+\.\d+\.\d+/);
+    if (ipMatch) {
+      const ip = ipMatch[0];
+      targetNode = devices.find(device => {
+        const deviceIP = device.deviceData?.ip || device.nodeData?.ip || '';
+        return deviceIP === ip;
+      });
+    }
+  }
+
+  return targetNode;
+}
+
+// 显示攻防演练结果
+function showBattleResult(resultType, message) {
+  console.log('🏆 攻防演练裁判宣布结果:', resultType, message);
+
+  // 创建郑重的结果通知配置
+  const resultConfig = {
+    attack_victory: {
+      title: '🔴 攻击方胜利！',
+      subtitle: '攻防演练结束',
+      type: 'error',
+      duration: 15000,
+      color: '#dc2626',
+      bgColor: 'rgba(220, 38, 38, 0.1)',
+      sound: 'defeat'
+    },
+    defense_victory: {
+      title: '🟢 防御方胜利！',
+      subtitle: '攻防演练结束',
+      type: 'success',
+      duration: 15000,
+      color: '#16a34a',
+      bgColor: 'rgba(22, 163, 74, 0.1)',
+      sound: 'victory'
+    },
+    battle_start: {
+      title: '🚀 攻防演练开始',
+      subtitle: '双方智能体已就位',
+      type: 'info',
+      duration: 8000,
+      color: '#2563eb',
+      bgColor: 'rgba(37, 99, 235, 0.1)',
+      sound: 'start'
+    },
+    battle_end: {
+      title: '⏹️ 攻防演练结束',
+      subtitle: '正在统计战果...',
+      type: 'info',
+      duration: 10000,
+      color: '#6b7280',
+      bgColor: 'rgba(107, 114, 128, 0.1)',
+      sound: 'end'
+    }
+  };
+
+  const config = resultConfig[resultType];
+  if (!config) return;
+
+  // 添加到关键事件区域（最高优先级）
+  if (eventMonitorRef.value) {
+    eventMonitorRef.value.addEvent({
+      type: resultType === 'attack_victory' ? 'failure' :
+        resultType === 'defense_victory' ? 'success' : 'system',
+      message: `${config.title} ${message}`,
+      fromWebSocket: true,
+      important: true,
+      priority: 'high'
+    });
+  }
+
+  // 在拓扑图上显示郑重的结果动画
+  if (topology && topology.canvas) {
+    showBattleResultAnimation(resultType, config, message);
+  }
+
+  // 记录到系统日志（最高级别）
+  const logLevel = resultType === 'attack_victory' ? 'error' :
+    resultType === 'defense_victory' ? 'success' : 'info';
+  logMessage(logLevel, '攻防演练裁判', `${config.title} ${message}`, true);
+
+  // 如果是胜负结果，触发演练结束事件并启用保存按钮
+  if (resultType === 'attack_victory' || resultType === 'defense_victory') {
+    battleCompleted.value = true;
+    battleResult.value = {
+      type: resultType,
+      message: message,
+      timestamp: new Date()
+    };
+    triggerBattleEndEvent(resultType, message);
+  }
+
+  // 播放音效（如果有）
+  playBattleSound(config.sound);
+}
+
+// 显示攻防演练结果动画
+function showBattleResultAnimation(resultType, config, message) {
+  try {
+    const canvas = topology.canvas;
+    const canvasCenter = {
+      x: canvas.width / 2,
+      y: canvas.height / 2
+    };
+
+    // 创建背景遮罩
+    const overlay = new fabric.Rect({
+      left: 0,
+      top: 0,
+      width: canvas.width,
+      height: canvas.height,
+      fill: 'rgba(0, 0, 0, 0.8)',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    // 创建主标题
+    const titleText = new fabric.Text(config.title, {
+      left: canvasCenter.x,
+      top: canvasCenter.y - 80,
+      fontSize: 56,
+      fontWeight: 'bold',
+      fill: config.color,
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      scaleX: 0.5,
+      scaleY: 0.5
+    });
+
+    // 创建副标题
+    const subtitleText = new fabric.Text(config.subtitle, {
+      left: canvasCenter.x,
+      top: canvasCenter.y - 20,
+      fontSize: 24,
+      fontWeight: '500',
+      fill: '#ffffff',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    // 创建消息内容
+    const messageText = new fabric.Text(message, {
+      left: canvasCenter.x,
+      top: canvasCenter.y + 30,
+      fontSize: 18,
+      fill: '#cccccc',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0
+    });
+
+    // 创建装饰边框
+    const decorFrame = new fabric.Rect({
+      left: canvasCenter.x,
+      top: canvasCenter.y,
+      width: 600,
+      height: 200,
+      fill: 'transparent',
+      stroke: config.color,
+      strokeWidth: 3,
+      rx: 10,
+      ry: 10,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      strokeDashArray: [10, 5]
+    });
+
+    // 添加到画布
+    canvas.add(overlay);
+    canvas.add(decorFrame);
+    canvas.add(titleText);
+    canvas.add(subtitleText);
+    canvas.add(messageText);
+
+    // 动画序列
+    // 1. 背景淡入
+    overlay.animate('opacity', 1, {
+      duration: 500,
+      onChange: () => canvas.renderAll()
+    });
+
+    // 2. 边框出现
+    setTimeout(() => {
+      decorFrame.animate('opacity', 0.8, {
+        duration: 800,
+        onChange: () => canvas.renderAll()
+      });
+    }, 300);
+
+    // 3. 主标题弹出
+    setTimeout(() => {
+      titleText.animate({
+        opacity: 1,
+        scaleX: 1,
+        scaleY: 1
+      }, {
+        duration: 1000,
+        easing: fabric.util.ease.easeOutBack,
+        onChange: () => canvas.renderAll()
+      });
+    }, 800);
+
+    // 4. 副标题淡入
+    setTimeout(() => {
+      subtitleText.animate('opacity', 1, {
+        duration: 600,
+        onChange: () => canvas.renderAll()
+      });
+    }, 1300);
+
+    // 5. 消息内容淡入
+    setTimeout(() => {
+      messageText.animate('opacity', 1, {
+        duration: 600,
+        onChange: () => canvas.renderAll()
+      });
+    }, 1600);
+
+    // 6. 延迟后淡出所有元素
+    setTimeout(() => {
+      const elements = [overlay, decorFrame, titleText, subtitleText, messageText];
+      elements.forEach((element, index) => {
+        setTimeout(() => {
+          element.animate('opacity', 0, {
+            duration: 800,
+            onChange: () => canvas.renderAll(),
+            onComplete: () => {
+              canvas.remove(element);
+              if (index === elements.length - 1) {
+                canvas.renderAll();
+              }
+            }
+          });
+        }, index * 100);
+      });
+    }, config.duration - 2000);
+
+  } catch (error) {
+    console.error('显示战斗结果动画失败:', error);
+  }
+}
+
+// 显示战报信息
+function showBattleReport(message) {
+  console.log('📊 显示战报信息:', message);
+
+  // 添加到关键事件
+  if (eventMonitorRef.value) {
+    eventMonitorRef.value.addEvent({
+      type: 'system',
+      message: `📊 战报: ${message}`,
+      fromWebSocket: true,
+      important: true
+    });
+  }
+
+  // 记录到日志
+  logInfo('攻防演练裁判', `战报: ${message}`);
+}
+
+// 触发演练结束事件
+function triggerBattleEndEvent(resultType, message) {
+  console.log('🏁 触发演练结束事件:', resultType);
+
+  // 停止虚拟时间轴
+  if (virtualTimelineRef.value) {
+    virtualTimelineRef.value.pause();
+    virtualTimelineRef.value.addEvent({
+      phase: '结束',
+      type: resultType === 'attack_victory' ? 'error' : 'success',
+      message: `演练结束 - ${resultType === 'attack_victory' ? '攻击方胜利' : '防御方胜利'}`,
+      details: {
+        '结果': resultType === 'attack_victory' ? '攻击方胜利' : '防御方胜利',
+        '时间': new Date().toLocaleString(),
+        '详情': message
+      }
+    });
+  }
+
+  // 清除所有攻击动画
+  if (attackVisualization) {
+    attackVisualization.clearAllEffects();
+  }
+
+  // 清除所有防御动画
+  if (defenseVisualization) {
+    defenseVisualization.clearAllEffects();
+  }
+
+  // 触发自定义事件
+  const battleEndEvent = new CustomEvent('battle-end', {
+    detail: {
+      result: resultType,
+      message: message,
+      timestamp: new Date()
+    }
+  });
+  document.dispatchEvent(battleEndEvent);
+}
+
+// 播放战斗音效
+function playBattleSound(soundType) {
+  // 这里可以添加音效播放逻辑
+  console.log('🔊 播放音效:', soundType);
+}
+
+// 保存演练信息
+function saveExerciseInfo() {
+  if (!battleCompleted.value || !battleResult.value) {
+    logWarning('系统', '演练尚未结束，无法保存演练信息');
+    return;
+  }
+
+  console.log('💾 保存演练信息');
+
+  // 收集演练数据
+  const exerciseData = collectExerciseData();
+
+  // 显示保存成功弹窗
+  showSaveSuccessDialog(exerciseData);
+
+  // 记录到日志
+  logSuccess('系统', '演练信息已成功保存');
+}
+
+// 收集演练数据
+function collectExerciseData() {
+  const exerciseData = {
+    // 基本信息
+    exerciseId: `EX_${Date.now()}`,
+    startTime: new Date().toISOString(),
+    endTime: new Date().toISOString(),
+    duration: '未知', // 可以从虚拟时间轴获取
+
+    // 演练结果
+    result: {
+      winner: battleResult.value.type === 'attack_victory' ? '攻击方' : '防御方',
+      resultType: battleResult.value.type,
+      message: battleResult.value.message,
+      timestamp: battleResult.value.timestamp
+    },
+
+    // 拓扑信息
+    topology: {
+      nodeCount: Object.keys(topology?.devices || {}).length,
+      virtualNodeCount: virtualNodes.value.size,
+      runningNodeCount: runningNodes.value.size,
+      networkSegments: ['Internet', 'DMZ', 'Internal', 'Database']
+    },
+
+    // 攻击链信息
+    attackChain: {
+      phases: ['侦察', '武器化', '投递', '利用', '安装', '命令控制', '行动目标'],
+      completedPhases: 0, // 可以从EventMonitor获取
+      compromisedAssets: 0 // 可以从拓扑图获取
+    },
+
+    // 防御响应
+    defenseActions: {
+      threatBlocking: 0,
+      vulnerabilityRemediation: 0,
+      attackAttribution: 0,
+      totalActions: 0
+    },
+
+    // 统计信息
+    statistics: {
+      totalLogs: eventMonitorRef.value?.logs?.length || 0,
+      totalEvents: eventMonitorRef.value?.events?.length || 0,
+      attackSuccess: battleResult.value.type === 'attack_victory',
+      defenseSuccess: battleResult.value.type === 'defense_victory'
+    }
+  };
+
+  // 尝试从虚拟时间轴获取更详细的信息
+  if (virtualTimelineRef.value) {
+    try {
+      const timelineData = virtualTimelineRef.value.getExerciseData?.();
+      if (timelineData) {
+        exerciseData.duration = timelineData.duration;
+        exerciseData.attackChain.completedPhases = timelineData.completedPhases;
+        exerciseData.attackChain.compromisedAssets = timelineData.compromisedAssets;
+      }
+    } catch (error) {
+      console.log('无法获取时间轴数据:', error);
+    }
+  }
+
+  // 尝试从EventMonitor获取防御统计
+  if (eventMonitorRef.value) {
+    try {
+      const defenseStats = eventMonitorRef.value.getDefenseStatistics?.();
+      if (defenseStats) {
+        exerciseData.defenseActions = defenseStats;
+      }
+    } catch (error) {
+      console.log('无法获取防御统计:', error);
+    }
+  }
+
+  return exerciseData;
+}
+
+// 显示保存成功弹窗
+function showSaveSuccessDialog(exerciseData) {
+  // 创建弹窗内容
+  const dialogContent = `
+    <div style="text-align: center; padding: 32px 24px;">
+      <div style="
+        width: 64px; 
+        height: 64px; 
+        background: linear-gradient(135deg, #10b981, #059669); 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        margin: 0 auto 24px auto;
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+      ">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+          <polyline points="20,6 9,17 4,12"></polyline>
+        </svg>
+      </div>
+      <h3 style="color: #1f2937; margin-bottom: 12px; font-size: 20px; font-weight: 600;">
+        本次演练记录已成功保存！
+      </h3>
+      <p style="color: #6b7280; margin-bottom: 24px; font-size: 14px;">
+        可前往"演练记录"查看本次演练统计信息
+      </p>
+      <div style="
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9); 
+        padding: 20px; 
+        border-radius: 12px; 
+        margin-bottom: 24px; 
+        text-align: left;
+        border: 1px solid #e2e8f0;
+      ">
+        <h4 style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px; font-weight: 600;">演练概要</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="display: flex; align-items: center;">
+            <span style="color: #10b981; margin-right: 8px;">📋</span>
+            <span style="color: #6b7280; font-size: 13px;">演练ID: ${exerciseData.exerciseId}</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="color: #10b981; margin-right: 8px;">🏆</span>
+            <span style="color: #6b7280; font-size: 13px;">演练结果: ${exerciseData.result.winner}胜利</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="color: #10b981; margin-right: 8px;">🖥️</span>
+            <span style="color: #6b7280; font-size: 13px;">节点数量: ${exerciseData.topology.nodeCount}</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="color: #10b981; margin-right: 8px;">📊</span>
+            <span style="color: #6b7280; font-size: 13px;">日志条数: ${exerciseData.statistics.totalLogs}</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+              style="
+                background: linear-gradient(135deg, #10b981, #059669); 
+                color: white; 
+                border: none; 
+                padding: 12px 32px; 
+                border-radius: 8px; 
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+              "
+              onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)'"
+              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)'">
+        确定
+      </button>
+    </div>
+  `;
+
+  // 创建弹窗元素
+  const dialog = document.createElement('div');
+  dialog.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-out;
+  `;
+
+  const dialogBox = document.createElement('div');
+  dialogBox.style.cssText = `
+    background: white;
+    border-radius: 16px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid rgba(16, 185, 129, 0.1);
+  `;
+  dialogBox.innerHTML = dialogContent;
+
+  dialog.appendChild(dialogBox);
+  document.body.appendChild(dialog);
+
+  // 添加CSS动画
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 10秒后自动关闭
+  setTimeout(() => {
+    if (dialog.parentElement) {
+      dialog.style.animation = 'fadeOut 0.3s ease-out';
+      setTimeout(() => dialog.remove(), 300);
+    }
+  }, 10000);
+}
+
+// 处理威胁阻断
+function handleThreatBlocked(message) {
+  if (!defenseVisualization || !topology) return;
+
+  console.log('🛡️ 处理威胁阻断:', message.message);
+
+  // 从消息中提取威胁信息
+  const threatInfo = extractThreatInfoFromMessage(message.message);
+  if (!threatInfo) return;
+
+  // 查找威胁源和目标节点
+  const sourceNode = findNodeByInfo({ name: threatInfo.source, type: 'unknown' });
+  const targetNode = findNodeByInfo({ name: threatInfo.target, type: 'unknown' });
+
+  if (sourceNode && targetNode) {
+    // 创建威胁阻断动画
+    defenseVisualization.createThreatBlockingAnimation(sourceNode, targetNode, threatInfo.type);
+  } else {
+    // 如果找不到具体节点，在防火墙上显示阻断动画
+    const firewallNode = Object.values(topology.devices).find(device =>
+      device.deviceType === 'firewall'
+    );
+    if (firewallNode) {
+      defenseVisualization.createIPBlacklistAnimation(threatInfo.source || '恶意IP', firewallNode);
+    }
+  }
+
+  // 记录到日志
+  logSuccess('系统', `威胁已被成功阻断: ${message.message}`);
+}
+
+// 处理节点隔离
+function handleNodeIsolated(message) {
+  if (!defenseVisualization || !topology) return;
+
+  console.log('🔒 处理节点隔离:', message.message);
+
+  // 从消息中提取节点信息
+  const nodeInfo = extractNodeInfoFromMessage(message.message);
+  if (!nodeInfo) return;
+
+  // 查找对应的节点
+  const targetNode = findNodeByInfo(nodeInfo);
+  if (!targetNode) {
+    console.log('⚠️ 未找到要隔离的节点:', nodeInfo);
+    return;
+  }
+
+  // 创建节点隔离动画
+  defenseVisualization.createNodeIsolationAnimation(targetNode);
+
+  // 记录到日志
+  logWarning('系统', `节点 "${targetNode.deviceData?.name || nodeInfo.name}" 已被隔离以防止威胁扩散`);
+}
+
+// 处理IP黑名单
+function handleIPBlacklist(message) {
+  if (!defenseVisualization || !topology) return;
+
+  console.log('🚫 处理IP黑名单:', message.message);
+
+  // 从消息中提取IP地址
+  const ipMatch = message.message.match(/\d+\.\d+\.\d+\.\d+/);
+  if (!ipMatch) return;
+
+  const maliciousIP = ipMatch[0];
+
+  // 查找防火墙节点
+  const firewallNode = Object.values(topology.devices).find(device =>
+    device.deviceType === 'firewall'
+  );
+
+  if (firewallNode) {
+    // 创建IP黑名单动画
+    defenseVisualization.createIPBlacklistAnimation(maliciousIP, firewallNode);
+
+    // 创建防火墙规则更新动画
+    setTimeout(() => {
+      defenseVisualization.createFirewallRuleUpdateAnimation(firewallNode, 'blacklist_rule');
+    }, 1000);
+  }
+
+  // 记录到日志
+  logInfo('系统', `恶意IP ${maliciousIP} 已加入黑名单并更新防火墙规则`);
+}
+
+// 从消息中提取威胁信息
+function extractThreatInfoFromMessage(message) {
+  // 尝试匹配威胁源和目标
+  const patterns = [
+    /阻断.*?([0-9.]+).*?到.*?([^\s]+)/,
+    /拦截.*?([^\s]+).*?攻击.*?([^\s]+)/,
+    /阻止.*?([^\s]+).*?访问.*?([^\s]+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return {
+        source: match[1],
+        target: match[2],
+        type: 'malicious_traffic'
+      };
+    }
+  }
+
+  // 如果没有匹配到具体信息，返回基本信息
+  const ipMatch = message.match(/\d+\.\d+\.\d+\.\d+/);
+  if (ipMatch) {
+    return {
+      source: ipMatch[0],
+      target: 'internal_network',
+      type: 'malicious_ip'
+    };
+  }
+
+  return null;
+}
+
 // 日志记录函数
 function logMessage(level, source, message, fromWebSocket = false) {
   if (!message) {
@@ -6531,275 +7367,275 @@ const updateNodeVisualStatus = (node, status) => {
 // 显示胜负结果
 
 function showBattleResult(resultType, message){
-  console.log('🏆 显示胜负结果:', resultType, message);
-  
-  // 创建胜负结果通知
-  const resultConfig = {
-    attack_victory: {
-      title: '🔴 攻击方胜利！',
-      type: 'error',
-      duration: 10000,
-      color: '#dc2626'
-    },
-    defense_victory: {
-      title: '🟢 防御方胜利！',
-      type: 'success', 
-      duration: 10000,
-      color: '#16a34a'
-    },
-    battle_start: {
-      title: '🚀 攻防演练开始',
-      type: 'info',
-      duration: 5000,
-      color: '#2563eb'
-    }
-  };
+console.log('🏆 显示胜负结果:', resultType, message);
 
-  const config = resultConfig[resultType];
-  if (config) {
-    // 添加到关键事件区域
-    addEvent({
-      type: resultType === 'attack_victory' ? 'failure' : 
-            resultType === 'defense_victory' ? 'success' : 'system',
-      message: `${config.title} ${message}`,
-      fromWebSocket: true,
-      important: true
-    });
+// 创建胜负结果通知
+const resultConfig = {
+attack_victory: {
+title: '🔴 攻击方胜利！',
+type: 'error',
+duration: 10000,
+color: '#dc2626'
+},
+defense_victory: {
+title: '🟢 防御方胜利！',
+type: 'success',
+duration: 10000,
+color: '#16a34a'
+},
+battle_start: {
+title: '🚀 攻防演练开始',
+type: 'info',
+duration: 5000,
+color: '#2563eb'
+}
+};
 
-    // 在拓扑图上显示结果动画
-    if (topology && topology.canvas) {
-      showBattleResultAnimation(resultType, config);
-    }
+const config = resultConfig[resultType];
+if (config) {
+// 添加到关键事件区域
+addEvent({
+type: resultType === 'attack_victory' ? 'failure' :
+resultType === 'defense_victory' ? 'success' : 'system',
+message: `${config.title} ${message}`,
+fromWebSocket: true,
+important: true
+});
 
-    // 记录到日志
-    const logLevel = resultType === 'attack_victory' ? 'error' : 
-                    resultType === 'defense_victory' ? 'success' : 'info';
-    logMessage(logLevel, '攻防演练裁判', `${config.title} ${message}`, true);
-  }
+// 在拓扑图上显示结果动画
+if (topology && topology.canvas) {
+showBattleResultAnimation(resultType, config);
+}
+
+// 记录到日志
+const logLevel = resultType === 'attack_victory' ? 'error' :
+resultType === 'defense_victory' ? 'success' : 'info';
+logMessage(logLevel, '攻防演练裁判', `${config.title} ${message}`, true);
+}
 }
 
 // 显示胜负结果动画
 function showBattleResultAnimation(resultType, config) {
-  try {
-    const canvas = topology.canvas;
-    const canvasCenter = {
-      x: canvas.width / 2,
-      y: canvas.height / 2
-    };
+try {
+const canvas = topology.canvas;
+const canvasCenter = {
+x: canvas.width / 2,
+y: canvas.height / 2
+};
 
-    // 创建结果文字
-    const resultText = new fabric.Text(config.title, {
-      left: canvasCenter.x,
-      top: canvasCenter.y - 50,
-      fontSize: 48,
-      fontWeight: 'bold',
-      fill: config.color,
-      textAlign: 'center',
-      originX: 'center',
-      originY: 'center',
-      selectable: false,
-      evented: false,
-      opacity: 0,
-      shadow: new fabric.Shadow({
-        color: 'rgba(0,0,0,0.5)',
-        blur: 10,
-        offsetX: 2,
-        offsetY: 2
-      })
-    });
+// 创建结果文字
+const resultText = new fabric.Text(config.title, {
+left: canvasCenter.x,
+top: canvasCenter.y - 50,
+fontSize: 48,
+fontWeight: 'bold',
+fill: config.color,
+textAlign: 'center',
+originX: 'center',
+originY: 'center',
+selectable: false,
+evented: false,
+opacity: 0,
+shadow: new fabric.Shadow({
+color: 'rgba(0,0,0,0.5)',
+blur: 10,
+offsetX: 2,
+offsetY: 2
+})
+});
 
-    canvas.add(resultText);
+canvas.add(resultText);
 
-    // 文字出现动画
-    const textAnimation = resultText.animate({
-      opacity: 1,
-      fontSize: 56,
-      top: canvasCenter.y - 60
-    }, {
-      duration: 1000,
-      easing: fabric.util.ease.easeOutBounce,
-      onChange: () => canvas.renderAll(),
-      onComplete: () => {
-        // 延迟后淡出
-        setTimeout(() => {
-          const fadeOut = resultText.animate({
-            opacity: 0,
-            fontSize: 48
-          }, {
-            duration: 2000,
-            onChange: () => canvas.renderAll(),
-            onComplete: () => {
-              canvas.remove(resultText);
-              canvas.renderAll();
-            }
-          });
-        }, 5000);
-      }
-    });
+// 文字出现动画
+const textAnimation = resultText.animate({
+opacity: 1,
+fontSize: 56,
+top: canvasCenter.y - 60
+}, {
+duration: 1000,
+easing: fabric.util.ease.easeOutBounce,
+onChange: () => canvas.renderAll(),
+onComplete: () => {
+// 延迟后淡出
+setTimeout(() => {
+const fadeOut = resultText.animate({
+opacity: 0,
+fontSize: 48
+}, {
+duration: 2000,
+onChange: () => canvas.renderAll(),
+onComplete: () => {
+canvas.remove(resultText);
+canvas.renderAll();
+}
+});
+}, 5000);
+}
+});
 
-    // 添加背景效果
-    if (resultType === 'attack_victory') {
-      // 攻击方胜利 - 红色警告效果
-      createWarningEffect(canvas, '#dc2626');
-    } else if (resultType === 'defense_victory') {
-      // 防御方胜利 - 绿色成功效果
-      createSuccessEffect(canvas, '#16a34a');
-    }
+// 添加背景效果
+if (resultType === 'attack_victory') {
+// 攻击方胜利 - 红色警告效果
+createWarningEffect(canvas, '#dc2626');
+} else if (resultType === 'defense_victory') {
+// 防御方胜利 - 绿色成功效果
+createSuccessEffect(canvas, '#16a34a');
+}
 
-  } catch (error) {
-    console.error('显示胜负结果动画失败:', error);
-  }
+} catch (error) {
+console.error('显示胜负结果动画失败:', error);
+}
 }
 
 // 创建警告效果
 function createWarningEffect(canvas, color) {
-  const overlay = new fabric.Rect({
-    left: 0,
-    top: 0,
-    width: canvas.width,
-    height: canvas.height,
-    fill: color,
-    opacity: 0,
-    selectable: false,
-    evented: false
-  });
+const overlay = new fabric.Rect({
+left: 0,
+top: 0,
+width: canvas.width,
+height: canvas.height,
+fill: color,
+opacity: 0,
+selectable: false,
+evented: false
+});
 
-  canvas.add(overlay);
+canvas.add(overlay);
 
-  // 闪烁效果
-  let flashCount = 0;
-  const flashInterval = setInterval(() => {
-    const targetOpacity = flashCount % 2 === 0 ? 0.2 : 0;
-    overlay.animate({ opacity: targetOpacity }, {
-      duration: 300,
-      onChange: () => canvas.renderAll()
-    });
-    
-    flashCount++;
-    if (flashCount >= 6) {
-      clearInterval(flashInterval);
-      canvas.remove(overlay);
-      canvas.renderAll();
-    }
-  }, 400);
+// 闪烁效果
+let flashCount = 0;
+const flashInterval = setInterval(() => {
+const targetOpacity = flashCount % 2 === 0 ? 0.2 : 0;
+overlay.animate({ opacity: targetOpacity }, {
+duration: 300,
+onChange: () => canvas.renderAll()
+});
+
+flashCount++;
+if (flashCount >= 6) {
+clearInterval(flashInterval);
+canvas.remove(overlay);
+canvas.renderAll();
+}
+}, 400);
 }
 
 // 创建成功效果
 function createSuccessEffect(canvas, color) {
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
 
-  // 创建扩散圆圈
-  const circle = new fabric.Circle({
-    left: centerX,
-    top: centerY,
-    radius: 10,
-    fill: 'transparent',
-    stroke: color,
-    strokeWidth: 4,
-    originX: 'center',
-    originY: 'center',
-    selectable: false,
-    evented: false,
-    opacity: 0.8
-  });
+// 创建扩散圆圈
+const circle = new fabric.Circle({
+left: centerX,
+top: centerY,
+radius: 10,
+fill: 'transparent',
+stroke: color,
+strokeWidth: 4,
+originX: 'center',
+originY: 'center',
+selectable: false,
+evented: false,
+opacity: 0.8
+});
 
-  canvas.add(circle);
+canvas.add(circle);
 
-  // 扩散动画
-  circle.animate({
-    radius: 200,
-    opacity: 0
-  }, {
-    duration: 2000,
-    easing: fabric.util.ease.easeOutQuad,
-    onChange: () => canvas.renderAll(),
-    onComplete: () => {
-      canvas.remove(circle);
-      canvas.renderAll();
-    }
-  });
+// 扩散动画
+circle.animate({
+radius: 200,
+opacity: 0
+}, {
+duration: 2000,
+easing: fabric.util.ease.easeOutQuad,
+onChange: () => canvas.renderAll(),
+onComplete: () => {
+canvas.remove(circle);
+canvas.renderAll();
+}
+});
 }
 
 // 显示战报
 function showBattleReport(reportMessage) {
-  console.log('📊 显示战报:', reportMessage);
-  
-  try {
-    // 尝试解析JSON格式的战报
-    const jsonMatch = reportMessage.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const reportData = JSON.parse(jsonMatch[0]);
-      
-      // 格式化战报显示
-      const formattedReport = formatBattleReport(reportData);
-      
-      // 添加到关键事件区域
-      addEvent({
-        type: 'system',
-        message: `📊 攻防演练战报:\n${formattedReport}`,
-        fromWebSocket: true,
-        important: true
-      });
-      
-      // 记录到日志
-      logMessage('info', '攻防演练裁判', `战报生成完成`, true);
-    } else {
-      // 直接显示原始战报消息
-      addEvent({
-        type: 'system',
-        message: `📊 ${reportMessage}`,
-        fromWebSocket: true
-      });
-    }
-  } catch (error) {
-    console.error('解析战报失败:', error);
-    // 显示原始消息
-    addEvent({
-      type: 'system',
-      message: `📊 ${reportMessage}`,
-      fromWebSocket: true
-    });
-  }
+console.log('📊 显示战报:', reportMessage);
+
+try {
+// 尝试解析JSON格式的战报
+const jsonMatch = reportMessage.match(/\{[\s\S]*\}/);
+if (jsonMatch) {
+const reportData = JSON.parse(jsonMatch[0]);
+
+// 格式化战报显示
+const formattedReport = formatBattleReport(reportData);
+
+// 添加到关键事件区域
+addEvent({
+type: 'system',
+message: `📊 攻防演练战报:\n${formattedReport}`,
+fromWebSocket: true,
+important: true
+});
+
+// 记录到日志
+logMessage('info', '攻防演练裁判', `战报生成完成`, true);
+} else {
+// 直接显示原始战报消息
+addEvent({
+type: 'system',
+message: `📊 ${reportMessage}`,
+fromWebSocket: true
+});
+}
+} catch (error) {
+console.error('解析战报失败:', error);
+// 显示原始消息
+addEvent({
+type: 'system',
+message: `📊 ${reportMessage}`,
+fromWebSocket: true
+});
+}
 }
 
 // 格式化战报
 function formatBattleReport(reportData) {
-  const lines = [];
-  
-  if (reportData.battle_duration) {
-    lines.push(`⏱️ 演练时长: ${reportData.battle_duration}`);
-  }
-  
-  if (reportData.attack_stages_completed !== undefined) {
-    lines.push(`🎯 攻击阶段完成: ${reportData.attack_stages_completed}/7`);
-  }
-  
-  if (reportData.defense_actions_taken !== undefined) {
-    lines.push(`🛡️ 防御行动执行: ${reportData.defense_actions_taken}/6`);
-  }
-  
-  if (reportData.compromised_assets && reportData.compromised_assets.length > 0) {
-    lines.push(`💥 被攻陷资产: ${reportData.compromised_assets.join(', ')}`);
-  }
-  
-  if (reportData.recovered_assets && reportData.recovered_assets.length > 0) {
-    lines.push(`🔧 已恢复资产: ${reportData.recovered_assets.join(', ')}`);
-  }
-  
-  if (reportData.blocked_ips && reportData.blocked_ips.length > 0) {
-    lines.push(`🚫 阻断IP数量: ${reportData.blocked_ips.length}`);
-  }
-  
-  if (reportData.patched_vulnerabilities && reportData.patched_vulnerabilities.length > 0) {
-    lines.push(`🔒 修复漏洞数量: ${reportData.patched_vulnerabilities.length}`);
-  }
-  
-  if (reportData.final_result) {
-    const resultText = reportData.final_result === 'attack_victory' ? '攻击方胜利' : 
-                      reportData.final_result === 'defense_victory' ? '防御方胜利' : '演练进行中';
-    lines.push(`🏆 最终结果: ${resultText}`);
-  }
-  
-  return lines.join('\n');
+const lines = [];
+
+if (reportData.battle_duration) {
+lines.push(`⏱️ 演练时长: ${reportData.battle_duration}`);
+}
+
+if (reportData.attack_stages_completed !== undefined) {
+lines.push(`🎯 攻击阶段完成: ${reportData.attack_stages_completed}/7`);
+}
+
+if (reportData.defense_actions_taken !== undefined) {
+lines.push(`🛡️ 防御行动执行: ${reportData.defense_actions_taken}/6`);
+}
+
+if (reportData.compromised_assets && reportData.compromised_assets.length > 0) {
+lines.push(`💥 被攻陷资产: ${reportData.compromised_assets.join(', ')}`);
+}
+
+if (reportData.recovered_assets && reportData.recovered_assets.length > 0) {
+lines.push(`🔧 已恢复资产: ${reportData.recovered_assets.join(', ')}`);
+}
+
+if (reportData.blocked_ips && reportData.blocked_ips.length > 0) {
+lines.push(`🚫 阻断IP数量: ${reportData.blocked_ips.length}`);
+}
+
+if (reportData.patched_vulnerabilities && reportData.patched_vulnerabilities.length > 0) {
+lines.push(`🔒 修复漏洞数量: ${reportData.patched_vulnerabilities.length}`);
+}
+
+if (reportData.final_result) {
+const resultText = reportData.final_result === 'attack_victory' ? '攻击方胜利' :
+reportData.final_result === 'defense_victory' ? '防御方胜利' : '演练进行中';
+lines.push(`🏆 最终结果: ${resultText}`);
+}
+
+return lines.join('\n');
 }

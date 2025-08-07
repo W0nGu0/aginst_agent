@@ -842,7 +842,28 @@ export default {
         return;
       }
 
+      const source = event.source || ''
       const message = event.message.toLowerCase();
+
+      // 排除防御智能体的日志，但允许其他所有日志更新攻击链
+      const defenseAgentSources = [
+        '威胁阻断智能体',
+        '漏洞修复智能体',
+        '攻击溯源智能体',
+        '防御协调器'
+        // 注意：不排除攻防演练裁判，因为它会发送攻击开始/结束的重要信息
+      ]
+
+      const isFromDefenseAgent = defenseAgentSources.some(agentSource =>
+        source.includes(agentSource)
+      )
+
+      if (isFromDefenseAgent) {
+        console.log('🚫 忽略防御智能体的日志，不更新攻击链:', source)
+        return
+      }
+
+      console.log('✅ 允许更新攻击链的日志来源:', source)
 
       // 简化的忽略列表，只忽略一些明确不应该触发攻击链更新的消息
       const ignoreMessages = [
@@ -876,6 +897,12 @@ export default {
         timestamp: event.timestamp
       });
 
+      console.log('🔍 解析攻击事件:', {
+        source: event.source,
+        message: event.message,
+        attackEvent: attackEvent
+      });
+
       // 根据解析结果更新攻击链
       if (attackEvent.stage) {
         const stageIndex = this.getStageIndex(attackEvent.stage);
@@ -894,6 +921,7 @@ export default {
       }
 
       // 如果增强解析失败，回退到原有的宽松匹配
+      console.log('🔄 使用回退匹配机制');
       this.fallbackStageMatching(message, event);
     },
 
@@ -913,72 +941,71 @@ export default {
 
     // 回退到原有的宽松匹配
     fallbackStageMatching(message, event) {
-      // 侦察阶段 - 宽松匹配
-      if (message.includes('侦察') ||
-        message.includes('扫描') ||
-        message.includes('情报收集') ||
-        message.includes('元数据')) {
-        console.log('回退匹配：激活侦察阶段:', message);
+      console.log('🔄 执行回退匹配，消息:', message);
+
+      // 侦察阶段 - 扩展关键词
+      if (message.includes('侦察') || message.includes('扫描') || message.includes('情报收集') ||
+        message.includes('元数据') || message.includes('网络拓扑') || message.includes('分析网络') ||
+        message.includes('收集信息') || message.includes('目标识别') || message.includes('端口扫描')) {
+        console.log('✅ 回退匹配：激活侦察阶段:', message);
         this.activateStage(0, event.message);
         return;
       }
 
-      // 武器化阶段 - 宽松匹配
-      if (message.includes('武器化') ||
-        message.includes('生成') ||
-        message.includes('定制') ||
-        message.includes('钓鱼邮件')) {
-        console.log('回退匹配：激活武器化阶段:', message);
+      // 武器化阶段 - 扩展关键词
+      if (message.includes('武器化') || message.includes('生成') || message.includes('定制') ||
+        message.includes('钓鱼邮件') || message.includes('制作') || message.includes('准备攻击') ||
+        message.includes('恶意载荷') || message.includes('攻击工具')) {
+        console.log('✅ 回退匹配：激活武器化阶段:', message);
         this.activateStage(1, event.message);
         return;
       }
 
-      // 投递阶段 - 宽松匹配
-      if (message.includes('投递') ||
-        message.includes('发送') ||
-        message.includes('邮件已发送')) {
-        console.log('回退匹配：激活投递阶段:', message);
+      // 投递阶段 - 扩展关键词
+      if (message.includes('投递') || message.includes('发送') || message.includes('邮件已发送') ||
+        message.includes('传输') || message.includes('投放') || message.includes('分发')) {
+        console.log('✅ 回退匹配：激活投递阶段:', message);
         this.activateStage(2, event.message);
         return;
       }
 
-      // 利用阶段 - 宽松匹配
-      if (message.includes('利用') ||
-        message.includes('点击') ||
-        message.includes('漏洞') ||
-        message.includes('凭据')) {
-        console.log('回退匹配：激活利用阶段:', message);
+      // 利用阶段 - 扩展关键词
+      if (message.includes('利用') || message.includes('点击') || message.includes('漏洞') ||
+        message.includes('凭据') || message.includes('执行') || message.includes('触发') ||
+        message.includes('获得') || message.includes('权限') || message.includes('访问权限')) {
+        console.log('✅ 回退匹配：激活利用阶段:', message);
         this.activateStage(3, event.message);
         return;
       }
 
-      // 安装阶段 - 宽松匹配
-      if (message.includes('安装') ||
-        message.includes('持久') ||
-        message.includes('访问')) {
-        console.log('回退匹配：激活安装阶段:', message);
+      // 安装阶段 - 扩展关键词
+      if (message.includes('安装') || message.includes('持久') || message.includes('访问') ||
+        message.includes('后门') || message.includes('植入') || message.includes('驻留') ||
+        message.includes('建立') || message.includes('部署')) {
+        console.log('✅ 回退匹配：激活安装阶段:', message);
         this.activateStage(4, event.message);
         return;
       }
 
-      // 命令控制阶段 - 宽松匹配
-      if (message.includes('命令') ||
-        message.includes('控制') ||
-        message.includes('远程连接')) {
-        console.log('回退匹配：激活命令控制阶段:', message);
+      // 命令控制阶段 - 扩展关键词
+      if (message.includes('命令') || message.includes('控制') || message.includes('远程连接') ||
+        message.includes('C2') || message.includes('通信') || message.includes('连接') ||
+        message.includes('指令') || message.includes('远程')) {
+        console.log('✅ 回退匹配：激活命令控制阶段:', message);
         this.activateStage(5, event.message);
         return;
       }
 
-      // 行动目标阶段 - 宽松匹配
-      if (message.includes('目标') ||
-        message.includes('数据') ||
-        message.includes('完全控制') ||
-        message.includes('攻陷')) {
-        console.log('回退匹配：激活行动目标阶段:', message);
+      // 行动目标阶段 - 扩展关键词
+      if (message.includes('目标') || message.includes('数据') || message.includes('完全控制') ||
+        message.includes('攻陷') || message.includes('窃取') || message.includes('获取') ||
+        message.includes('收集') || message.includes('下载') || message.includes('完成')) {
+        console.log('✅ 回退匹配：激活行动目标阶段:', message);
         this.activateStage(6, event.message);
         return;
       }
+
+      console.log('⚠️ 回退匹配未找到匹配的攻击阶段:', message);
     },
 
 
@@ -1136,7 +1163,7 @@ export default {
               if (nodeId && this.networkNodes[nodeId]) {
                 // 如果容器正在运行，且节点之前被标记为compromised，则重置状态
                 if (this.networkNodes[nodeId].status === 'compromised' ||
-                    this.networkNodes[nodeId].status === 'under_attack') {
+                  this.networkNodes[nodeId].status === 'under_attack') {
                   console.log(`🔄 重置节点状态: ${nodeId} (容器 ${service.name} 正在运行)`);
                   this.networkNodes[nodeId].status = 'normal';
                   this.networkNodes[nodeId].compromised = false;
