@@ -303,7 +303,7 @@ export class ScenarioDataService {
         {
           id: 'internet',
           name: 'Internet',
-          subnet: '199.203.100.0/24',
+          subnet: '172.203.100.0/24',
           color: '#ff6b6b'
         },
         {

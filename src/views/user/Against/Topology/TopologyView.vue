@@ -141,7 +141,7 @@
 
     <!-- 防火墙对话框 -->
     <FirewallDialog :show="showFirewallDialog" :firewall="selectedFirewall" @close="showFirewallDialog = false"
-      @save="handleFirewallSave" />
+      @save="handleFirewallSave" @firewall-updated="handleFirewallUpdated" />
 
     <!-- 主机信息对话框 -->
     <HostInfoDialog :show="showHostInfoDialog" :host="selectedHost" @close="showHostInfoDialog = false" />
@@ -190,6 +190,7 @@ import { useTopologyStore } from '../../../../stores/topology'
 import NetworkTopology from './core/NetworkTopology'
 import TopologyGenerator from './core/TopologyGenerator'
 import FabricAttackVisualization from './core/FabricAttackVisualization'
+import FabricDefenseVisualization from './core/FabricDefenseVisualization'
 // 移除未使用的AttackStageAnimations导入
 import TopologyService from './services/TopologyService'
 import AttackService from './services/AttackService'
@@ -208,6 +209,7 @@ import VirtualTimeline from './components/VirtualTimeline.vue'
 const topologyStore = useTopologyStore()
 let topology = null
 let attackVisualization = null
+let defenseVisualization = null
 let fabricLoaded = true // 直接设置为 true，因为我们已经通过 import 导入了 fabric
 
 // 设备类型及其颜色
@@ -390,6 +392,11 @@ onMounted(async () => {
 
   // 初始化WebSocket连接
   await initWebSocketConnection()
+  
+  // 页面加载完成后滚动到顶部
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, 100)
 })
 
 // 初始化WebSocket连接
@@ -524,6 +531,53 @@ function handleWebSocketMessage(message) {
       const shouldShowAnimation = shouldTriggerAttackAnimation(message)
       if (shouldShowAnimation) {
         triggerAttackVisualizationFromLog(message)
+      }
+    }
+
+    // 基于防御日志触发防御可视化动画
+    if (defenseVisualization && topology && topology.devices) {
+      const shouldShowDefenseAnimation = shouldTriggerDefenseAnimation(message)
+      if (shouldShowDefenseAnimation) {
+        console.log('🛡️ 触发防御可视化动画:', message.source, message.message)
+        triggerDefenseVisualizationFromLog(message)
+      }
+    }
+
+    // 如果是防御相关的消息，也添加到关键事件区域
+    if (message.source.includes('威胁阻断') ||
+        message.source.includes('漏洞修复') ||
+        message.source.includes('攻击溯源') ||
+        message.source.includes('防御协调器') ||
+        message.source.includes('攻防演练裁判') ||
+        message.message.includes('防御') ||
+        message.message.includes('阻断') ||
+        message.message.includes('修复') ||
+        message.message.includes('溯源') ||
+        message.message.includes('胜利') ||
+        message.message.includes('演练结束')) {
+
+      // 添加到关键事件，标记为防御事件
+      addEvent({
+        type: 'defense',
+        message: `[${message.source}] ${message.message}`,
+        fromWebSocket: true
+      });
+    }
+
+    // 特殊处理裁判系统的胜负判定消息
+    if (message.source.includes('攻防演练裁判')) {
+      if (message.message.includes('攻击方胜利') || message.message.includes('🔴')) {
+        // 攻击方胜利
+        showBattleResult('attack_victory', message.message);
+      } else if (message.message.includes('防御方胜利') || message.message.includes('🟢')) {
+        // 防御方胜利
+        showBattleResult('defense_victory', message.message);
+      } else if (message.message.includes('攻防演练开始') || message.message.includes('🚀')) {
+        // 演练开始
+        showBattleResult('battle_start', message.message);
+      } else if (message.message.includes('战报') || message.message.includes('📊')) {
+        // 战报信息
+        showBattleReport(message.message);
       }
     }
 
@@ -721,6 +775,15 @@ function initializeBasicTopology() {
         attackVisualization = null
       }
 
+      // 初始化防御可视化
+      try {
+        defenseVisualization = new FabricDefenseVisualization(topology)
+        console.log('✅ 普通模式：Fabric防御可视化初始化成功')
+      } catch (error) {
+        console.error('❌ 普通模式：Fabric防御可视化初始化失败:', error)
+        defenseVisualization = null
+      }
+
       // 设置拖拽检测事件监听
       setupDragDetection()
 
@@ -822,6 +885,15 @@ async function initializeScenarioTopology(storedData) {
     } catch (error) {
       console.error('❌ 场景模式：Fabric攻击可视化初始化失败:', error)
       attackVisualization = null
+    }
+
+    // 5. 初始化防御可视化
+    try {
+      defenseVisualization = new FabricDefenseVisualization(topology)
+      console.log('✅ 场景模式：Fabric防御可视化初始化成功')
+    } catch (error) {
+      console.error('❌ 场景模式：Fabric防御可视化初始化失败:', error)
+      defenseVisualization = null
     }
 
     // 5. 设置拖拽检测事件监听
@@ -1496,6 +1568,141 @@ function shouldTriggerAttackAnimation(message) {
   // 如果没有任务状态，使用消息内容判断
   const animationType = getLogAnimationType(message.message?.toLowerCase() || '', message.source?.toLowerCase() || '')
   return animationType !== null
+}
+
+// 判断是否应该触发防御动画
+function shouldTriggerDefenseAnimation(message) {
+  const source = message.source || ''
+  const msg = message.message || ''
+  
+  // 防御智能体来源检查
+  const defenseAgentSources = [
+    '威胁阻断智能体',
+    '漏洞修复智能体', 
+    '攻击溯源智能体',
+    '防御协调器'
+  ]
+  
+  // 防御关键词检查
+  const defenseKeywords = [
+    '阻断', '封锁', '拦截', '防护',
+    '修复', '补丁', '加固', '恢复',
+    '溯源', '分析', '追踪', '取证',
+    '防火墙', '规则更新', '安全策略'
+  ]
+  
+  // 检查是否来自防御智能体
+  const isDefenseAgent = defenseAgentSources.some(agent => source.includes(agent))
+  
+  // 检查是否包含防御关键词
+  const hasDefenseKeyword = defenseKeywords.some(keyword => msg.includes(keyword))
+  
+  return isDefenseAgent || hasDefenseKeyword
+}
+
+// 基于防御日志触发防御可视化动画
+function triggerDefenseVisualizationFromLog(logMessage) {
+  try {
+    if (!defenseVisualization || !topology || !topology.devices) {
+      console.log('防御可视化未初始化或拓扑图不可用')
+      return
+    }
+
+    const message = logMessage.message || ''
+    const source = logMessage.source || ''
+    
+    console.log('🛡️ 触发防御动画:', message)
+
+    // 根据日志内容选择目标节点
+    let targetNode = null
+    
+    // 提取主机名或IP
+    const hostMatch = message.match(/主机\s+([^\s]+)/) || message.match(/设备\s+([^\s]+)/)
+    const ipMatch = message.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/)
+    
+    if (hostMatch) {
+      // 根据主机名查找节点
+      const hostname = hostMatch[1]
+      targetNode = findNodeByName(hostname) || findNodeByType('server')
+    } else if (ipMatch) {
+      // 根据IP查找节点
+      const ip = ipMatch[0]
+      targetNode = findNodeByIP(ip) || findNodeByType('firewall')
+    } else {
+      // 默认节点选择
+      if (source.includes('威胁阻断') || message.includes('防火墙')) {
+        targetNode = findNodeByType('firewall')
+      } else if (source.includes('漏洞修复')) {
+        targetNode = findNodeByType('server') || findNodeByType('pc')
+      } else if (source.includes('攻击溯源')) {
+        targetNode = findNodeByType('server')
+      }
+    }
+
+    if (!targetNode) {
+      console.log('未找到合适的目标节点进行防御动画')
+      return
+    }
+
+    // 根据防御类型触发相应动画
+    if (source.includes('威胁阻断') || message.includes('阻断') || message.includes('防火墙')) {
+      defenseVisualization.createThreatBlockingAnimation(targetNode, 'threat_blocked')
+    } else if (source.includes('漏洞修复') || message.includes('修复') || message.includes('补丁')) {
+      defenseVisualization.createVulnerabilityFixAnimation(targetNode, 'vulnerability_fixed')
+    } else if (source.includes('攻击溯源') || message.includes('溯源') || message.includes('分析')) {
+      const sourceNode = findNodeByType('internet') || targetNode
+      defenseVisualization.createAttackTracingAnimation(sourceNode, targetNode)
+    } else if (message.includes('防火墙') && message.includes('规则')) {
+      const firewallNode = findNodeByType('firewall') || targetNode
+      defenseVisualization.createFirewallUpdateAnimation(firewallNode, 'rule_update')
+    }
+
+  } catch (error) {
+    console.error('触发防御动画失败:', error)
+  }
+}
+
+// 根据节点名称查找节点
+function findNodeByName(name) {
+  if (!topology || !topology.devices) return null
+  
+  for (const deviceId in topology.devices) {
+    const device = topology.devices[deviceId]
+    if (device.deviceData && 
+        (device.deviceData.name === name || 
+         device.deviceData.hostname === name ||
+         deviceId.includes(name))) {
+      return device
+    }
+  }
+  return null
+}
+
+// 根据IP查找节点
+function findNodeByIP(ip) {
+  if (!topology || !topology.devices) return null
+  
+  for (const deviceId in topology.devices) {
+    const device = topology.devices[deviceId]
+    if (device.deviceData && device.deviceData.ip === ip) {
+      return device
+    }
+  }
+  return null
+}
+
+// 根据类型查找节点
+function findNodeByType(nodeType) {
+  if (!topology || !topology.devices) return null
+  
+  for (const deviceId in topology.devices) {
+    const device = topology.devices[deviceId]
+    if (device.deviceType === nodeType || 
+        (device.deviceData && device.deviceData.type === nodeType)) {
+      return device
+    }
+  }
+  return null
 }
 
 // 基于真实攻击日志触发可视化动画
@@ -2273,6 +2480,33 @@ function handleFirewallSave(firewallData) {
   console.log('防火墙配置已更新:', firewallData)
 }
 
+// 处理防火墙更新事件
+function handleFirewallUpdated(updateData) {
+  const { action, item } = updateData
+  
+  // 记录防火墙更新日志
+  switch (action) {
+    case 'blacklist_add':
+      logWarning('防火墙', `已将恶意IP ${item.address} 添加到黑名单: ${item.reason}`)
+      break
+    case 'blacklist_remove':
+      logInfo('防火墙', `已从黑名单移除IP ${item.address}`)
+      break
+    case 'whitelist_add':
+      logInfo('防火墙', `已将可信IP ${item.address} 添加到白名单: ${item.description}`)
+      break
+    case 'whitelist_remove':
+      logWarning('防火墙', `已从白名单移除IP ${item.address}`)
+      break
+  }
+  
+  // 触发防火墙更新动画
+  if (attackVisualization && selectedFirewall.value) {
+    // 这里可以添加防火墙更新的可视化效果
+    console.log('触发防火墙更新动画:', updateData)
+  }
+}
+
 // 处理容器配置消息事件
 function handleMessage(message) {
   const { type, text } = message
@@ -2625,7 +2859,7 @@ function parseTextTopology(agentOutput) {
         { id: 'user_segment', name: 'user_segment', subnet: '192.168.100.0/24', type: 'network_segment' },
         { id: 'dmz_segment', name: 'dmz_segment', subnet: '172.16.100.0/24', type: 'network_segment' },
         { id: 'medical_segment', name: 'medical_segment', subnet: '192.168.101.0/24', type: 'network_segment' },
-        { id: 'internet', name: 'internet', subnet: '199.203.100.0/24', type: 'network_segment' }
+        { id: 'internet', name: 'internet', subnet: '172.203.100.0/24', type: 'network_segment' }
       ];
       networks.push(...defaultNetworks);
     }
@@ -5220,7 +5454,7 @@ function generateTopologyDataForScenario() {
   console.log('🔍 生成拓扑数据 - 当前画布设备数量:', devices.length)
   console.log('🔍 生成拓扑数据 - 当前虚拟节点:', Array.from(virtualNodes.value))
   const networks = [
-    { id: 'internet', name: 'Internet', subnet: '199.203.100.0/24' },
+    { id: 'internet', name: 'Internet', subnet: '172.203.100.0/24' },
     { id: 'dmz_segment', name: 'DMZ', subnet: '172.16.100.0/24' },
     { id: 'user_segment', name: 'User', subnet: '192.168.100.0/24' },
     { id: 'server_segment', name: 'Server', subnet: '192.168.200.0/24' },
@@ -5297,7 +5531,7 @@ function generateDynamicScenarioConfig() {
     'internet': {
       driver: 'bridge',
       ipam: {
-        config: [{ subnet: '199.203.100.0/24', gateway: '199.203.100.1' }]
+        config: [{ subnet: '172.203.100.0/24', gateway: '172.203.100.1' }]
       }
     },
     'dmz_segment': {
@@ -5390,7 +5624,7 @@ function generateServiceName(nodeId, deviceType) {
 
 // 根据IP地址确定网络段
 function determineNetworkSegment(ip) {
-  if (ip.startsWith('199.203.100.')) return 'internet'
+  if (ip.startsWith('172.203.100.')) return 'internet'
   if (ip.startsWith('172.16.100.')) return 'dmz_segment'
   if (ip.startsWith('192.168.100.')) return 'user_segment'
   if (ip.startsWith('192.168.200.')) return 'server_segment'
@@ -5461,7 +5695,7 @@ function createSimplifiedScenarioFromTopology() {
 
   const nodes = []
   const networks = [
-    { id: 'internet', name: 'Internet', subnet: '199.203.100.0/24' },
+    { id: 'internet', name: 'Internet', subnet: '172.203.100.0/24' },
     { id: 'dmz_segment', name: 'DMZ', subnet: '172.16.100.0/24' },
     { id: 'user_segment', name: 'User', subnet: '192.168.100.0/24' },
     { id: 'server_segment', name: 'Server', subnet: '192.168.200.0/24' },
@@ -5489,7 +5723,7 @@ function createSimplifiedScenarioFromTopology() {
       }
     } else {
       // 根据IP地址确定网络
-      if (ip.startsWith('199.203.100.')) {
+      if (ip.startsWith('172.203.100.')) {
         deviceNetworks = ['internet']
         deviceType = 'network'
       } else if (ip.startsWith('172.16.100.')) {
@@ -6300,3 +6534,278 @@ const updateNodeVisualStatus = (node, status) => {
   background: transparent;
 }
 </style>
+// 显示胜负结果
+
+function showBattleResult(resultType, message) {
+  console.log('🏆 显示胜负结果:', resultType, message);
+  
+  // 创建胜负结果通知
+  const resultConfig = {
+    attack_victory: {
+      title: '🔴 攻击方胜利！',
+      type: 'error',
+      duration: 10000,
+      color: '#dc2626'
+    },
+    defense_victory: {
+      title: '🟢 防御方胜利！',
+      type: 'success', 
+      duration: 10000,
+      color: '#16a34a'
+    },
+    battle_start: {
+      title: '🚀 攻防演练开始',
+      type: 'info',
+      duration: 5000,
+      color: '#2563eb'
+    }
+  };
+
+  const config = resultConfig[resultType];
+  if (config) {
+    // 添加到关键事件区域
+    addEvent({
+      type: resultType === 'attack_victory' ? 'failure' : 
+            resultType === 'defense_victory' ? 'success' : 'system',
+      message: `${config.title} ${message}`,
+      fromWebSocket: true,
+      important: true
+    });
+
+    // 在拓扑图上显示结果动画
+    if (topology && topology.canvas) {
+      showBattleResultAnimation(resultType, config);
+    }
+
+    // 记录到日志
+    const logLevel = resultType === 'attack_victory' ? 'error' : 
+                    resultType === 'defense_victory' ? 'success' : 'info';
+    logMessage(logLevel, '攻防演练裁判', `${config.title} ${message}`, true);
+  }
+}
+
+// 显示胜负结果动画
+function showBattleResultAnimation(resultType, config) {
+  try {
+    const canvas = topology.canvas;
+    const canvasCenter = {
+      x: canvas.width / 2,
+      y: canvas.height / 2
+    };
+
+    // 创建结果文字
+    const resultText = new fabric.Text(config.title, {
+      left: canvasCenter.x,
+      top: canvasCenter.y - 50,
+      fontSize: 48,
+      fontWeight: 'bold',
+      fill: config.color,
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
+      opacity: 0,
+      shadow: new fabric.Shadow({
+        color: 'rgba(0,0,0,0.5)',
+        blur: 10,
+        offsetX: 2,
+        offsetY: 2
+      })
+    });
+
+    canvas.add(resultText);
+
+    // 文字出现动画
+    const textAnimation = resultText.animate({
+      opacity: 1,
+      fontSize: 56,
+      top: canvasCenter.y - 60
+    }, {
+      duration: 1000,
+      easing: fabric.util.ease.easeOutBounce,
+      onChange: () => canvas.renderAll(),
+      onComplete: () => {
+        // 延迟后淡出
+        setTimeout(() => {
+          const fadeOut = resultText.animate({
+            opacity: 0,
+            fontSize: 48
+          }, {
+            duration: 2000,
+            onChange: () => canvas.renderAll(),
+            onComplete: () => {
+              canvas.remove(resultText);
+              canvas.renderAll();
+            }
+          });
+        }, 5000);
+      }
+    });
+
+    // 添加背景效果
+    if (resultType === 'attack_victory') {
+      // 攻击方胜利 - 红色警告效果
+      createWarningEffect(canvas, '#dc2626');
+    } else if (resultType === 'defense_victory') {
+      // 防御方胜利 - 绿色成功效果
+      createSuccessEffect(canvas, '#16a34a');
+    }
+
+  } catch (error) {
+    console.error('显示胜负结果动画失败:', error);
+  }
+}
+
+// 创建警告效果
+function createWarningEffect(canvas, color) {
+  const overlay = new fabric.Rect({
+    left: 0,
+    top: 0,
+    width: canvas.width,
+    height: canvas.height,
+    fill: color,
+    opacity: 0,
+    selectable: false,
+    evented: false
+  });
+
+  canvas.add(overlay);
+
+  // 闪烁效果
+  let flashCount = 0;
+  const flashInterval = setInterval(() => {
+    const targetOpacity = flashCount % 2 === 0 ? 0.2 : 0;
+    overlay.animate({ opacity: targetOpacity }, {
+      duration: 300,
+      onChange: () => canvas.renderAll()
+    });
+    
+    flashCount++;
+    if (flashCount >= 6) {
+      clearInterval(flashInterval);
+      canvas.remove(overlay);
+      canvas.renderAll();
+    }
+  }, 400);
+}
+
+// 创建成功效果
+function createSuccessEffect(canvas, color) {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
+  // 创建扩散圆圈
+  const circle = new fabric.Circle({
+    left: centerX,
+    top: centerY,
+    radius: 10,
+    fill: 'transparent',
+    stroke: color,
+    strokeWidth: 4,
+    originX: 'center',
+    originY: 'center',
+    selectable: false,
+    evented: false,
+    opacity: 0.8
+  });
+
+  canvas.add(circle);
+
+  // 扩散动画
+  circle.animate({
+    radius: 200,
+    opacity: 0
+  }, {
+    duration: 2000,
+    easing: fabric.util.ease.easeOutQuad,
+    onChange: () => canvas.renderAll(),
+    onComplete: () => {
+      canvas.remove(circle);
+      canvas.renderAll();
+    }
+  });
+}
+
+// 显示战报
+function showBattleReport(reportMessage) {
+  console.log('📊 显示战报:', reportMessage);
+  
+  try {
+    // 尝试解析JSON格式的战报
+    const jsonMatch = reportMessage.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const reportData = JSON.parse(jsonMatch[0]);
+      
+      // 格式化战报显示
+      const formattedReport = formatBattleReport(reportData);
+      
+      // 添加到关键事件区域
+      addEvent({
+        type: 'system',
+        message: `📊 攻防演练战报:\n${formattedReport}`,
+        fromWebSocket: true,
+        important: true
+      });
+      
+      // 记录到日志
+      logMessage('info', '攻防演练裁判', `战报生成完成`, true);
+    } else {
+      // 直接显示原始战报消息
+      addEvent({
+        type: 'system',
+        message: `📊 ${reportMessage}`,
+        fromWebSocket: true
+      });
+    }
+  } catch (error) {
+    console.error('解析战报失败:', error);
+    // 显示原始消息
+    addEvent({
+      type: 'system',
+      message: `📊 ${reportMessage}`,
+      fromWebSocket: true
+    });
+  }
+}
+
+// 格式化战报
+function formatBattleReport(reportData) {
+  const lines = [];
+  
+  if (reportData.battle_duration) {
+    lines.push(`⏱️ 演练时长: ${reportData.battle_duration}`);
+  }
+  
+  if (reportData.attack_stages_completed !== undefined) {
+    lines.push(`🎯 攻击阶段完成: ${reportData.attack_stages_completed}/7`);
+  }
+  
+  if (reportData.defense_actions_taken !== undefined) {
+    lines.push(`🛡️ 防御行动执行: ${reportData.defense_actions_taken}/6`);
+  }
+  
+  if (reportData.compromised_assets && reportData.compromised_assets.length > 0) {
+    lines.push(`💥 被攻陷资产: ${reportData.compromised_assets.join(', ')}`);
+  }
+  
+  if (reportData.recovered_assets && reportData.recovered_assets.length > 0) {
+    lines.push(`🔧 已恢复资产: ${reportData.recovered_assets.join(', ')}`);
+  }
+  
+  if (reportData.blocked_ips && reportData.blocked_ips.length > 0) {
+    lines.push(`🚫 阻断IP数量: ${reportData.blocked_ips.length}`);
+  }
+  
+  if (reportData.patched_vulnerabilities && reportData.patched_vulnerabilities.length > 0) {
+    lines.push(`🔒 修复漏洞数量: ${reportData.patched_vulnerabilities.length}`);
+  }
+  
+  if (reportData.final_result) {
+    const resultText = reportData.final_result === 'attack_victory' ? '攻击方胜利' : 
+                      reportData.final_result === 'defense_victory' ? '防御方胜利' : '演练进行中';
+    lines.push(`🏆 最终结果: ${resultText}`);
+  }
+  
+  return lines.join('\n');
+}

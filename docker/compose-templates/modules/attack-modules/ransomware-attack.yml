@@ -14,7 +14,7 @@ services:
       - RANSOM_AMOUNT=50000
     networks:
       internet:
-        ipv4_address: 199.203.100.70
+        ipv4_address: 172.203.100.70
     ports:
       - "8080:80"
       - "8443:443"
@@ -35,7 +35,7 @@ services:
       - EVASION_TECHNIQUES=sandbox_detection,av_evasion
     networks:
       internet:
-        ipv4_address: 199.203.100.71
+        ipv4_address: 172.203.100.71
     ports:
       - "8081:80"
     volumes:

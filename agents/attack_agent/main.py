@@ -169,43 +169,50 @@ class AttackLogHandler:
         if tool_name == "run_nmap":
             if "open" in tool_output.lower():
                 self.advance_stage("reconnaissance", 30)
-                await send_standardized_log("info", "攻击智能体", "攻击者发现防火墙开放端口")
+                await send_standardized_log("warning", "攻击智能体", "攻击者扫描防火墙发现开放端口 22,80,443 - 目标设备: border_firewall (192.168.1.1)")
         elif tool_name == "fetch_url_content":
             if "/metadata" in tool_output or "company" in tool_output.lower():
                 self.advance_stage("reconnaissance", 100)
-                await send_standardized_log("success", "攻击智能体", "攻击者完成目标侦察")
+                await send_standardized_log("success", "攻击智能体", "攻击者完成目标侦察 - 获取公司信息和员工数据 - 目标: Acme Corp")
         elif tool_name == "craft_phishing_email":
             self.advance_stage("weaponization", 100)
-            await send_standardized_log("success", "攻击智能体", "攻击者完成恶意载荷制作")
+            await send_standardized_log("success", "攻击智能体", "攻击者完成恶意载荷制作 - 生成针对性钓鱼邮件 - 目标用户: victim_user")
         elif tool_name == "send_payload_to_victim":
             if "成功" in tool_output or "success" in tool_output.lower():
                 self.advance_stage("delivery", 100)
-                await send_standardized_log("success", "攻击智能体", "钓鱼邮件成功投递到目标")
+                await send_standardized_log("success", "攻击智能体", "钓鱼邮件成功投递到目标 - 邮件已发送至 victim_user@acmecorp.com")
 
                 # 模拟用户交互和后续阶段
+                await asyncio.sleep(2)
                 self.advance_stage("exploitation", 65)
-                await send_standardized_log("warning", "攻击智能体", "目标用户点击恶意链接")
+                await send_standardized_log("critical", "攻击智能体", "目标用户点击恶意链接 - 主机 ws-user-01 (192.168.100.50) 存在浏览器漏洞被利用")
 
+                await asyncio.sleep(1)
                 self.advance_stage("exploitation", 100)
-                await send_standardized_log("success", "攻击智能体", "攻击者获得目标主机访问权限")
+                await send_standardized_log("critical", "攻击智能体", "攻击者获得目标主机访问权限 - 主机 ws-user-01 因 CVE-2024-0001 漏洞被攻陷")
 
                 # 模拟安装和持久化
+                await asyncio.sleep(1)
                 self.advance_stage("installation", 75)
-                await send_standardized_log("info", "攻击智能体", "攻击者在目标主机安装后门")
+                await send_standardized_log("critical", "攻击智能体", "攻击者在目标主机安装后门 - 主机 ws-user-01 需要漏洞修复和系统加固")
 
+                await asyncio.sleep(1)
                 self.advance_stage("installation", 100)
-                await send_standardized_log("success", "攻击智能体", "攻击者建立目标主机持久化访问")
+                await send_standardized_log("critical", "攻击智能体", "攻击者建立目标主机持久化访问 - 检测到来自 203.0.113.100 的恶意IP连接")
 
                 # 模拟C2通信
+                await asyncio.sleep(1)
                 self.advance_stage("command_and_control", 85)
-                await send_standardized_log("info", "攻击智能体", "攻击者与目标主机建立C2通信")
+                await send_standardized_log("critical", "攻击智能体", "攻击者与目标主机建立C2通信 - 恶意IP 203.0.113.100 与内网主机通信需要阻断")
 
+                await asyncio.sleep(1)
                 self.advance_stage("command_and_control", 100)
-                await send_standardized_log("info", "攻击智能体", "攻击者从目标主机向内网横向移动")
+                await send_standardized_log("critical", "攻击智能体", "攻击者从目标主机向内网横向移动 - 尝试访问数据库服务器 internal-db-01 (192.168.214.10)")
 
                 # 模拟数据窃取
+                await asyncio.sleep(1)
                 self.advance_stage("actions_on_objectives", 95)
-                await send_standardized_log("warning", "攻击智能体", "攻击者从内网数据库窃取数据")
+                await send_standardized_log("critical", "攻击智能体", "攻击者从内网数据库窃取数据 - 服务器 internal-db-01 数据被窃取，需要攻击溯源分析")
 
 # 创建全局日志处理器
 attack_log_handler = AttackLogHandler()

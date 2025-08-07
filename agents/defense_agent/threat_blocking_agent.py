@@ -226,6 +226,101 @@ async def get_threat_intelligence() -> str:
         return f"执行威胁情报获取时出错: {e}"
 
 @tool
+async def get_firewall_status() -> str:
+    """获取防火墙当前状态"""
+    try:
+        await send_log_to_backend("info", "威胁阻断智能体", "正在查询防火墙状态")
+        
+        async with threat_blocking_service.client as client:
+            response = await client.call_tool(
+                "get_firewall_status",
+                arguments={}
+            )
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        
+        await send_log_to_backend("info", "威胁阻断智能体", "防火墙状态查询完成")
+        return result
+    except Exception as e:
+        await send_log_to_backend("error", "威胁阻断智能体", f"防火墙状态查询失败: {e}")
+        return f"执行防火墙状态查询时出错: {e}"
+
+@tool
+async def add_to_firewall_blacklist(ip_address: str, reason: str = "恶意活动") -> str:
+    """将IP地址添加到防火墙黑名单"""
+    try:
+        await send_log_to_backend("warning", "威胁阻断智能体", f"正在将恶意IP {ip_address} 添加到黑名单")
+        
+        async with threat_blocking_service.client as client:
+            response = await client.call_tool(
+                "add_to_firewall_blacklist",
+                arguments={'ip_address': ip_address, 'reason': reason}
+            )
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        
+        await send_log_to_backend("success", "威胁阻断智能体", f"成功阻断恶意IP {ip_address}")
+        return result
+    except Exception as e:
+        await send_log_to_backend("error", "威胁阻断智能体", f"IP黑名单添加失败: {e}")
+        return f"执行IP黑名单添加时出错: {e}"
+
+@tool
+async def remove_from_firewall_blacklist(ip_address: str) -> str:
+    """从防火墙黑名单中移除IP地址"""
+    try:
+        await send_log_to_backend("info", "威胁阻断智能体", f"正在从黑名单中移除IP {ip_address}")
+        
+        async with threat_blocking_service.client as client:
+            response = await client.call_tool(
+                "remove_from_firewall_blacklist",
+                arguments={'ip_address': ip_address}
+            )
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        
+        await send_log_to_backend("success", "威胁阻断智能体", f"成功从黑名单移除IP {ip_address}")
+        return result
+    except Exception as e:
+        await send_log_to_backend("error", "威胁阻断智能体", f"IP黑名单移除失败: {e}")
+        return f"执行IP黑名单移除时出错: {e}"
+
+@tool
+async def add_to_firewall_whitelist(ip_address: str, description: str = "可信IP") -> str:
+    """将IP地址添加到防火墙白名单"""
+    try:
+        await send_log_to_backend("info", "威胁阻断智能体", f"正在将可信IP {ip_address} 添加到白名单")
+        
+        async with threat_blocking_service.client as client:
+            response = await client.call_tool(
+                "add_to_firewall_whitelist",
+                arguments={'ip_address': ip_address, 'description': description}
+            )
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        
+        await send_log_to_backend("success", "威胁阻断智能体", f"成功将IP {ip_address} 添加到白名单")
+        return result
+    except Exception as e:
+        await send_log_to_backend("error", "威胁阻断智能体", f"IP白名单添加失败: {e}")
+        return f"执行IP白名单添加时出错: {e}"
+
+@tool
+async def bulk_block_ips(ip_list: List[str], reason: str = "批量威胁阻断") -> str:
+    """批量阻断IP地址"""
+    try:
+        await send_log_to_backend("warning", "威胁阻断智能体", f"正在批量阻断 {len(ip_list)} 个恶意IP")
+        
+        async with threat_blocking_service.client as client:
+            response = await client.call_tool(
+                "bulk_block_ips",
+                arguments={'ip_list': ip_list, 'reason': reason}
+            )
+        result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+        
+        await send_log_to_backend("success", "威胁阻断智能体", f"成功批量阻断 {len(ip_list)} 个恶意IP")
+        return result
+    except Exception as e:
+        await send_log_to_backend("error", "威胁阻断智能体", f"批量IP阻断失败: {e}")
+        return f"执行批量IP阻断时出错: {e}"
+
+@tool
 async def emergency_network_lockdown(reason: str, duration: int = 1800) -> str:
     """紧急网络封锁"""
     try:
@@ -251,6 +346,11 @@ tools = [
     isolate_infected_host,
     block_malicious_domain,
     get_threat_intelligence,
+    get_firewall_status,
+    add_to_firewall_blacklist,
+    remove_from_firewall_blacklist,
+    add_to_firewall_whitelist,
+    bulk_block_ips,
     emergency_network_lockdown
 ]
 
@@ -262,17 +362,21 @@ prompt = ChatPromptTemplate.from_messages([
 1. **实时监控**: 持续监控网络流量和系统活动，识别潜在威胁
 2. **快速响应**: 一旦检测到威胁，立即采取阻断措施
 3. **威胁分析**: 分析威胁类型和严重程度，选择合适的应对策略
-4. **防护加固**: 根据威胁情报更新防护策略
+4. **防火墙管理**: 动态管理防火墙黑白名单，实现精准阻断
+5. **防护加固**: 根据威胁情报更新防护策略
 
 工作流程：
 1. 首先使用 detect_network_threats 检测当前网络威胁
-2. 根据检测结果分析威胁类型和严重程度
-3. 选择合适的阻断措施：
-   - 对恶意IP使用 block_malicious_ip
-   - 对被感染主机使用 isolate_infected_host  
+2. 使用 get_firewall_status 查看当前防火墙状态
+3. 根据检测结果分析威胁类型和严重程度
+4. 选择合适的阻断措施：
+   - 对恶意IP使用 add_to_firewall_blacklist 添加到黑名单
+   - 对可信IP使用 add_to_firewall_whitelist 添加到白名单
+   - 批量威胁使用 bulk_block_ips 进行批量阻断
+   - 对被感染主机使用 isolate_infected_host
    - 对恶意域名使用 block_malicious_domain
    - 紧急情况下使用 emergency_network_lockdown
-4. 获取最新威胁情报以更新防护策略
+5. 获取最新威胁情报以更新防护策略
 
 响应原则：
 - 优先保护关键资产和数据

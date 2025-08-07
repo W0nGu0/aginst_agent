@@ -613,7 +613,7 @@ def generate_compose_from_topology(topology_data):
         'internet': {
             'driver': 'bridge',
             'ipam': {
-                'config': [{'subnet': '199.203.100.0/24', 'gateway': '199.203.100.1'}]
+                'config': [{'subnet': '172.203.100.0/24', 'gateway': '172.203.100.1'}]
             }
         },
         'dmz_segment': {

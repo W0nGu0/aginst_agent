@@ -30,6 +30,18 @@ AGENTS = [
         "script": "attribution_agent.py", 
         "port": 8013,
         "process": None
+    },
+    {
+        "name": "防御协调器",
+        "script": "defense_coordinator.py",
+        "port": None,  # 协调器不需要HTTP端口
+        "process": None
+    },
+    {
+        "name": "攻防演练裁判",
+        "script": "battle_judge.py",
+        "port": None,  # 裁判不需要HTTP端口
+        "process": None
     }
 ]
 
@@ -133,12 +145,17 @@ def main():
     print("\n智能体端点:")
     for agent in AGENTS:
         if agent["process"] and agent["process"].poll() is None:
-            print(f"  • {agent['name']}: http://localhost:{agent['port']}")
+            if agent["port"]:
+                print(f"  • {agent['name']}: http://localhost:{agent['port']}")
+            else:
+                print(f"  • {agent['name']}: WebSocket监听模式")
     
     print("\n📋 智能体功能:")
     print("  • 威胁阻断智能体: 实时检测和阻断网络威胁")
     print("  • 漏洞修复智能体: 扫描漏洞并应用安全补丁")
     print("  • 攻击溯源智能体: 分析攻击路径和威胁归因")
+    print("  • 防御协调器: 监听日志自动触发防御响应")
+    print("  • 攻防演练裁判: 实时判定攻防演练胜负结果")
     
     print("\n按 Ctrl+C 停止所有智能体")
     

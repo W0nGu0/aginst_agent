@@ -33,7 +33,7 @@ class TopologyGenerator {
       top: 300,
       deviceData: {
         name: '外部防火墙',
-        ip: '199.203.100.2',
+        ip: '172.203.100.254',
         description: 'DMZ区域防火墙'
       }
     });
@@ -222,7 +222,7 @@ class TopologyGenerator {
       top: 250,
       deviceData: {
         name: '攻击者',
-        ip: '199.203.100.10',
+        ip: '172.203.100.10',
         description: '外部攻击者'
       }
     });
@@ -233,7 +233,7 @@ class TopologyGenerator {
       top: 350,
       deviceData: {
         name: '攻击节点',
-        ip: '199.203.100.11',
+        ip: '172.203.100.11',
         description: '攻击跳板机'
       }
     });
@@ -266,15 +266,15 @@ class TopologyGenerator {
 
     // 直接将攻击者和攻击节点连接到外部防火墙，并添加网络信息
     topology.addConnection(externalFW, attacker, 'ethernet', {
-      subnet: '199.203.100.0/24',
-      firewallIP: '199.203.100.2',
-      deviceIP: '199.203.100.10'
+      subnet: '172.203.100.0/24',
+      firewallIP: '172.203.100.254',
+      deviceIP: '172.203.100.10'
     });
     
     topology.addConnection(externalFW, attackNode, 'ethernet', {
-      subnet: '199.203.100.0/24',
-      firewallIP: '199.203.100.2',
-      deviceIP: '199.203.100.11'
+      subnet: '172.203.100.0/24',
+      firewallIP: '172.203.100.254',
+      deviceIP: '172.203.100.11'
     });
 
     return {

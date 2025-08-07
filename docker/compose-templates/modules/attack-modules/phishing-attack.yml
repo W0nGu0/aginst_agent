@@ -13,7 +13,7 @@ services:
       - SMTP_RELAY=enabled
     networks:
       internet:
-        ipv4_address: 199.203.100.60
+        ipv4_address: 172.203.100.60
     ports:
       - "8025:25"
       - "8587:587"
@@ -34,7 +34,7 @@ services:
       - SSL_CERTIFICATE=self_signed
     networks:
       internet:
-        ipv4_address: 199.203.100.61
+        ipv4_address: 172.203.100.61
     ports:
       - "8080:80"
       - "8443:443"

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>防火墙对话框测试</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .firewall-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+        }
+        
+        .dialog-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .dialog-content {
+            background-color: #1e1e2f;
+            color: white;
+            border-radius: 8px;
+            width: 700px;
+            max-width: 90%;
+            max-height: 80vh;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+        
+        .content-item {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .tab-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .tab-btn.active {
+            background: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <button @click="showDialog = true">打开防火墙对话框</button>
+        
+        <!-- 简化的防火墙对话框 -->
+        <div v-if="showDialog" class="firewall-dialog">
+            <div class="dialog-overlay" @click="showDialog = false">
+                <div class="dialog-content" @click.stop>
+                    <h3>防火墙配置测试</h3>
+                    
+                    <div>
+                        <button class="tab-btn" :class="{ active: activeTab === 'interfaces' }" @click="activeTab = 'interfaces'">接口</button>
+                        <button class="tab-btn" :class="{ active: activeTab === 'rules' }" @click="activeTab = 'rules'">规则</button>
+                    </div>
+                    
+                    <!-- 接口标签页 - 测试修复后的代码 -->
+                    <div v-show="activeTab === 'interfaces'">
+                        <h4>网络接口配置</h4>
+                        <div v-for="(networkInterface, index) in firewallData.interfaces" :key="index" class="content-item">
+                            <strong>{{ networkInterface.name }}</strong> - {{ networkInterface.ip }} ({{ networkInterface.network }}) - 
+                            <span :style="{ color: networkInterface.status === 'up' ? '#00f2c3' : '#ff6b6b' }">
+                                {{ networkInterface.status === 'up' ? '活跃' : '停用' }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 规则标签页 -->
+                    <div v-show="activeTab === 'rules'">
+                        <h4>访问控制规则</h4>
+                        <div v-for="(rule, index) in firewallData.rules" :key="index" class="content-item">
+                            {{ rule.action }} - {{ rule.desc }}
+                        </div>
+                    </div>
+                    
+                    <button @click="showDialog = false" style="margin-top: 20px;">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    showDialog: false,
+                    activeTab: 'interfaces',
+                    firewallData: {
+                        interfaces: [
+                            { name: 'eth0', ip: '192.168.100.1', network: 'user_segment', status: 'up' },
+                            { name: 'eth1', ip: '192.168.200.1', network: 'server_segment', status: 'up' },
+                            { name: 'eth2', ip: '172.16.100.1', network: 'dmz_segment', status: 'up' }
+                        ],
+                        rules: [
+                            { action: 'allow', desc: '用户访问DMZ Web服务' },
+                            { action: 'deny', desc: '禁止用户直接访问数据库' }
+                        ]
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

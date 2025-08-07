@@ -315,8 +315,8 @@ class NetworkTopology {
             firewallIP = "192.168.214.254"; // 数据库段
           } else if (deviceIP.startsWith("172.16.100.")) {
             firewallIP = "172.16.100.254"; // DMZ段
-          } else if (deviceIP.startsWith("199.203.100.")) {
-            firewallIP = "199.203.100.2"; // 互联网段
+          } else if (deviceIP.startsWith("172.203.100.")) {
+            firewallIP = "172.203.100.254"; // 互联网段
           } else if (deviceIP.startsWith("192.168.1.")) {
             firewallIP = "192.168.1.1"; // 默认网段
           } else {

@@ -15,8 +15,8 @@ networks:
     driver: bridge
     ipam:
       config:
-      - gateway: 199.203.100.1
-        subnet: 199.203.100.0/24
+      - gateway: 172.203.100.1
+        subnet: 172.203.100.0/24
   mdz_segment:
     driver: bridge
     ipam:
@@ -56,7 +56,7 @@ services:
     image: python:3.9-slim
     networks:
       internet:
-        ipv4_address: 199.203.100.11
+        ipv4_address: 172.203.100.11
     tty: true
   attacker:
     command:
@@ -66,7 +66,7 @@ services:
     image: python:3.9-slim
     networks:
       internet:
-        ipv4_address: 199.203.100.10
+        ipv4_address: 172.203.100.10
     tty: true
   cnt-db:
     build: ../images/cnt-db
@@ -141,7 +141,7 @@ services:
       fw_link:
         ipv4_address: 192.168.254.2
       internet:
-        ipv4_address: 199.203.100.2
+        ipv4_address: 172.203.100.254
       mdz_segment:
         ipv4_address: 172.16.100.254
     privileged: true

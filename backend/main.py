@@ -192,6 +192,8 @@ def _compose_ps(compose_file: str):
 
 # WebSocket连接管理
 connected_clients: Set[WebSocket] = set()
+# 添加日志去重缓存
+log_cache: Set[str] = set()
 
 @app.websocket("/ws/logs")
 async def websocket_logs(websocket: WebSocket):
@@ -247,16 +249,38 @@ async def broadcast_log(log_data: dict):
     if not connected_clients:
         return
 
+    # 创建日志唯一标识符进行去重
+    import hashlib
+    source = log_data.get("source", "")
+    message = log_data.get("message", "")
+    log_content = f"{source}:{message}".encode('utf-8')
+    log_id = hashlib.md5(log_content).hexdigest()
+    
+    # 检查是否是重复日志
+    if log_id in log_cache:
+        logger.debug(f"跳过重复日志: {source} - {message[:50]}...")
+        return
+    
+    # 添加到缓存
+    log_cache.add(log_id)
+    
+    # 限制缓存大小，避免内存泄漏
+    if len(log_cache) > 1000:
+        # 清理一半的缓存
+        cache_list = list(log_cache)
+        log_cache.clear()
+        log_cache.update(cache_list[-500:])
+
     # 过滤中控智能体的日志
-    source = log_data.get("source", "").lower()
-    message = log_data.get("message", "").lower()
+    source_lower = source.lower()
+    message_lower = message.lower()
 
     # 跳过中控智能体的内部日志
-    if source == "中控智能体" or source == "central_agent":
+    if source_lower == "中控智能体" or source_lower == "central_agent":
         # 只允许重要的状态更新通过
         important_keywords = ["攻击完成", "攻击失败", "开始攻击", "攻击结束"]
-        if not any(keyword in message for keyword in important_keywords):
-            logger.debug(f"过滤中控智能体日志: {log_data.get('message', '')}")
+        if not any(keyword in message_lower for keyword in important_keywords):
+            logger.debug(f"过滤中控智能体日志: {message}")
             return
 
     # 添加时间戳

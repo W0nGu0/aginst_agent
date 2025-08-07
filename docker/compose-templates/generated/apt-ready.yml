@@ -93,7 +93,7 @@ services:
                tail -f /dev/null"
     networks:
       internet:
-        ipv4_address: 199.203.100.11
+        ipv4_address: 172.203.100.11
     tty: true
 
   # DMZ服务器
@@ -123,7 +123,7 @@ services:
     - FIREWALL_TYPE=border
     networks:
       internet:
-        ipv4_address: 199.203.100.2
+        ipv4_address: 172.203.100.254
       dmz_segment:
         ipv4_address: 172.16.100.254
     labels:
@@ -180,7 +180,7 @@ services:
   #   - PASSWORD=vpn123
   #   networks:
   #     internet:
-  #       ipv4_address: 199.203.100.10
+  #       ipv4_address: 172.203.100.10
   #   ports:
   #   - 1194:1194/udp
   #   - 7505:7505
@@ -331,4 +331,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 199.203.100.0/24
+        - subnet: 172.203.100.0/24

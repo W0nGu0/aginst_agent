@@ -96,7 +96,7 @@ services:
     command: ["sleep", "infinity"]
     networks:
       internet:
-        ipv4_address: 199.203.100.10
+        ipv4_address: 172.203.100.10
     tty: true
 
   attack-node:
@@ -105,7 +105,7 @@ services:
     command: ["sleep", "infinity"]
     networks:
       internet:
-        ipv4_address: 199.203.100.11
+        ipv4_address: 172.203.100.11
     tty: true
 
   cnt-dmz-wp1:
@@ -282,7 +282,7 @@ services:
       mdz_segment:
         ipv4_address: 172.16.100.254
       internet:
-        ipv4_address: 199.203.100.2
+        ipv4_address: 172.203.100.254
 
 networks:
   fw_link:
@@ -331,5 +331,5 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 199.203.100.0/24
-          gateway: 199.203.100.1
+        - subnet: 172.203.100.0/24
+          gateway: 172.203.100.1

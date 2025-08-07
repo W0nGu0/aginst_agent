@@ -71,6 +71,24 @@ NETWORK_DEVICES = {
     }
 }
 
+# 模拟的防火墙状态（合并自防火墙控制服务）
+FIREWALL_STATE = {
+    "whitelist": [
+        "192.168.100.50",    # 用户PC
+        "192.168.200.10",    # 内网数据库
+        "192.168.200.20",    # 内网文件服务器
+        "172.16.100.10",     # DMZ Web服务器
+        "172.16.100.20",     # DMZ DNS服务器
+        "192.168.1.1",       # 网关
+        "8.8.8.8",           # 公共DNS
+        "114.114.114.114"    # 公共DNS
+    ],
+    "blacklist": [],
+    "rules": [],
+    "last_updated": datetime.now().isoformat(),
+    "status": "active"
+}
+
 @mcp.tool()
 async def detect_network_threats(target_network: str, scan_duration: int = 30) -> str:
     """
@@ -281,6 +299,240 @@ async def get_threat_intelligence() -> str:
     }
     
     return json.dumps(intelligence, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def get_firewall_status() -> str:
+    """
+    获取防火墙当前状态
+    
+    Returns:
+        防火墙状态信息
+    """
+    await asyncio.sleep(0.5)  # 模拟查询时间
+    
+    result = {
+        "firewall_status": "active",
+        "whitelist_count": len(FIREWALL_STATE["whitelist"]),
+        "blacklist_count": len(FIREWALL_STATE["blacklist"]),
+        "whitelist": FIREWALL_STATE["whitelist"],
+        "blacklist": FIREWALL_STATE["blacklist"],
+        "total_rules": len(FIREWALL_STATE["rules"]),
+        "last_updated": FIREWALL_STATE["last_updated"],
+        "policy": "default_deny"
+    }
+    
+    return json.dumps(result, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def add_to_firewall_blacklist(ip_address: str, reason: str = "恶意活动") -> str:
+    """
+    将IP地址添加到防火墙黑名单
+    
+    Args:
+        ip_address: 要阻断的IP地址
+        reason: 阻断原因
+    
+    Returns:
+        操作结果
+    """
+    await asyncio.sleep(1)  # 模拟配置时间
+    
+    if ip_address in FIREWALL_STATE["blacklist"]:
+        return json.dumps({
+            "status": "already_exists",
+            "message": f"IP {ip_address} 已在黑名单中",
+            "ip_address": ip_address
+        }, ensure_ascii=False)
+    
+    # 从白名单中移除（如果存在）
+    if ip_address in FIREWALL_STATE["whitelist"]:
+        FIREWALL_STATE["whitelist"].remove(ip_address)
+    
+    # 添加到黑名单
+    FIREWALL_STATE["blacklist"].append(ip_address)
+    
+    # 添加防火墙规则
+    rule = {
+        "id": f"DENY_{random.randint(10000, 99999)}",
+        "action": "DENY",
+        "source_ip": ip_address,
+        "destination": "ANY",
+        "protocol": "ANY",
+        "port": "ANY",
+        "reason": reason,
+        "created_at": datetime.now().isoformat()
+    }
+    FIREWALL_STATE["rules"].append(rule)
+    FIREWALL_STATE["last_updated"] = datetime.now().isoformat()
+    
+    result = {
+        "status": "success",
+        "action": "ip_blocked",
+        "ip_address": ip_address,
+        "reason": reason,
+        "rule_id": rule["id"],
+        "blocked_at": rule["created_at"],
+        "current_blacklist_count": len(FIREWALL_STATE["blacklist"])
+    }
+    
+    return json.dumps(result, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def remove_from_firewall_blacklist(ip_address: str) -> str:
+    """
+    从防火墙黑名单中移除IP地址
+    
+    Args:
+        ip_address: 要移除的IP地址
+    
+    Returns:
+        操作结果
+    """
+    await asyncio.sleep(1)  # 模拟配置时间
+    
+    if ip_address not in FIREWALL_STATE["blacklist"]:
+        return json.dumps({
+            "status": "not_found",
+            "message": f"IP {ip_address} 不在黑名单中",
+            "ip_address": ip_address
+        }, ensure_ascii=False)
+    
+    # 从黑名单中移除
+    FIREWALL_STATE["blacklist"].remove(ip_address)
+    
+    # 移除相关防火墙规则
+    FIREWALL_STATE["rules"] = [
+        rule for rule in FIREWALL_STATE["rules"] 
+        if rule["source_ip"] != ip_address
+    ]
+    
+    # 添加回白名单（如果是内网IP）
+    if ip_address.startswith(("192.168.", "172.16.", "10.")):
+        FIREWALL_STATE["whitelist"].append(ip_address)
+    
+    FIREWALL_STATE["last_updated"] = datetime.now().isoformat()
+    
+    result = {
+        "status": "success",
+        "action": "ip_unblocked",
+        "ip_address": ip_address,
+        "unblocked_at": datetime.now().isoformat(),
+        "current_blacklist_count": len(FIREWALL_STATE["blacklist"]),
+        "added_to_whitelist": ip_address.startswith(("192.168.", "172.16.", "10."))
+    }
+    
+    return json.dumps(result, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def add_to_firewall_whitelist(ip_address: str, description: str = "可信IP") -> str:
+    """
+    将IP地址添加到防火墙白名单
+    
+    Args:
+        ip_address: 要允许的IP地址
+        description: 描述信息
+    
+    Returns:
+        操作结果
+    """
+    await asyncio.sleep(0.5)  # 模拟配置时间
+    
+    if ip_address in FIREWALL_STATE["whitelist"]:
+        return json.dumps({
+            "status": "already_exists",
+            "message": f"IP {ip_address} 已在白名单中",
+            "ip_address": ip_address
+        }, ensure_ascii=False)
+    
+    # 从黑名单中移除（如果存在）
+    if ip_address in FIREWALL_STATE["blacklist"]:
+        FIREWALL_STATE["blacklist"].remove(ip_address)
+        # 移除相关阻断规则
+        FIREWALL_STATE["rules"] = [
+            rule for rule in FIREWALL_STATE["rules"] 
+            if rule["source_ip"] != ip_address
+        ]
+    
+    # 添加到白名单
+    FIREWALL_STATE["whitelist"].append(ip_address)
+    FIREWALL_STATE["last_updated"] = datetime.now().isoformat()
+    
+    result = {
+        "status": "success",
+        "action": "ip_whitelisted",
+        "ip_address": ip_address,
+        "description": description,
+        "whitelisted_at": datetime.now().isoformat(),
+        "current_whitelist_count": len(FIREWALL_STATE["whitelist"])
+    }
+    
+    return json.dumps(result, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def bulk_block_ips(ip_list: List[str], reason: str = "批量威胁阻断") -> str:
+    """
+    批量阻断IP地址
+    
+    Args:
+        ip_list: IP地址列表
+        reason: 阻断原因
+    
+    Returns:
+        批量操作结果
+    """
+    await asyncio.sleep(2)  # 模拟批量配置时间
+    
+    results = []
+    blocked_count = 0
+    
+    for ip in ip_list:
+        if ip not in FIREWALL_STATE["blacklist"]:
+            # 从白名单中移除
+            if ip in FIREWALL_STATE["whitelist"]:
+                FIREWALL_STATE["whitelist"].remove(ip)
+            
+            # 添加到黑名单
+            FIREWALL_STATE["blacklist"].append(ip)
+            
+            # 添加规则
+            rule = {
+                "id": f"BULK_DENY_{random.randint(10000, 99999)}",
+                "action": "DENY",
+                "source_ip": ip,
+                "destination": "ANY",
+                "protocol": "ANY",
+                "port": "ANY",
+                "reason": reason,
+                "created_at": datetime.now().isoformat()
+            }
+            FIREWALL_STATE["rules"].append(rule)
+            
+            results.append({
+                "ip": ip,
+                "status": "blocked",
+                "rule_id": rule["id"]
+            })
+            blocked_count += 1
+        else:
+            results.append({
+                "ip": ip,
+                "status": "already_blocked"
+            })
+    
+    FIREWALL_STATE["last_updated"] = datetime.now().isoformat()
+    
+    result = {
+        "status": "success",
+        "action": "bulk_block",
+        "total_ips": len(ip_list),
+        "blocked_count": blocked_count,
+        "already_blocked": len(ip_list) - blocked_count,
+        "reason": reason,
+        "results": results,
+        "completed_at": datetime.now().isoformat()
+    }
+    
+    return json.dumps(result, indent=2, ensure_ascii=False)
 
 @mcp.tool()
 async def emergency_network_lockdown(reason: str, duration: int = 1800) -> str:
