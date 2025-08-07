@@ -30,7 +30,7 @@
 +-----------------------------------------------------------------------------+
 
 
-[08/07/25 15:06:15] INFO     Starting MCP server                 server.py:1429
+[08/07/25 22:10:08] INFO     Starting MCP server                 server.py:1429
                              'Vulnerability_Remediation_Service'               
                              with transport 'http' on                          
                              http://127.0.0.1:8009/mcp/                        
@@ -38,28 +38,7 @@ C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__in
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [20116]
+INFO:     Started server process [53500]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8009 (Press CTRL+C to quit)
-
---- Â©¶´ÐÞ¸´·þÎñ (Vulnerability Remediation Service) is starting... ---
-
-INFO:     127.0.0.1:63250 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63251 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:63252 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63253 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63254 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63255 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63265 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63266 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:63267 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63268 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63273 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63274 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63285 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63286 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:63287 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63288 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63292 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63293 - "DELETE /mcp/ HTTP/1.1" 200 OK

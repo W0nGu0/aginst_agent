@@ -124,15 +124,9 @@
 
     <!-- 虚拟时间轴 - 放在拓扑图下方 -->
     <div class="virtual-timeline-section">
-      <VirtualTimeline
-        ref="virtualTimelineRef"
-        :auto-start="false"
-        @timeline-started="onTimelineStarted"
-        @timeline-paused="onTimelinePaused"
-        @timeline-reset="onTimelineReset"
-        @phase-changed="onPhaseChanged"
-        @speed-changed="onSpeedChanged"
-      />
+      <VirtualTimeline ref="virtualTimelineRef" :auto-start="false" @timeline-started="onTimelineStarted"
+        @timeline-paused="onTimelinePaused" @timeline-reset="onTimelineReset" @phase-changed="onPhaseChanged"
+        @speed-changed="onSpeedChanged" />
     </div>
 
     <!-- 攻击者对话框 -->
@@ -392,7 +386,7 @@ onMounted(async () => {
 
   // 初始化WebSocket连接
   await initWebSocketConnection()
-  
+
   // 页面加载完成后滚动到顶部
   setTimeout(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -545,16 +539,16 @@ function handleWebSocketMessage(message) {
 
     // 如果是防御相关的消息，也添加到关键事件区域
     if (message.source.includes('威胁阻断') ||
-        message.source.includes('漏洞修复') ||
-        message.source.includes('攻击溯源') ||
-        message.source.includes('防御协调器') ||
-        message.source.includes('攻防演练裁判') ||
-        message.message.includes('防御') ||
-        message.message.includes('阻断') ||
-        message.message.includes('修复') ||
-        message.message.includes('溯源') ||
-        message.message.includes('胜利') ||
-        message.message.includes('演练结束')) {
+      message.source.includes('漏洞修复') ||
+      message.source.includes('攻击溯源') ||
+      message.source.includes('防御协调器') ||
+      message.source.includes('攻防演练裁判') ||
+      message.message.includes('防御') ||
+      message.message.includes('阻断') ||
+      message.message.includes('修复') ||
+      message.message.includes('溯源') ||
+      message.message.includes('胜利') ||
+      message.message.includes('演练结束')) {
 
       // 添加到关键事件，标记为防御事件
       addEvent({
@@ -1086,15 +1080,15 @@ function handleDeviceClick(device) {
   console.log('✅ 节点状态允许配置，打开相应弹窗')
 
   // 如果是攻击者，显示攻击对话框
-  if (device.deviceData.name === '攻击者' || 
-      device.deviceData.name === 'attacker' || 
-      device.deviceData.name.toLowerCase().includes('attack') ||
-      device.deviceType === 'attacker') {
+  if (device.deviceData.name === '攻击者' ||
+    device.deviceData.name === 'attacker' ||
+    device.deviceData.name.toLowerCase().includes('attack') ||
+    device.deviceType === 'attacker') {
     selectedAttacker.value = device
     // 获取所有可能的攻击目标（除了攻击者自己）
     attackTargets.value = Object.values(topology.devices).filter(d =>
-      d !== device && 
-      d.deviceData.name !== '攻击节点' && 
+      d !== device &&
+      d.deviceData.name !== '攻击节点' &&
       !d.deviceData.name.toLowerCase().includes('attack')
     )
     showAttackerDialog.value = true
@@ -1109,11 +1103,11 @@ function handleDeviceClick(device) {
   }
 
   // 如果是其他类型的设备，根据运行状态选择对话框
-  if (device.deviceType !== 'firewall' && 
-      device.deviceData.name !== '攻击者' && 
-      device.deviceData.name !== 'attacker' && 
-      !device.deviceData.name.toLowerCase().includes('attack') &&
-      device.deviceType !== 'attacker') {
+  if (device.deviceType !== 'firewall' &&
+    device.deviceData.name !== '攻击者' &&
+    device.deviceData.name !== 'attacker' &&
+    !device.deviceData.name.toLowerCase().includes('attack') &&
+    device.deviceType !== 'attacker') {
     // 如果是运行中的容器，显示容器配置对话框
     if (runningNodes.value.has(nodeId) || nodeStatus === 'running' || isVisuallyRunning) {
       selectedContainer.value = device
@@ -1144,7 +1138,7 @@ function handleAttackProgress(event) {
       // 根据日志内容触发动画
       if (attackVisualization && selectedAttacker.value) {
         const target = Object.values(topology.devices || {}).find(d =>
-          d !== selectedAttacker.value && 
+          d !== selectedAttacker.value &&
           d.deviceData.name !== '攻击节点' &&
           !d.deviceData.name.toLowerCase().includes('attack')
         )
@@ -1241,33 +1235,33 @@ function triggerAttackStepAnimation(attackInfo, log) {
       progress
     })
 
-  // 简化的动画触发逻辑
-  if (!attackVisualization) return
+    // 简化的动画触发逻辑
+    if (!attackVisualization) return
 
-  // 根据攻击阶段触发基础动画
-  switch (stage) {
-    case 'reconnaissance':
-      if (sourceNode && attackVisualization.createScanningPulse) {
-        attackVisualization.createScanningPulse(sourceNode)
-      }
-      break
-    case 'exploitation':
-      if (sourceNode && targetNode && attackVisualization.createAttackPath) {
-        attackVisualization.createAttackPath(sourceNode, targetNode)
-      }
-      break
-    case 'actions_on_objectives':
-      if (sourceNode && targetNode && attackVisualization.createDataTheftAnimation) {
-        attackVisualization.createDataTheftAnimation(targetNode, sourceNode, 3)
-      }
-      break
-    default:
-      // 默认使用基于日志的动画触发
-      if (log) {
-        triggerAttackVisualizationFromLog(log)
-      }
-      break
-  }
+    // 根据攻击阶段触发基础动画
+    switch (stage) {
+      case 'reconnaissance':
+        if (sourceNode && attackVisualization.createScanningPulse) {
+          attackVisualization.createScanningPulse(sourceNode)
+        }
+        break
+      case 'exploitation':
+        if (sourceNode && targetNode && attackVisualization.createAttackPath) {
+          attackVisualization.createAttackPath(sourceNode, targetNode)
+        }
+        break
+      case 'actions_on_objectives':
+        if (sourceNode && targetNode && attackVisualization.createDataTheftAnimation) {
+          attackVisualization.createDataTheftAnimation(targetNode, sourceNode, 3)
+        }
+        break
+      default:
+        // 默认使用基于日志的动画触发
+        if (log) {
+          triggerAttackVisualizationFromLog(log)
+        }
+        break
+    }
   } catch (error) {
     console.error('触发攻击步骤动画时出错:', error)
   }
@@ -1334,7 +1328,7 @@ function updateAttackVisualizationByPhase(phase, progress) {
   // 获取攻击者和目标
   const attacker = selectedAttacker.value
   const target = Object.values(topology.devices).find(d =>
-    d !== attacker && 
+    d !== attacker &&
     d.deviceData.name !== '攻击节点' &&
     !d.deviceData.name.toLowerCase().includes('attack')
   )
@@ -1548,7 +1542,7 @@ function shouldTriggerAttackAnimation(message) {
       // 只有在攻击任务真正运行且不在准备阶段时才显示动画
       const isRunning = taskStatus.status === AttackTaskService.STATUS.RUNNING
       const isNotPreparation = taskStatus.phase !== AttackTaskService.PHASE.RECONNAISSANCE ||
-                              taskStatus.progress > 10 // 侦察阶段进度超过10%才算真正开始
+        taskStatus.progress > 10 // 侦察阶段进度超过10%才算真正开始
 
       console.log('🎯 攻击任务状态检查:', {
         taskId: currentAttackTaskId.value,
@@ -1574,15 +1568,15 @@ function shouldTriggerAttackAnimation(message) {
 function shouldTriggerDefenseAnimation(message) {
   const source = message.source || ''
   const msg = message.message || ''
-  
+
   // 防御智能体来源检查
   const defenseAgentSources = [
     '威胁阻断智能体',
-    '漏洞修复智能体', 
+    '漏洞修复智能体',
     '攻击溯源智能体',
     '防御协调器'
   ]
-  
+
   // 防御关键词检查
   const defenseKeywords = [
     '阻断', '封锁', '拦截', '防护',
@@ -1590,13 +1584,13 @@ function shouldTriggerDefenseAnimation(message) {
     '溯源', '分析', '追踪', '取证',
     '防火墙', '规则更新', '安全策略'
   ]
-  
+
   // 检查是否来自防御智能体
   const isDefenseAgent = defenseAgentSources.some(agent => source.includes(agent))
-  
+
   // 检查是否包含防御关键词
   const hasDefenseKeyword = defenseKeywords.some(keyword => msg.includes(keyword))
-  
+
   return isDefenseAgent || hasDefenseKeyword
 }
 
@@ -1610,16 +1604,16 @@ function triggerDefenseVisualizationFromLog(logMessage) {
 
     const message = logMessage.message || ''
     const source = logMessage.source || ''
-    
+
     console.log('🛡️ 触发防御动画:', message)
 
     // 根据日志内容选择目标节点
     let targetNode = null
-    
+
     // 提取主机名或IP
     const hostMatch = message.match(/主机\s+([^\s]+)/) || message.match(/设备\s+([^\s]+)/)
     const ipMatch = message.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/)
-    
+
     if (hostMatch) {
       // 根据主机名查找节点
       const hostname = hostMatch[1]
@@ -1665,13 +1659,13 @@ function triggerDefenseVisualizationFromLog(logMessage) {
 // 根据节点名称查找节点
 function findNodeByName(name) {
   if (!topology || !topology.devices) return null
-  
+
   for (const deviceId in topology.devices) {
     const device = topology.devices[deviceId]
-    if (device.deviceData && 
-        (device.deviceData.name === name || 
-         device.deviceData.hostname === name ||
-         deviceId.includes(name))) {
+    if (device.deviceData &&
+      (device.deviceData.name === name ||
+        device.deviceData.hostname === name ||
+        deviceId.includes(name))) {
       return device
     }
   }
@@ -1681,7 +1675,7 @@ function findNodeByName(name) {
 // 根据IP查找节点
 function findNodeByIP(ip) {
   if (!topology || !topology.devices) return null
-  
+
   for (const deviceId in topology.devices) {
     const device = topology.devices[deviceId]
     if (device.deviceData && device.deviceData.ip === ip) {
@@ -1694,11 +1688,11 @@ function findNodeByIP(ip) {
 // 根据类型查找节点
 function findNodeByType(nodeType) {
   if (!topology || !topology.devices) return null
-  
+
   for (const deviceId in topology.devices) {
     const device = topology.devices[deviceId]
-    if (device.deviceType === nodeType || 
-        (device.deviceData && device.deviceData.type === nodeType)) {
+    if (device.deviceType === nodeType ||
+      (device.deviceData && device.deviceData.type === nodeType)) {
       return device
     }
   }
@@ -2483,7 +2477,7 @@ function handleFirewallSave(firewallData) {
 // 处理防火墙更新事件
 function handleFirewallUpdated(updateData) {
   const { action, item } = updateData
-  
+
   // 记录防火墙更新日志
   switch (action) {
     case 'blacklist_add':
@@ -2499,7 +2493,7 @@ function handleFirewallUpdated(updateData) {
       logWarning('防火墙', `已从白名单移除IP ${item.address}`)
       break
   }
-  
+
   // 触发防火墙更新动画
   if (attackVisualization && selectedFirewall.value) {
     // 这里可以添加防火墙更新的可视化效果
@@ -6308,7 +6302,7 @@ const onSpeedChanged = (newSpeed) => {
       message: `时间倍速调整为 ${newSpeed}x`,
       details: {
         '新倍速': newSpeed + 'x',
-        '说明': newSpeed === 1 ? '真实时间' : `1分钟 = ${Math.floor(newSpeed/60)}小时`
+        '说明': newSpeed === 1 ? '真实时间' : `1分钟 = ${Math.floor(newSpeed / 60)}小时`
       }
     })
   }
@@ -6536,7 +6530,7 @@ const updateNodeVisualStatus = (node, status) => {
 </style>
 // 显示胜负结果
 
-function showBattleResult(resultType, message) {
+function showBattleResult(resultType, message){
   console.log('🏆 显示胜负结果:', resultType, message);
   
   // 创建胜负结果通知
