@@ -1,48 +1,55 @@
-2025-08-08 16:53:25,361 - defense-coordinator - INFO - 防御协调器已启动
+2025-08-08 17:45:16,477 - defense-coordinator - INFO - 防御协调器已启动
 C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\defense_coordinator.py:101: DeprecationWarning: websockets.client.connect is deprecated
   self.ws_connection = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-08 16:53:27,417 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs
-2025-08-08 17:06:54,236 - defense-coordinator - INFO - 日志触发防御响应: 攻击者扫描防火墙... -> ['threat_blocking']
-2025-08-08 17:06:54,236 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
-2025-08-08 17:07:24,982 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
-2025-08-08 17:07:25,989 - defense-coordinator - INFO - 日志触发防御响应: 攻击者发现防火墙开放端口... -> ['threat_blocking']
-2025-08-08 17:07:25,989 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
-2025-08-08 17:07:56,433 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
-2025-08-08 17:07:57,437 - defense-coordinator - INFO - 日志触发防御响应: 攻击者完成目标侦察 - 获取公司信息和员工数据 - 目标: Acme Corp... -> ['attack_attribution']
-2025-08-08 17:07:57,437 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
-2025-08-08 17:08:27,975 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
-2025-08-08 17:08:28,984 - defense-coordinator - INFO - 日志触发防御响应: 攻击者完成恶意载荷制作 - 生成针对性钓鱼邮件 - 目标用户: victim_user... -> ['attack_attribution']
-2025-08-08 17:08:28,984 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
-2025-08-08 17:08:59,602 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:08:59,602 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
-2025-08-08 17:09:00,611 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:09:00,612 - defense-coordinator - INFO - 日志触发防御响应: 攻击者向目标发送钓鱼邮件... -> ['threat_blocking']
-2025-08-08 17:09:00,612 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
-2025-08-08 17:09:31,174 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:09:31,174 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
-2025-08-08 17:09:32,187 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:09:32,187 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功攻陷DMZ Web服务器 - dmz-web-01因Web应用漏洞被攻陷... -> ['attack_attribution']
-2025-08-08 17:09:32,187 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
-2025-08-08 17:10:02,657 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:10:02,657 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
-2025-08-08 17:10:03,665 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:10:03,665 - defense-coordinator - INFO - 日志触发防御响应: 攻击者在DMZ Web服务器安装后门 - dmz-web-01植入持久化木马... -> ['vulnerability_remediation']
-2025-08-08 17:10:03,665 - defense-coordinator - INFO - 触发防御智能体: vulnerability_remediation (优先级: 2)
-2025-08-08 17:10:23,318 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8012/execute_vulnerability_remediation "HTTP/1.1 200 OK"
-2025-08-08 17:10:23,318 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:10:23,318 - defense-coordinator - INFO - 防御智能体 vulnerability_remediation 响应成功: 漏洞修复任务执行完成
-2025-08-08 17:10:24,321 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:10:24,321 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功绕过内网防火墙 - 发现内网应用服务器开放端口... -> ['threat_blocking', 'attack_attribution']
-2025-08-08 17:10:24,321 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
-2025-08-08 17:10:24,321 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
-2025-08-08 17:10:54,867 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:10:54,867 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
-2025-08-08 17:11:26,463 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:11:26,463 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
-2025-08-08 17:11:27,465 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:11:27,466 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功访问数据库服务器 - 绕过数据库防火墙，获得数据库连接... -> ['attack_attribution']
-2025-08-08 17:11:27,466 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
-2025-08-08 17:11:58,104 - defense-coordinator - ERROR - 发送日志失败: sent 1011 (internal error) keepalive ping timeout; no close frame received
-2025-08-08 17:11:58,105 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
-2025-08-08 17:11:59,115 - defense-coordinator - WARNING - WebSocket连接已断开，尝试重新连接...
-2025-08-08 17:12:06,156 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:45:18,539 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:46:35,394 - defense-coordinator - INFO - 日志触发防御响应: 攻击者扫描防火墙... -> ['threat_blocking']
+2025-08-08 17:46:35,394 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
+2025-08-08 17:47:06,087 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
+2025-08-08 17:47:07,099 - defense-coordinator - INFO - 日志触发防御响应: 攻击者发现防火墙开放端口... -> ['threat_blocking']
+2025-08-08 17:47:07,100 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
+2025-08-08 17:47:37,578 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
+2025-08-08 17:47:38,588 - defense-coordinator - INFO - 日志触发防御响应: 攻击者完成目标侦察 - 获取公司信息和员工数据 - 目标: Acme Corp... -> ['attack_attribution']
+2025-08-08 17:47:38,588 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:48:09,195 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:48:09,195 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:48:10,203 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:48:10,203 - defense-coordinator - INFO - 日志触发防御响应: 攻击者完成恶意载荷制作 - 生成针对性钓鱼邮件 - 目标用户: victim_user... -> ['attack_attribution']
+2025-08-08 17:48:10,203 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:48:40,782 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:48:40,782 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:48:41,795 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:48:41,796 - defense-coordinator - INFO - 日志触发防御响应: 攻击者向目标发送钓鱼邮件... -> ['threat_blocking']
+2025-08-08 17:48:41,796 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
+2025-08-08 17:49:12,426 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:49:12,427 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
+2025-08-08 17:49:13,436 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:49:13,436 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功攻陷DMZ Web服务器 - dmz-web-01因Web应用漏洞被攻陷... -> ['attack_attribution']
+2025-08-08 17:49:13,437 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:49:44,013 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:49:44,013 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:49:45,019 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:49:45,019 - defense-coordinator - INFO - 日志触发防御响应: 攻击者在DMZ Web服务器安装后门 - dmz-web-01植入持久化木马... -> ['vulnerability_remediation']
+2025-08-08 17:49:45,019 - defense-coordinator - INFO - 触发防御智能体: vulnerability_remediation (优先级: 2)
+2025-08-08 17:50:03,921 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8012/execute_vulnerability_remediation "HTTP/1.1 200 OK"
+2025-08-08 17:50:03,922 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:50:03,922 - defense-coordinator - INFO - 防御智能体 vulnerability_remediation 响应成功: 漏洞修复任务执行完成
+2025-08-08 17:50:04,938 - defense-coordinator - ERROR - 发送日志失败: no close frame received or sent
+2025-08-08 17:50:04,938 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功绕过内网防火墙 - 发现内网应用服务器开放端口... -> ['threat_blocking', 'attack_attribution']
+2025-08-08 17:50:04,938 - defense-coordinator - INFO - 触发防御智能体: threat_blocking (优先级: 1)
+2025-08-08 17:50:04,938 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:50:35,515 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:50:35,515 - defense-coordinator - ERROR - 调用防御智能体 threat_blocking 失败: 
+2025-08-08 17:51:07,093 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:51:07,093 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:51:08,108 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:51:08,108 - defense-coordinator - INFO - 日志触发防御响应: 攻击者成功访问数据库服务器 - 绕过数据库防火墙，获得数据库连接... -> ['attack_attribution']
+2025-08-08 17:51:08,108 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:51:38,657 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:51:38,657 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:51:39,673 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:51:39,673 - defense-coordinator - INFO - 日志触发防御响应: 攻击者完成数据窃取 - 成功窃取10GB敏感数据，APT攻击目标达成... -> ['attack_attribution']
+2025-08-08 17:51:39,673 - defense-coordinator - INFO - 触发防御智能体: attack_attribution (优先级: 3)
+2025-08-08 17:52:10,043 - defense-coordinator - ERROR - 发送日志失败: received 1011 (internal error) keepalive ping timeout; no close frame sent
+2025-08-08 17:52:10,043 - defense-coordinator - ERROR - 调用防御智能体 attack_attribution 失败: 
+2025-08-08 17:52:11,055 - defense-coordinator - WARNING - WebSocket连接已断开，尝试重新连接...
+2025-08-08 17:52:18,111 - defense-coordinator - INFO - 防御协调器已连接到WebSocket: ws://localhost:8080/ws/logs

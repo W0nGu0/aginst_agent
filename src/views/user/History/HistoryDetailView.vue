@@ -5,12 +5,54 @@
     </button>
 
     <div class="grid md:grid-cols-2 gap-6">
-      <!-- 视频占位 -->
-      <div class="glass-panel p-4 flex items-center justify-center h-64 md:h-full">
-        <div class="w-full h-full bg-base-300 flex items-center justify-center relative rounded-md">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-6.518-3.759A1 1 0 007 8.259v7.482a1 1 0 001.234.97l6.518-1.87A1 1 0 0016 13.87V10.13a1 1 0 00-1.248-.962z" />
-          </svg>
+      <!-- 攻防推演记录视频播放区域 -->
+      <div class="glass-panel p-4 h-64 md:h-full">
+        <div class="w-full h-full relative rounded-md overflow-hidden bg-gradient-to-br from-base-200/50 to-base-300/30">
+          <video 
+            ref="videoPlayer"
+            class="w-full h-full object-cover rounded-md"
+            controls
+            preload="metadata"
+            @loadedmetadata="onVideoLoaded"
+            @error="onVideoError"
+          >
+            <source src="/攻防推演记录.mp4" type="video/mp4">
+            <p class="text-base-content/70 text-center p-4">
+              您的浏览器不支持视频播放，请升级浏览器或下载视频文件观看。
+            </p>
+          </video>
+          
+          <!-- 视频加载状态 -->
+          <div v-if="videoLoading" class="absolute inset-0 bg-base-100/80 backdrop-blur-sm flex items-center justify-center">
+            <div class="flex flex-col items-center gap-2">
+              <div class="loading loading-spinner loading-lg text-primary"></div>
+              <span class="text-sm text-base-content/70">正在加载攻防推演记录...</span>
+            </div>
+          </div>
+          
+          <!-- 视频加载错误 -->
+          <div v-if="videoError" class="absolute inset-0 bg-base-100/80 backdrop-blur-sm flex items-center justify-center">
+            <div class="flex flex-col items-center gap-2 text-center p-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span class="text-sm text-error">视频加载失败</span>
+              <span class="text-xs text-base-content/50">请检查视频文件是否存在</span>
+              <button class="btn btn-sm btn-outline btn-primary mt-2" @click="retryVideo">
+                重新加载
+              </button>
+            </div>
+          </div>
+          
+          <!-- 视频信息覆盖层 -->
+          <div class="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+            APT攻防推演记录
+          </div>
+          
+          <!-- 视频控制提示 -->
+          <div v-if="!videoLoading && !videoError" class="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 hover:opacity-100 transition-opacity">
+            点击播放查看完整演练过程
+          </div>
         </div>
       </div>
 
@@ -136,6 +178,32 @@ import Chart from 'chart.js/auto'
 
 const router = useRouter()
 function goBack() { router.back() }
+
+// 视频相关状态
+const videoPlayer = ref(null)
+const videoLoading = ref(true)
+const videoError = ref(false)
+
+// 视频事件处理
+const onVideoLoaded = () => {
+  console.log('攻防推演记录视频加载完成')
+  videoLoading.value = false
+  videoError.value = false
+}
+
+const onVideoError = (event) => {
+  console.error('攻防推演记录视频加载失败:', event)
+  videoLoading.value = false
+  videoError.value = true
+}
+
+const retryVideo = () => {
+  if (videoPlayer.value) {
+    videoLoading.value = true
+    videoError.value = false
+    videoPlayer.value.load()
+  }
+}
 
 // 红方核心能力维度数据
 const redData = ref([
@@ -276,4 +344,57 @@ onMounted(() => {
     }
   });
 });
-</script> 
+</script>
+
+<style scoped>
+/* 视频播放器样式优化 */
+video {
+  background-color: transparent;
+}
+
+video::-webkit-media-controls-panel {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-pause-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+video::-webkit-media-controls-timeline {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display {
+  color: white;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* 玻璃面板样式 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+/* 加载动画优化 */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 悬停效果 */
+.glass-panel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+</style> 
