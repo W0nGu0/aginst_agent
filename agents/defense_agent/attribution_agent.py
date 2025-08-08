@@ -44,7 +44,16 @@ async def connect_to_backend():
                 pass
             backend_ws = None
             
-        backend_ws = await websockets.client.connect(BACKEND_WS_URL)
+        # 添加连接超时和重试机制
+        backend_ws = await asyncio.wait_for(
+            websockets.client.connect(
+                BACKEND_WS_URL,
+                ping_interval=20,
+                ping_timeout=10,
+                close_timeout=10
+            ),
+            timeout=5.0
+        )
         
         await backend_ws.send(json.dumps({
             "level": "info",
@@ -120,16 +129,16 @@ except Exception as e:
 
 # --- 为Agent定义工具 ---
 @tool
-async def analyze_attack_timeline(start_time: str = None, end_time: str = None) -> str:
+async def analyze_attack_timeline(start_time: str = "2025-01-01T00:00:00", end_time: str = "2025-12-31T23:59:59") -> str:
     """分析攻击时间线"""
     try:
         await send_log_to_backend("info", "攻击溯源智能体", "开始分析攻击时间线")
         
-        # 如果时间参数为None，使用默认值
-        if start_time is None:
-            start_time = ""
-        if end_time is None:
-            end_time = ""
+        # 确保时间参数不为None或空字符串
+        if not start_time or start_time == "None":
+            start_time = "2025-01-01T00:00:00"
+        if not end_time or end_time == "None":
+            end_time = "2025-12-31T23:59:59"
         
         async with attribution_service.client as client:
             response = await client.call_tool(

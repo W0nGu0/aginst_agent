@@ -80,28 +80,32 @@ async def send_log_to_backend(level: str, source: str, message: str, attack_step
         }
     }
     
-    try:
-        # 检查连接是否存在或是否需要重新连接
-        if backend_ws is None:
-            await connect_to_backend()
-        
-        # 使用try/except来检查连接状态
+    # 增强的连接稳定性和重试机制
+    max_retries = 3
+    for attempt in range(max_retries):
         try:
-            if backend_ws:
+            # 检查连接是否存在或是否需要重新连接
+            if backend_ws is None:
+                await connect_to_backend()
+                await asyncio.sleep(0.1)  # 给连接一点时间稳定
+            
+            # 检查连接状态
+            if backend_ws and not backend_ws.closed:
                 await backend_ws.send(json.dumps(log_data, ensure_ascii=False))
                 logger.debug(f"已发送结构化日志到后端: {step_info['stage']} - {message}")
+                return  # 成功发送，退出重试循环
+            else:
+                # 连接已关闭，重新连接
+                await connect_to_backend()
+                await asyncio.sleep(0.1)
+                
         except Exception as e:
-            logger.warning(f"发送消息失败，尝试重新连接: {e}")
-            await connect_to_backend()
-            
-            # 重试一次发送
-            try:
-                if backend_ws:
-                    await backend_ws.send(json.dumps(log_data, ensure_ascii=False))
-            except Exception:
-                pass
-    except Exception as e:
-        logger.error(f"发送日志到后端WebSocket失败: {e}")
+            logger.warning(f"发送消息失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(0.5)  # 等待后重试
+                await connect_to_backend()
+            else:
+                logger.error(f"发送日志到后端WebSocket最终失败: {e}")
 
 async def send_standardized_log(level: str, source: str, standard_message: str, **kwargs):
     """发送标准化的简化日志消息"""
@@ -152,7 +156,7 @@ class AttackLogHandler:
         """工具开始执行时的日志"""
         if tool_name == "run_nmap":
             self.advance_stage("reconnaissance", 10)
-            await send_standardized_log("info", "攻击智能体", "攻击者扫描防火墙")
+            await send_standardized_log("info", "攻击智能体", "攻击者使用Nmap工具扫描防火墙")
         elif tool_name == "fetch_url_content":
             if "/metadata" in str(tool_input):
                 self.advance_stage("reconnaissance", 30)
@@ -169,7 +173,7 @@ class AttackLogHandler:
         if tool_name == "run_nmap":
             if "open" in tool_output.lower():
                 self.advance_stage("reconnaissance", 30)
-                await send_standardized_log("warning", "攻击智能体", "攻击者扫描防火墙发现开放端口 22,80,443 - 目标设备: border_firewall (192.168.1.1)")
+                await send_standardized_log("warning", "攻击智能体", "攻击者使用Nmap扫描防火墙发现开放端口 22,80,443 - 目标设备: border_firewall (192.168.1.1)")
         elif tool_name == "fetch_url_content":
             if "/metadata" in tool_output or "company" in tool_output.lower():
                 self.advance_stage("reconnaissance", 100)
@@ -182,37 +186,82 @@ class AttackLogHandler:
                 self.advance_stage("delivery", 100)
                 await send_standardized_log("success", "攻击智能体", "钓鱼邮件成功投递到目标 - 邮件已发送至 victim_user@acmecorp.com")
 
-                # 模拟用户交互和后续阶段
+                # === 阶段3：利用阶段 - 攻击DMZ Web服务器 ===
                 await asyncio.sleep(2)
-                self.advance_stage("exploitation", 65)
-                await send_standardized_log("critical", "攻击智能体", "目标用户点击恶意链接 - 主机 ws-user-01 (192.168.100.50) 存在浏览器漏洞被利用")
+                self.advance_stage("exploitation", 50)
+                await send_standardized_log("critical", "攻击智能体", "攻击者利用钓鱼邮件攻击DMZ Web服务器 - 目标：172.16.100.10 (dmz-web-01)")
 
                 await asyncio.sleep(1)
                 self.advance_stage("exploitation", 100)
-                await send_standardized_log("critical", "攻击智能体", "攻击者获得目标主机访问权限 - 主机 ws-user-01 因 CVE-2024-0001 漏洞被攻陷")
+                await send_standardized_log("critical", "攻击智能体", "攻击者成功攻陷DMZ Web服务器 - dmz-web-01因Web应用漏洞被攻陷")
 
-                # 模拟安装和持久化
+                # === 阶段4：安装阶段 - 在DMZ服务器建立后门 ===
                 await asyncio.sleep(1)
-                self.advance_stage("installation", 75)
-                await send_standardized_log("critical", "攻击智能体", "攻击者在目标主机安装后门 - 主机 ws-user-01 需要漏洞修复和系统加固")
+                self.advance_stage("installation", 50)
+                await send_standardized_log("critical", "攻击智能体", "攻击者在DMZ Web服务器安装后门 - dmz-web-01植入持久化木马")
 
                 await asyncio.sleep(1)
                 self.advance_stage("installation", 100)
-                await send_standardized_log("critical", "攻击智能体", "攻击者建立目标主机持久化访问 - 检测到来自 203.0.113.100 的恶意IP连接")
+                await send_standardized_log("critical", "攻击智能体", "攻击者建立DMZ服务器持久化访问 - 检测到来自203.0.113.100的恶意IP连接")
 
-                # 模拟C2通信
+                # === 阶段5：命令控制阶段 - 从DMZ开始横向移动 ===
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 15)
+                await send_standardized_log("critical", "攻击智能体", "攻击者与DMZ服务器建立C2通信 - 恶意IP 203.0.113.100开始远程控制dmz-web-01")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 25)
+                await send_standardized_log("critical", "攻击智能体", "攻击者从DMZ扫描内网 - 发现内网网段192.168.200.0/24")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 35)
+                await send_standardized_log("critical", "攻击智能体", "攻击者发现内网应用服务器 - 目标：192.168.200.10 (app-server-01)")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 45)
+                await send_standardized_log("critical", "攻击智能体", "攻击者尝试突破内网防火墙 - 利用DMZ服务器权限测试防火墙规则")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 55)
+                await send_standardized_log("critical", "攻击智能体", "攻击者成功绕过内网防火墙 - 发现内网应用服务器开放端口")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 65)
+                await send_standardized_log("critical", "攻击智能体", "攻击者攻陷内网应用服务器 - 获得app-server-01控制权限")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 75)
+                await send_standardized_log("critical", "攻击智能体", "攻击者从内网服务器探测数据库网段 - 扫描数据库网段192.168.214.0/24")
+
                 await asyncio.sleep(1)
                 self.advance_stage("command_and_control", 85)
-                await send_standardized_log("critical", "攻击智能体", "攻击者与目标主机建立C2通信 - 恶意IP 203.0.113.100 与内网主机通信需要阻断")
+                await send_standardized_log("critical", "攻击智能体", "攻击者发现数据库服务器 - 目标：192.168.214.10 (internal-db-01)")
+
+                await asyncio.sleep(1)
+                self.advance_stage("command_and_control", 95)
+                await send_standardized_log("critical", "攻击智能体", "攻击者尝试突破数据库防火墙 - 利用内网服务器身份访问数据库")
 
                 await asyncio.sleep(1)
                 self.advance_stage("command_and_control", 100)
-                await send_standardized_log("critical", "攻击智能体", "攻击者从目标主机向内网横向移动 - 尝试访问数据库服务器 internal-db-01 (192.168.214.10)")
+                await send_standardized_log("critical", "攻击智能体", "攻击者建立完整攻击路径 - DMZ→内网→数据库的横向移动通道建立")
 
-                # 模拟数据窃取
+                # === 阶段6：行动目标阶段 - 攻击核心数据库并窃取数据 ===
                 await asyncio.sleep(1)
-                self.advance_stage("actions_on_objectives", 95)
-                await send_standardized_log("critical", "攻击智能体", "攻击者从内网数据库窃取数据 - 服务器 internal-db-01 数据被窃取，需要攻击溯源分析")
+                self.advance_stage("actions_on_objectives", 25)
+                await send_standardized_log("critical", "攻击智能体", "攻击者成功访问数据库服务器 - 绕过数据库防火墙，获得数据库连接")
+
+                await asyncio.sleep(1)
+                self.advance_stage("actions_on_objectives", 50)
+                await send_standardized_log("critical", "攻击智能体", "攻击者攻陷数据库服务器 - internal-db-01数据库权限被获取")
+
+                await asyncio.sleep(1)
+                self.advance_stage("actions_on_objectives", 75)
+                await send_standardized_log("critical", "攻击智能体", "攻击者开始窃取敏感数据 - 从internal-db-01数据库导出客户信息和财务数据")
+
+                await asyncio.sleep(1)
+                self.advance_stage("actions_on_objectives", 100)
+                await send_standardized_log("critical", "攻击智能体", "攻击者完成数据窃取 - 成功窃取10GB敏感数据，APT攻击目标达成")
+                
 
 # 创建全局日志处理器
 attack_log_handler = AttackLogHandler()

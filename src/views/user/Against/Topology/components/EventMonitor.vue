@@ -845,21 +845,9 @@ export default {
       const source = event.source || ''
       const message = event.message.toLowerCase();
 
-      // 排除防御智能体的日志，但允许其他所有日志更新攻击链
-      const defenseAgentSources = [
-        '威胁阻断智能体',
-        '漏洞修复智能体',
-        '攻击溯源智能体',
-        '防御协调器'
-        // 注意：不排除攻防演练裁判，因为它会发送攻击开始/结束的重要信息
-      ]
-
-      const isFromDefenseAgent = defenseAgentSources.some(agentSource =>
-        source.includes(agentSource)
-      )
-
-      if (isFromDefenseAgent) {
-        console.log('🚫 忽略防御智能体的日志，不更新攻击链:', source)
+      // 只允许"攻击智能体"的日志更新攻击链
+      if (!source.includes('攻击智能体')) {
+        console.log('🚫 只允许攻击智能体的日志更新攻击链，忽略:', source)
         return
       }
 
@@ -902,6 +890,18 @@ export default {
         message: event.message,
         attackEvent: attackEvent
       });
+
+      // 添加详细的解析结果日志
+      if (attackEvent.stage) {
+        console.log('✅ 成功解析攻击阶段:', {
+          stage: attackEvent.stage,
+          targetNode: attackEvent.targetNode,
+          status: attackEvent.status,
+          progress: attackEvent.progress
+        });
+      } else {
+        console.log('❌ 未能解析攻击阶段，消息内容:', event.message);
+      }
 
       // 根据解析结果更新攻击链
       if (attackEvent.stage) {
@@ -1267,75 +1267,7 @@ export default {
       }, null, 2));
     },
 
-    // 新增：解析增强的攻击事件信息
-    parseEnhancedAttackEvent(event) {
-      // 如果事件已经包含attackInfo，直接使用
-      if (event.attackInfo) {
-        return event.attackInfo;
-      }
 
-      // 否则尝试从消息中解析
-      const message = event.message.toLowerCase();
-
-      // 基本的解析逻辑（简化版）
-      let stage = '';
-      let technique = '';
-      let targetNode = 'unknown';
-      let progress = 0;
-      let status = 'in_progress';
-
-      // 阶段识别
-      if (message.includes('[侦察阶段]')) {
-        stage = 'reconnaissance';
-        technique = message.includes('扫描') ? '网络扫描' : '信息收集';
-        targetNode = 'firewall';
-      } else if (message.includes('[武器化阶段]')) {
-        stage = 'weaponization';
-        technique = '钓鱼邮件生成';
-        targetNode = 'pc-user';
-      } else if (message.includes('[投递阶段]')) {
-        stage = 'delivery';
-        technique = '邮件投递';
-        targetNode = 'pc-user';
-      } else if (message.includes('[利用阶段]')) {
-        stage = 'exploitation';
-        technique = '漏洞利用';
-        targetNode = 'pc-user';
-      } else if (message.includes('[安装阶段]')) {
-        stage = 'installation';
-        technique = '后门安装';
-        targetNode = 'pc-user';
-      } else if (message.includes('[命令控制阶段]')) {
-        stage = 'command_and_control';
-        technique = 'C2通信';
-        targetNode = 'pc-user';
-      } else if (message.includes('[行动目标阶段]')) {
-        stage = 'actions_on_objectives';
-        technique = '数据窃取';
-        targetNode = 'internal-db';
-      }
-
-      // 状态识别
-      if (message.includes('开始') || message.includes('启动')) {
-        status = 'starting';
-        progress = 0;
-      } else if (message.includes('完成') || message.includes('成功')) {
-        status = 'completed';
-        progress = 100;
-      } else if (message.includes('失败') || message.includes('错误')) {
-        status = 'failed';
-        progress = 0;
-      }
-
-      return {
-        stage,
-        technique,
-        source_node: 'internet',
-        target_node: targetNode,
-        progress,
-        status
-      };
-    },
 
     // 判断是否是关键攻击事件
     isKeyAttackEvent(message) {
@@ -1724,28 +1656,28 @@ export default {
         rawLog: log
       };
 
-      // 解析攻击阶段
-      if (message.includes('侦察') || message.includes('扫描')) {
+      // 解析攻击阶段 - 与新的DMZ优先攻击流程精确匹配
+      if (message.includes('nmap') || message.includes('扫描防火墙') || message.includes('发现开放端口') || message.includes('完成目标侦察') || message.includes('获取公司信息')) {
         attackEvent.stage = 'reconnaissance';
         attackEvent.technique = this.extractTechnique(message, ['port_scan', 'vulnerability_scan', 'info_gathering']);
-      } else if (message.includes('武器化') || message.includes('生成')) {
+      } else if (message.includes('完成恶意载荷制作') || message.includes('生成针对性钓鱼邮件') || message.includes('钓鱼邮件')) {
         attackEvent.stage = 'weaponization';
         attackEvent.technique = this.extractTechnique(message, ['phishing_email', 'malware_generation', 'exploit_creation']);
-      } else if (message.includes('投递') || message.includes('发送')) {
+      } else if (message.includes('钓鱼邮件成功投递') || message.includes('邮件已发送至')) {
         attackEvent.stage = 'delivery';
         attackEvent.technique = this.extractTechnique(message, ['email_delivery', 'web_delivery', 'usb_delivery']);
-      } else if (message.includes('利用') || message.includes('漏洞')) {
+      } else if (message.includes('攻击dmz web服务器') || message.includes('攻陷dmz web服务器') || message.includes('web应用漏洞被攻陷') || message.includes('dmz-web-01')) {
         attackEvent.stage = 'exploitation';
-        attackEvent.technique = this.extractTechnique(message, ['buffer_overflow', 'sql_injection', 'xss_attack']);
-      } else if (message.includes('安装') || message.includes('持久')) {
+        attackEvent.technique = this.extractTechnique(message, ['web_exploit', 'dmz_attack', 'server_compromise']);
+      } else if (message.includes('dmz web服务器安装后门') || message.includes('植入持久化木马') || message.includes('建立dmz服务器持久化访问') || message.includes('dmz-web-01植入')) {
         attackEvent.stage = 'installation';
-        attackEvent.technique = this.extractTechnique(message, ['backdoor_install', 'persistence_mechanism', 'privilege_escalation']);
-      } else if (message.includes('命令') || message.includes('控制')) {
+        attackEvent.technique = this.extractTechnique(message, ['backdoor_install', 'persistence_mechanism', 'dmz_persistence']);
+      } else if (message.includes('dmz服务器建立c2通信') || message.includes('远程控制dmz-web-01') || message.includes('从dmz扫描内网') || message.includes('发现内网应用服务器') || message.includes('攻陷内网应用服务器') || message.includes('横向移动通道') || message.includes('绕过内网防火墙')) {
         attackEvent.stage = 'command_and_control';
-        attackEvent.technique = this.extractTechnique(message, ['c2_communication', 'remote_access', 'data_exfiltration']);
-      } else if (message.includes('目标') || message.includes('数据')) {
+        attackEvent.technique = this.extractTechnique(message, ['c2_communication', 'lateral_movement', 'network_pivot']);
+      } else if (message.includes('探测数据库网段') || message.includes('发现数据库服务器') || message.includes('突破数据库防火墙') || message.includes('访问数据库服务器') || message.includes('攻陷数据库服务器') || message.includes('窃取敏感数据') || message.includes('apt攻击目标达成')) {
         attackEvent.stage = 'actions_on_objectives';
-        attackEvent.technique = this.extractTechnique(message, ['data_theft', 'system_compromise', 'lateral_movement']);
+        attackEvent.technique = this.extractTechnique(message, ['data_theft', 'database_compromise', 'data_exfiltration']);
       }
 
       // 解析目标节点
@@ -1801,12 +1733,13 @@ export default {
     // 提取目标节点
     extractTargetNode(message) {
       const nodeKeywords = {
-        'firewall': ['防火墙', 'firewall'],
-        'dmz-web': ['dmz', 'web服务器', 'web server'],
-        'dmz-dns': ['dns服务器', 'dns server'],
-        'internal-db': ['数据库', 'database', 'db'],
-        'internal-file': ['文件服务器', 'file server'],
-        'pc-user': ['用户pc', 'user pc', '客户端']
+        'firewall': ['防火墙', 'firewall', 'border_firewall'],
+        'ws-user-01': ['用户pc', 'user pc', '客户端', 'ws-user-01', '用户主机'],
+        'dmz-web-01': ['dmz', 'web服务器', 'web server', 'dmz-web-01', 'dmz web服务器'],
+        'dmz-dns-01': ['dns服务器', 'dns server', 'dmz-dns-01'],
+        'app-server-01': ['应用服务器', 'app server', 'app-server-01', '内网应用服务器'],
+        'internal-db-01': ['数据库', 'database', 'db', 'internal-db-01', '数据库服务器'],
+        'internal-file-01': ['文件服务器', 'file server', 'internal-file-01']
       };
 
       for (const [nodeId, keywords] of Object.entries(nodeKeywords)) {
@@ -1851,9 +1784,9 @@ export default {
     extractStatus(message, level) {
       if (level === 'error' || message.includes('失败') || message.includes('错误')) {
         return 'failed';
-      } else if (level === 'success' || message.includes('成功') || message.includes('完成')) {
+      } else if (level === 'success' || level === 'critical' || message.includes('成功') || message.includes('完成') || message.includes('攻陷') || message.includes('获得') || message.includes('建立')) {
         return 'success';
-      } else if (message.includes('进行中') || message.includes('执行中')) {
+      } else if (message.includes('进行中') || message.includes('执行中') || message.includes('正在') || message.includes('开始')) {
         return 'in_progress';
       }
       return 'pending';

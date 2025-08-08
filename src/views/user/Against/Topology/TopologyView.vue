@@ -1578,51 +1578,25 @@ function shouldTriggerAttackAnimation(message) {
   const source = message.source || ''
   const msg = message.message || ''
 
-  // 只对攻击相关的智能体日志进行攻击可视化
-  const attackAgentSources = [
-    '中控智能体',
-    '攻击智能体',
-    'attack_agent',
-    'central_agent'
-  ]
-
-  // 检查是否来自攻击智能体
-  const isFromAttackAgent = attackAgentSources.some(agentSource => 
-    source.includes(agentSource) || source.toLowerCase().includes(agentSource.toLowerCase())
-  )
-
-  if (!isFromAttackAgent) {
+  // 只对攻击智能体的日志进行攻击可视化
+  if (!source.includes('攻击智能体')) {
     return false
   }
 
-  // 检查当前攻击任务状态
-  if (currentAttackTaskId.value) {
-    const taskStatus = AttackTaskService.getTaskStatus(currentAttackTaskId.value)
-    if (taskStatus) {
-      // 只有在攻击任务真正运行且不在准备阶段时才显示动画
-      const isRunning = taskStatus.status === AttackTaskService.STATUS.RUNNING
-      const isNotPreparation = taskStatus.phase !== AttackTaskService.PHASE.RECONNAISSANCE ||
-        taskStatus.progress > 10 // 侦察阶段进度超过10%才算真正开始
+  // 排除一些不需要动画的消息
+  const ignoreMessages = [
+    'websocket连接已建立',
+    '智能体启动',
+    '开始执行',
+    '任务完成'
+  ]
 
-      console.log('🎯 攻击任务状态检查:', {
-        taskId: currentAttackTaskId.value,
-        status: taskStatus.status,
-        phase: taskStatus.phase,
-        progress: taskStatus.progress,
-        isRunning,
-        isNotPreparation,
-        shouldShow: isRunning && isNotPreparation,
-        source: source,
-        message: message.message
-      })
-
-      return isRunning && isNotPreparation
-    }
+  if (ignoreMessages.some(ignore => msg.includes(ignore))) {
+    return false
   }
 
-  // 如果没有任务状态，使用消息内容判断（但仍需要是攻击智能体的日志）
-  const animationType = getLogAnimationType(msg.toLowerCase(), source.toLowerCase())
-  return animationType !== null
+  console.log('✅ 触发攻击动画:', source, msg)
+  return true
 }
 
 // 判断是否应该触发防御动画
@@ -1717,17 +1691,20 @@ function triggerDefenseVisualizationFromLog(logMessage) {
   }
 }
 
-// 根据节点名称查找节点
-function findNodeByName(name) {
+// 根据节点名称查找节点（支持关键词匹配）
+function findNodeByName(nameKeyword) {
   if (!topology || !topology.devices) return null
 
   for (const deviceId in topology.devices) {
     const device = topology.devices[deviceId]
-    if (device.deviceData &&
-      (device.deviceData.name === name ||
-        device.deviceData.hostname === name ||
-        deviceId.includes(name))) {
-      return device
+    if (device.deviceData) {
+      const name = device.deviceData.name?.toLowerCase() || ''
+      const hostname = device.deviceData.hostname?.toLowerCase() || ''
+      const keyword = nameKeyword.toLowerCase()
+      
+      if (name.includes(keyword) || hostname.includes(keyword) || deviceId.includes(keyword)) {
+        return device
+      }
     }
   }
   return null
@@ -1769,21 +1746,9 @@ function triggerAttackVisualizationFromLog(logMessage) {
     }
 
     const message = logMessage.message.toLowerCase()
-    const source = logMessage.source.toLowerCase()
+    const originalMessage = logMessage.message
 
-    // 判断日志类型并决定动画类型
-    const animationType = getLogAnimationType(message, source)
-    if (!animationType) {
-      console.log('⏸️ 跳过无需动画的日志:', logMessage.message)
-      return
-    }
-
-    console.log('🎬 处理攻击日志动画:', {
-      source: logMessage.source,
-      message: logMessage.message,
-      level: logMessage.level,
-      animationType: animationType
-    })
+    console.log('🎬 分析攻击日志:', originalMessage)
 
     // 找到攻击者节点
     const attackerNode = findAttackerNode()
@@ -1792,11 +1757,159 @@ function triggerAttackVisualizationFromLog(logMessage) {
       return
     }
 
-    // 根据日志类型触发对应的动画
-    triggerAnimationByType(animationType, message, attackerNode, logMessage)
+    // 根据详细的攻击日志内容触发相应的渗透动画
+    triggerLayeredPenetrationAnimation(originalMessage, attackerNode)
 
   } catch (error) {
     console.error('触发攻击可视化动画时出错:', error)
+  }
+}
+
+// 触发分层渗透动画
+function triggerLayeredPenetrationAnimation(message, attackerNode) {
+  console.log('🎬 分析攻击消息进行动画:', message)
+  
+  // 1. 初始攻击和C2通信
+  if (message.includes('建立') && (message.includes('C2') || message.includes('通信') || message.includes('控制'))) {
+    const targetNode = findNodeByType('user-pc') || findNodeByName('user')
+    if (targetNode) {
+      console.log('🎯 C2通信建立动画')
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        label: 'C2通信建立',
+        color: '#8b5cf6'
+      })
+    }
+  }
+  
+  // 2. DMZ区域渗透
+  else if (message.includes('DMZ') || message.includes('Web服务器') || message.includes('172.16.100') || message.includes('dmz')) {
+    const dmzNode = findNodeByType('web-server') || findNodeByName('web')
+    if (dmzNode) {
+      console.log('🎯 DMZ区域攻击动画')
+      attackVisualization.createAttackPath(attackerNode, dmzNode, {
+        label: 'DMZ渗透',
+        color: '#ff6b35'
+      })
+      
+      // 标记DMZ节点为被攻陷
+      setTimeout(() => {
+        attackVisualization.markNodeAsCompromised(dmzNode)
+      }, 1500)
+    }
+  }
+  
+  // 3. 突破防火墙
+  else if (message.includes('突破') && message.includes('防火墙')) {
+    const firewallNode = findNodeByType('firewall') || findNodeByName('firewall')
+    if (firewallNode) {
+      console.log('🎯 防火墙突破动画')
+      attackVisualization.createScanningPulse(firewallNode, {
+        pulseColor: '#f59e0b'
+      })
+    }
+  }
+  
+  // 4. 内网服务器渗透
+  else if (message.includes('内网') && (message.includes('服务器') || message.includes('应用') || message.includes('192.168.200'))) {
+    const dmzNode = findNodeByType('web-server')
+    const appServerNode = findNodeByType('application-server') || findNodeByName('app')
+    
+    if (dmzNode && appServerNode) {
+      console.log('🎯 内网服务器攻击动画')
+      attackVisualization.createAttackPath(dmzNode, appServerNode, {
+        label: '横向移动',
+        color: '#ff8c42'
+      })
+      
+      // 标记应用服务器为被攻陷
+      setTimeout(() => {
+        attackVisualization.markNodeAsCompromised(appServerNode)
+      }, 1500)
+    }
+  }
+  
+  // 5. 数据库渗透
+  else if (message.includes('数据库') || message.includes('192.168.214') || message.includes('internal-db')) {
+    const appServerNode = findNodeByType('application-server')
+    const dbNode = findNodeByType('database-server') || findNodeByName('database')
+    
+    if (appServerNode && dbNode) {
+      console.log('🎯 数据库攻击动画')
+      attackVisualization.createAttackPath(appServerNode, dbNode, {
+        label: '数据库攻击',
+        color: '#dc2626'
+      })
+      
+      // 标记数据库为被攻陷
+      setTimeout(() => {
+        attackVisualization.markNodeAsCompromised(dbNode)
+      }, 1500)
+    }
+  }
+  
+  // 6. 扫描和侦察
+  else if (message.includes('扫描') || message.includes('探测') || message.includes('发现') || message.includes('分析网络')) {
+    console.log('🎯 网络扫描动画')
+    const allNodes = Object.values(topology.devices).filter(device => 
+      device.deviceData && !device.deviceData.name.includes('攻击')
+    )
+    
+    // 对多个节点进行扫描脉冲
+    allNodes.slice(0, 4).forEach((node, index) => {
+      setTimeout(() => {
+        attackVisualization.createScanningPulse(node, {
+          pulseColor: '#3b82f6'
+        })
+      }, index * 400)
+    })
+  }
+  
+  // 7. 数据窃取
+  else if (message.includes('窃取') || message.includes('导出') || message.includes('数据') && message.includes('完成')) {
+    const dbNode = findNodeByType('database-server') || findNodeByName('database')
+    if (dbNode) {
+      console.log('🎯 数据窃取动画')
+      attackVisualization.createDataTheftAnimation(dbNode, attackerNode, 3)
+    }
+  }
+  
+  // 8. 权限获取和攻陷
+  else if (message.includes('获得') || message.includes('攻陷') || message.includes('权限') || message.includes('控制')) {
+    // 根据消息内容确定被攻陷的节点类型
+    let targetNode = null
+    if (message.includes('DMZ') || message.includes('Web')) {
+      targetNode = findNodeByType('web-server')
+    } else if (message.includes('应用') || message.includes('内网')) {
+      targetNode = findNodeByType('application-server')
+    } else if (message.includes('数据库')) {
+      targetNode = findNodeByType('database-server')
+    } else {
+      targetNode = findNodeByType('user-pc')
+    }
+    
+    if (targetNode) {
+      console.log('🎯 节点攻陷动画')
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        label: '获得控制权',
+        color: '#ef4444'
+      })
+      
+      setTimeout(() => {
+        attackVisualization.markNodeAsCompromised(targetNode)
+      }, 1000)
+    }
+  }
+  
+  // 9. 默认攻击动画
+  else {
+    console.log('🎯 通用攻击动画')
+    const targetNode = findNodeByType('user-pc') || Object.values(topology.devices)[1]
+    if (targetNode) {
+      attackVisualization.createAttackPath(attackerNode, targetNode, {
+        label: '攻击进行中',
+        color: '#f97316'
+      })
+    }
   }
 }
 
@@ -2195,6 +2308,19 @@ function findAttackerNode() {
     device.deviceData.ip === '192.168.100.11' ||
     device.deviceData.type === 'attacker'
   )
+}
+
+// 查找被攻陷的节点
+function findCompromisedNode() {
+  const canvasDevices = topology.canvas.getObjects().filter(obj =>
+    obj.type === 'device' &&
+    !obj._deleted &&
+    !obj.isDeleted &&
+    obj.deviceData &&
+    obj.compromised
+  )
+
+  return canvasDevices[0] // 返回第一个被攻陷的节点
 }
 
 
@@ -6070,6 +6196,7 @@ async function generateScenario() {
   }
 }
 
+
 // 销毁场景
 async function destroyScenario() {
   if (!topology) return
@@ -7053,6 +7180,53 @@ const handleNodesStatusReset = () => {
   }
 }
 
+// 处理节点状态变化
+const handleNodeStatusChanged = (statusData) => {
+  console.log('🎯 处理节点状态变化:', statusData)
+  
+  const { nodeId, status, attackLevel, timestamp } = statusData
+  
+  if (window.topologyFabricCanvas) {
+    const canvas = window.topologyFabricCanvas
+    const objects = canvas.getObjects()
+    
+    // 查找对应的节点
+    const targetNode = objects.find(obj => 
+      obj.deviceData && (
+        obj.deviceData.id === nodeId || 
+        obj.deviceData.name === nodeId ||
+        obj.deviceData.hostname === nodeId ||
+        obj.deviceData.containerName === nodeId
+      )
+    )
+    
+    if (targetNode) {
+      // 更新节点视觉状态和动画
+      updateNodeVisualStatus(targetNode, status, attackLevel)
+      canvas.requestRenderAll()
+      console.log(`✅ 更新节点 ${nodeId} 状态为 ${status}，触发动画`)
+    } else {
+      console.warn(`⚠️ 未找到节点: ${nodeId}`)
+    }
+  }
+}
+
+// 处理攻击路径添加
+const handleAttackPathAdded = (pathData) => {
+  console.log('🔗 处理攻击路径添加:', pathData)
+  
+  const { from, to, technique, status, timestamp } = pathData
+  
+  if (window.topologyFabricCanvas) {
+    const canvas = window.topologyFabricCanvas
+    
+    // 创建攻击路径可视化
+    createAttackPathVisualization(from, to, technique, status)
+    canvas.requestRenderAll()
+    console.log(`✅ 创建攻击路径: ${from} -> ${to}`)
+  }
+}
+
 // ===================== 虚拟时间轴事件处理 =====================
 
 // 时间轴启动事件
@@ -7227,40 +7401,208 @@ const handleNodesStatusRefreshed = (networkNodes) => {
 }
 
 // 更新节点视觉状态
-const updateNodeVisualStatus = (node, status) => {
+const updateNodeVisualStatus = (node, status, attackLevel = 0) => {
+  if (!node || !node.deviceData) return
+  
+  // 更新设备数据
+  node.deviceData.status = status
+  node.deviceData.attackLevel = attackLevel
+  node.deviceData.lastActivity = new Date()
+  
+  // 根据状态设置视觉效果
   switch (status) {
+    case 'under_attack':
+      node.set({
+        stroke: '#ff6b6b',
+        strokeWidth: 3,
+        strokeDashArray: [5, 5],
+        opacity: 0.9
+      })
+      // 添加闪烁动画
+      animateNodeBlink(node, '#ff6b6b')
+      break
+      
+    case 'compromised':
+      node.set({
+        stroke: '#e74c3c',
+        strokeWidth: 4,
+        strokeDashArray: null,
+        opacity: 0.8
+      })
+      // 添加攻陷效果
+      animateNodeCompromised(node)
+      break
+      
+    case 'scanning':
+      node.set({
+        stroke: '#f39c12',
+        strokeWidth: 2,
+        strokeDashArray: [3, 3],
+        opacity: 0.95
+      })
+      break
+      
     case 'normal':
+    default:
       node.set({
         stroke: '#ffffff',
         strokeWidth: 1,
         strokeDashArray: null,
-        opacity: 1,
-        filters: []
-      })
-      break
-    case 'compromised':
-      node.set({
-        stroke: '#ff0000',
-        strokeWidth: 3,
-        strokeDashArray: [5, 5],
         opacity: 1
-      })
-      break
-    case 'under_attack':
-      node.set({
-        stroke: '#ff6600',
-        strokeWidth: 2,
-        opacity: 1
-      })
-      break
-    case 'failed':
-      node.set({
-        stroke: '#ff0000',
-        strokeWidth: 1,
-        opacity: 0.7
       })
       break
   }
+}
+
+// 节点闪烁动画
+const animateNodeBlink = (node, color) => {
+  let blinkCount = 0
+  const maxBlinks = 6
+  
+  const blink = () => {
+    if (blinkCount >= maxBlinks) return
+    
+    node.animate('opacity', node.opacity === 1 ? 0.3 : 1, {
+      duration: 300,
+      onChange: () => {
+        if (window.topologyFabricCanvas) {
+          window.topologyFabricCanvas.requestRenderAll()
+        }
+      },
+      onComplete: () => {
+        blinkCount++
+        if (blinkCount < maxBlinks) {
+          setTimeout(blink, 100)
+        }
+      }
+    })
+  }
+  
+  blink()
+}
+
+// 节点攻陷动画
+const animateNodeCompromised = (node) => {
+  // 添加红色脉冲效果
+  let pulseCount = 0
+  const maxPulses = 3
+  
+  const pulse = () => {
+    if (pulseCount >= maxPulses) return
+    
+    node.animate('strokeWidth', 8, {
+      duration: 400,
+      onChange: () => {
+        if (window.topologyFabricCanvas) {
+          window.topologyFabricCanvas.requestRenderAll()
+        }
+      },
+      onComplete: () => {
+        node.animate('strokeWidth', 4, {
+          duration: 400,
+          onChange: () => {
+            if (window.topologyFabricCanvas) {
+              window.topologyFabricCanvas.requestRenderAll()
+            }
+          },
+          onComplete: () => {
+            pulseCount++
+            if (pulseCount < maxPulses) {
+              setTimeout(pulse, 200)
+            }
+          }
+        })
+      }
+    })
+  }
+  
+  pulse()
+}
+
+// 创建攻击路径可视化
+const createAttackPathVisualization = (fromNodeId, toNodeId, technique, status) => {
+  if (!window.topologyFabricCanvas) return
+  
+  const canvas = window.topologyFabricCanvas
+  const objects = canvas.getObjects()
+  
+  // 查找源节点和目标节点
+  const fromNode = objects.find(obj => 
+    obj.deviceData && (
+      obj.deviceData.id === fromNodeId || 
+      obj.deviceData.name === fromNodeId ||
+      obj.deviceData.hostname === fromNodeId ||
+      obj.deviceData.containerName === fromNodeId
+    )
+  )
+  
+  const toNode = objects.find(obj => 
+    obj.deviceData && (
+      obj.deviceData.id === toNodeId || 
+      obj.deviceData.name === toNodeId ||
+      obj.deviceData.hostname === toNodeId ||
+      obj.deviceData.containerName === toNodeId
+    )
+  )
+  
+  if (fromNode && toNode) {
+    // 创建攻击路径线条
+    const line = new fabric.Line([
+      fromNode.left + fromNode.width / 2,
+      fromNode.top + fromNode.height / 2,
+      toNode.left + toNode.width / 2,
+      toNode.top + toNode.height / 2
+    ], {
+      stroke: status === 'success' ? '#e74c3c' : '#f39c12',
+      strokeWidth: 3,
+      strokeDashArray: [10, 5],
+      opacity: 0.8,
+      selectable: false,
+      evented: false,
+      isAttackPath: true,
+      attackData: {
+        from: fromNodeId,
+        to: toNodeId,
+        technique,
+        status,
+        timestamp: new Date()
+      }
+    })
+    
+    canvas.add(line)
+    
+    // 添加攻击路径动画
+    animateAttackPath(line)
+    
+    // 5秒后移除攻击路径
+    setTimeout(() => {
+      canvas.remove(line)
+      canvas.requestRenderAll()
+    }, 5000)
+  }
+}
+
+// 攻击路径动画
+const animateAttackPath = (line) => {
+  let dashOffset = 0
+  
+  const animate = () => {
+    dashOffset += 2
+    if (dashOffset > 15) dashOffset = 0
+    
+    line.set('strokeDashOffset', dashOffset)
+    
+    if (window.topologyFabricCanvas) {
+      window.topologyFabricCanvas.requestRenderAll()
+    }
+    
+    // 继续动画直到线条被移除
+    if (line.canvas) {
+      requestAnimationFrame(animate)
+    }
+  }
+  
+  animate()
 }
 </script>
 

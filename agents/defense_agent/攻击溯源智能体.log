@@ -1,43 +1,382 @@
-2025-08-08 01:22:01,694 - attribution-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
-2025-08-08 01:22:01,705 - attribution-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8010/mcp/
-2025-08-08 01:22:01,726 - attribution-agent - INFO - ¹¥»÷ËÝÔ´ÖÇÄÜÌå´´½¨³É¹¦
+2025-08-08 16:53:23,075 - attribution-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
+2025-08-08 16:53:23,084 - attribution-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8010/mcp/
+2025-08-08 16:53:23,102 - attribution-agent - INFO - ¹¥»÷ËÝÔ´ÖÇÄÜÌå´´½¨³É¹¦
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [62356]
+INFO:     Started server process [8812]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8013 (Press CTRL+C to quit)
-C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\attribution_agent.py:47: DeprecationWarning: websockets.client.connect is deprecated
-  backend_ws = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-08 01:24:07,705 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
-2025-08-08 01:24:07,930 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:24:15,040 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:15,040 - mcp.client.streamable_http - INFO - Received session ID: 3428ee321424423aba288648d973bb8a
-2025-08-08 01:24:15,041 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 01:24:15,049 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 01:24:15,051 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:15,064 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:15,067 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:17,083 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:18,091 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:18,157 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:24:28,748 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:28,748 - mcp.client.streamable_http - INFO - Received session ID: d7a4e6c4c1cf4cfda77f82ed6eb2c3ca
-2025-08-08 01:24:28,749 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 01:24:28,755 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 01:24:28,757 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:28,763 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:28,766 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:28,767 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:32,788 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:33,793 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\attribution_agent.py:49: DeprecationWarning: websockets.client.connect is deprecated
+  websockets.client.connect(
+2025-08-08 17:08:00,021 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:08:00,357 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,321 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,322 - mcp.client.streamable_http - INFO - Received session ID: 2dfdf8034b1e4bcba237a4494c445737
+2025-08-08 17:08:12,322 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:08:12,330 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:08:12,331 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,340 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,342 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,343 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,345 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:12,346 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:14,364 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:17,372 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
 
 
 [1m> Entering new AgentExecutor chain...[0m
 [32;1m[1;3m
-Invoking: `analyze_attack_timeline` with `{}`
+Invoking: `analyze_attack_timeline` with `{'start_time': '2025-01-01T00:00:00', 'end_time': '2025-12-31T23:59:59'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': 'internal_db'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `generate_threat_actor_profile` with `{'indicators': ['´ý·ÖÎö']}`
+
+
+[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs', 'target_system': 'internal_db'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'network', 'target_system': 'internal_db'}`
+
+
+[0m[33;1m[1;3m{
+  "trace_id": "TRACE_682813",
+  "source_node": "internet",
+  "target_node": "internal_db",
+  "path_found": true,
+  "path_length": 4,
+  "attack_path": [
+    "internet",
+    "firewall",
+    "internal_switch",
+    "internal_db"
+  ],
+  "path_analysis": [
+    {
+      "hop": 1,
+      "from": "internet",
+      "to": "firewall",
+      "from_type": "external",
+      "to_type": "security",
+      "possible_techniques": [
+        "¶Ë¿ÚÉ¨Ãè",
+        "Â©¶´É¨Ãè",
+        "·þÎñÃ¶¾Ù"
+      ],
+      "risk_level": "high"
+    },
+    {
+      "hop": 2,
+      "from": "firewall",
+      "to": "internal_switch",
+      "from_type": "security",
+      "to_type": "network",
+      "possible_techniques": [
+        "·À»ðÇ½¹æÔòÈÆ¹ý",
+        "VPNËíµÀ",
+        "Ð­ÒéËíµÀ"
+      ],
+      "risk_level": "high"
+    },
+    {
+      "hop": 3,
+      "from": "internal_switch",
+      "to": "internal_db",
+      "from_type": "network",
+      "to_type": "server",
+      "possible_techniques": [
+        "ÍøÂçÐáÌ½",
+        "ÖÐ¼äÈË¹¥»÷",
+        "Á÷Á¿ÖØ¶¨Ïò"
+      ],
+      "risk_level": "low"
+    }
+  ],
+  "overall_risk": "medium",
+  "recommendations": [
+    "¼ÓÇ¿ÍøÂç·Ö¶Î",
+    "²¿ÊðÈëÇÖ¼ì²âÏµÍ³",
+    "ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹",
+    "¶¨ÆÚ½øÐÐÉøÍ¸²âÊÔ"
+  ]
+}[0m[36;1m[1;3m{
+  "analysis_id": "TIMELINE_421091",
+  "analysis_period": {
+    "start": "2025-01-01T00:00:00",
+    "end": "2025-12-31T23:59:59"
+  },
+  "total_events": 9,
+  "attack_duration": "8Ð¡Ê±45·ÖÖÓ",
+  "attack_stages": {
+    "reconnaissance": 2,
+    "weaponization": 1,
+    "delivery": 1,
+    "exploitation": 1,
+    "installation": 1,
+    "command_and_control": 1,
+    "actions_on_objectives": 2
+  },
+  "events": [
+    {
+      "timestamp": "2025-08-07T17:23:15.353641",
+      "stage": "reconnaissance",
+      "event": "¶Ë¿ÚÉ¨Ãè»î¶¯",
+      "source_ip": "203.0.113.100",
+      "target": "firewall",
+      "technique": "T1046 - Network Service Scanning",
+      "confidence": 95
+    },
+    {
+      "timestamp": "2025-08-07T17:38:15.353670",
+      "stage": "reconnaissance",
+      "event": "WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð",
+      "source_ip": "203.0.113.100",
+      "target": "dmz_web",
+      "technique": "T1590 - Gather Victim Network Information",
+      "confidence": 90
+    },
+    {
+      "timestamp": "2025-08-07T18:53:15.353675",
+      "stage": "weaponization",
+      "event": "µöÓãÓÊ¼þÖÆ×÷",
+      "source_ip": "unknown",
+      "target": "pc_user",
+      "technique": "T1566.001 - Spearphishing Attachment",
+      "confidence": 85
+    },
+    {
+      "timestamp": "2025-08-07T19:38:15.353679",
+      "stage": "delivery",
+      "event": "µöÓãÓÊ¼þÍ¶µÝ",
+      "source_ip": "198.51.100.50",
+      "target": "pc_user",
+      "technique": "T1566.002 - Spearphishing Link",
+      "confidence": 92
+    },
+    {
+      "timestamp": "2025-08-07T20:23:15.353683",
+      "stage": "exploitation",
+      "event": "¶ñÒâÁ´½Óµã»÷",
+      "source_ip": "pc_user",
+      "target": "198.51.100.50",
+      "technique": "T1204.002 - Malicious File",
+      "confidence": 88
+    },
+    {
+      "timestamp": "2025-08-07T21:48:15.353686",
+      "stage": "installation",
+      "event": "ºóÃÅ³ÌÐò°²×°",
+      "source_ip": "pc_user",
+      "target": "pc_user",
+      "technique": "T1547.001 - Registry Run Keys",
+      "confidence": 94
+    },
+    {
+      "timestamp": "2025-08-07T22:58:15.353688",
+      "stage": "command_and_control",
+      "event": "C2Í¨ÐÅ½¨Á¢",
+      "source_ip": "pc_user",
+      "target": "203.0.113.200",
+      "technique": "T1071.001 - Web Protocols",
+      "confidence": 96
+    },
+    {
+      "timestamp": "2025-08-08T00:38:15.353691",
+      "stage": "actions_on_objectives",
+      "event": "ºáÏòÒÆ¶¯³¢ÊÔ",
+      "source_ip": "pc_user",
+      "target": "internal_db",
+      "technique": "T1021.001 - Remote Desktop Protocol",
+      "confidence": 89
+    },
+    {
+      "timestamp": "2025-08-08T01:23:15.353695",
+      "stage": "actions_on_objectives",
+      "event": "Ãô¸ÐÊý¾Ý·ÃÎÊ",
+      "source_ip": "internal_db",
+      "target": "internal_db",
+      "technique": "T1005 - Data from Local System",
+      "confidence": 91
+    }
+  ],
+  "attack_path": [
+    "internet ¡ú firewall (¶Ë¿ÚÉ¨Ãè)",
+    "internet ¡ú dmz_web (WebÖ¸ÎÆÊ¶±ð)",
+    "internet ¡ú pc_user (µöÓãÓÊ¼þ)",
+    "pc_user ¡ú C2·þÎñÆ÷ (½¨Á¢Í¨ÐÅ)",
+    "pc_user ¡ú internal_db (ºáÏòÒÆ¶¯)",
+    "internal_db ¡ú Êý¾ÝÇÔÈ¡"
+  ],
+  "key_indicators": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ]
+}[0m[38;5;200m[1;3m{
+  "profile_id": "PROFILE_749778",
+  "analysis_date": "2025-08-08T17:08:16.364366",
+  "indicators_analyzed": [
+    "´ý·ÖÎö"
+  ],
+  "matched_actors": [],
+  "primary_attribution": {
+    "actor_name": "Î´ÖªÍþÐ²ÐÐÎªÕß",
+    "confidence": 30,
+    "origin": "Î´Öª",
+    "motivation": "Î´È·¶¨",
+    "target_sectors": [
+      "¶àÐÐÒµ"
+    ],
+    "ttps": [
+      "³£¼û¹¥»÷¼¼Êõ"
+    ],
+    "tools": [
+      "Í¨ÓÃ¹¤¾ß"
+    ]
+  },
+  "attack_sophistication": "ÖÐ",
+  "campaign_assessment": {
+    "campaign_type": "»ú»áÖ÷Òå¹¥»÷",
+    "persistence_level": "ÖÐ",
+    "stealth_level": "ÖÐµÈ",
+    "resource_level": "ÓÐÏÞ"
+  },
+  "recommendations": [
+    "¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯",
+    "²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
+    "ÊµÊ©ÐÐÎª·ÖÎö¼à¿Ø",
+    "½¨Á¢ÍþÐ²ÁÔÉ±ÄÜÁ¦",
+    "¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ"
+  ]
+}[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_780793",
+  "evidence_type": "logs",
+  "evidence_name": "ÏµÍ³ÈÕÖ¾",
+  "target_system": "internal_db",
+  "collection_started": "2025-08-08T17:08:17.357693",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:08:17.357703",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
+    {
+      "filename": "system.log",
+      "size_bytes": 79417865,
+      "hash_sha256": "01c97bd5f46adcaf9494112b68a93e90bb587fe99e5ef1fc1b0b6edde4d0f692",
+      "created_time": "2025-07-21T17:08:17.357728",
+      "modified_time": "2025-08-08T16:08:17.357738"
+    },
+    {
+      "filename": "security.log",
+      "size_bytes": 44751676,
+      "hash_sha256": "0d1318631c1d35e20b4f8498449b7aafb8e767c96dd44a031b62a179cdc279ea",
+      "created_time": "2025-07-30T17:08:17.357752",
+      "modified_time": "2025-08-08T01:08:17.357757"
+    },
+    {
+      "filename": "application.log",
+      "size_bytes": 24681522,
+      "hash_sha256": "8d9ddd354e3952afd7a18b03bd87712f87fdcfeac34426ac090e52e2e87c0537",
+      "created_time": "2025-07-27T17:08:17.357768",
+      "modified_time": "2025-08-07T18:08:17.357771"
+    },
+    {
+      "filename": "firewall.log",
+      "size_bytes": 68479360,
+      "hash_sha256": "1c4ebfe609c69334c96ae69b8078bb62a4e4a81e15307a76461bb9ce115cb696",
+      "created_time": "2025-07-13T17:08:17.357782",
+      "modified_time": "2025-08-08T07:08:17.357786"
+    }
+  ],
+  "status": "success",
+  "collection_completed": "2025-08-08T17:08:17.357790",
+  "total_files": 4,
+  "total_size_mb": 207.26244258880615
+}[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_111789",
+  "evidence_type": "network",
+  "evidence_name": "ÍøÂçÁ÷Á¿",
+  "target_system": "internal_db",
+  "collection_started": "2025-08-08T17:08:17.359477",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:08:17.359489",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
+    {
+      "filename": "network_capture.pcap",
+      "size_bytes": 98961334,
+      "hash_sha256": "8c72832c08f25024b48e52f0e6a5673e9e9c9d09c79767e4e5eef328a198992e",
+      "created_time": "2025-08-07T17:08:17.359516",
+      "modified_time": "2025-08-08T13:08:17.359605"
+    },
+    {
+      "filename": "dns_queries.txt",
+      "size_bytes": 60363180,
+      "hash_sha256": "586de6b130582b81f7d9bc77fe032d449db92c30044fc7f8c41f3fddf180bd6c",
+      "created_time": "2025-07-09T17:08:17.359639",
+      "modified_time": "2025-08-08T15:08:17.359647"
+    },
+    {
+      "filename": "http_requests.txt",
+      "size_bytes": 22161534,
+      "hash_sha256": "bd004269b7a9b7e6cf74f04e2c2c4eeb842ac48baae72235a85d6906510361f1",
+      "created_time": "2025-08-01T17:08:17.359662",
+      "modified_time": "2025-08-08T13:08:17.359666"
+    }
+  ],
+  "status": "success",
+  "collection_completed": "2025-08-08T17:08:17.359671",
+  "total_files": 3,
+  "total_size_mb": 173.07858276367188
+}[0m2025-08-08 17:08:17,698 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:08:29,846 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:08:37,818 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:37,818 - mcp.client.streamable_http - INFO - Received session ID: ea61c65b6df14c0a9eff2aa8cb902104
+2025-08-08 17:08:37,819 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:08:37,824 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:08:37,826 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:37,830 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:37,831 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:39,850 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:40,846 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:41,022 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:08:49,689 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:49,689 - mcp.client.streamable_http - INFO - Received session ID: af3f1c350eef431cbe14659f87579d1b
+2025-08-08 17:08:49,690 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:08:49,696 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:08:49,697 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:49,704 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:49,708 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:49,709 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:52,720 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:52,723 - attribution-agent - WARNING - ·¢ËÍÏûÏ¢Ê§°Ü£¬³¢ÊÔÖØÐÂÁ¬½Ó: sent 1011 (internal error) keepalive ping timeout; no close frame received
+C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\attribution_agent.py:49: DeprecationWarning: websockets.client.connect is deprecated
+  websockets.client.connect(
+2025-08-08 17:08:54,735 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:08:54,761 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+
+
+[1m> Entering new AgentExecutor chain...[0m
+[32;1m[1;3m
+Invoking: `analyze_attack_timeline` with `{'start_time': '2025-01-01T00:00:00', 'end_time': '2025-12-31T23:59:59'}`
 
 
 [0m[32;1m[1;3m
@@ -45,7 +384,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
 
 
 [0m[33;1m[1;3m{
-  "trace_id": "TRACE_179543",
+  "trace_id": "TRACE_383729",
   "source_node": "internet",
   "target_node": "internal_db",
   "path_found": true,
@@ -81,7 +420,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
         "VPNËíµÀ",
         "Ð­ÒéËíµÀ"
       ],
-      "risk_level": "high"
+      "risk_level": "critical"
     },
     {
       "hop": 3,
@@ -105,10 +444,10 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
     "¶¨ÆÚ½øÐÐÉøÍ¸²âÊÔ"
   ]
 }[0m[36;1m[1;3m{
-  "analysis_id": "TIMELINE_128221",
+  "analysis_id": "TIMELINE_530847",
   "analysis_period": {
-    "start": "2025-08-07T01:24:18.083642",
-    "end": "2025-08-08T01:24:18.083688"
+    "start": "2025-01-01T00:00:00",
+    "end": "2025-12-31T23:59:59"
   },
   "total_events": 9,
   "attack_duration": "8Ð¡Ê±45·ÖÖÓ",
@@ -123,7 +462,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
   },
   "events": [
     {
-      "timestamp": "2025-08-07T01:39:18.083690",
+      "timestamp": "2025-08-07T17:23:40.838745",
       "stage": "reconnaissance",
       "event": "¶Ë¿ÚÉ¨Ãè»î¶¯",
       "source_ip": "203.0.113.100",
@@ -132,7 +471,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 95
     },
     {
-      "timestamp": "2025-08-07T01:54:18.083701",
+      "timestamp": "2025-08-07T17:38:40.838772",
       "stage": "reconnaissance",
       "event": "WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð",
       "source_ip": "203.0.113.100",
@@ -141,7 +480,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 90
     },
     {
-      "timestamp": "2025-08-07T03:09:18.083705",
+      "timestamp": "2025-08-07T18:53:40.838780",
       "stage": "weaponization",
       "event": "µöÓãÓÊ¼þÖÆ×÷",
       "source_ip": "unknown",
@@ -150,7 +489,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 85
     },
     {
-      "timestamp": "2025-08-07T03:54:18.083709",
+      "timestamp": "2025-08-07T19:38:40.838784",
       "stage": "delivery",
       "event": "µöÓãÓÊ¼þÍ¶µÝ",
       "source_ip": "198.51.100.50",
@@ -159,7 +498,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 92
     },
     {
-      "timestamp": "2025-08-07T04:39:18.083711",
+      "timestamp": "2025-08-07T20:23:40.838787",
       "stage": "exploitation",
       "event": "¶ñÒâÁ´½Óµã»÷",
       "source_ip": "pc_user",
@@ -168,7 +507,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 88
     },
     {
-      "timestamp": "2025-08-07T06:04:18.083713",
+      "timestamp": "2025-08-07T21:48:40.838791",
       "stage": "installation",
       "event": "ºóÃÅ³ÌÐò°²×°",
       "source_ip": "pc_user",
@@ -177,7 +516,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 94
     },
     {
-      "timestamp": "2025-08-07T07:14:18.083715",
+      "timestamp": "2025-08-07T22:58:40.838794",
       "stage": "command_and_control",
       "event": "C2Í¨ÐÅ½¨Á¢",
       "source_ip": "pc_user",
@@ -186,7 +525,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 96
     },
     {
-      "timestamp": "2025-08-07T08:54:18.083719",
+      "timestamp": "2025-08-08T00:38:40.838797",
       "stage": "actions_on_objectives",
       "event": "ºáÏòÒÆ¶¯³¢ÊÔ",
       "source_ip": "pc_user",
@@ -195,7 +534,7 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
       "confidence": 89
     },
     {
-      "timestamp": "2025-08-07T09:39:18.083720",
+      "timestamp": "2025-08-08T01:23:40.838800",
       "stage": "actions_on_objectives",
       "event": "Ãô¸ÐÊý¾Ý·ÃÎÊ",
       "source_ip": "internal_db",
@@ -220,187 +559,79 @@ Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '
     "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
   ]
 }[0m[32;1m[1;3m
+Invoking: `generate_incident_report` with `{'incident_id': 'INC_183274', 'incident_type': 'apt_attack'}`
+responded: ### ËÝÔ´·ÖÎö½á¹û
+
+#### 1. ¹¥»÷Ê±¼äÏß·ÖÎö
+- **¹¥»÷³ÖÐøÊ±¼ä**£º8Ð¡Ê±45·ÖÖÓ
+- **¹¥»÷½×¶Î**£º
+  - **Õì²ì½×¶Î**£º¹¥»÷Õß½øÐÐÁË¶Ë¿ÚÉ¨ÃèºÍWebÓ¦ÓÃÖ¸ÎÆÊ¶±ð¡£
+  - **ÎäÆ÷»¯½×¶Î**£ºÖÆ×÷ÁËµöÓãÓÊ¼þ¡£
+  - **Í¶µÝ½×¶Î**£ºÍ¨¹ýµöÓãÓÊ¼þÍ¶µÝ¶ñÒâÁ´½Ó¡£
+  - **ÀûÓÃ½×¶Î**£ºÓÃ»§µã»÷¶ñÒâÁ´½Ó¡£
+  - **°²×°½×¶Î**£ººóÃÅ³ÌÐò°²×°¡£
+  - **ÃüÁîÓë¿ØÖÆ½×¶Î**£º½¨Á¢ÁËC2Í¨ÐÅ¡£
+  - **Ä¿±êÐÐ¶¯½×¶Î**£ººáÏòÒÆ¶¯µ½ÄÚ²¿Êý¾Ý¿â²¢ÇÔÈ¡Êý¾Ý¡£
+- **¹Ø¼üÊÂ¼þ**£º
+  - ³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ¡£
+  - ¹¥»÷Õß³É¹¦½¨Á¢ÁË³Ö¾Ã»¯·ÃÎÊ²¢ºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú¡£
+
+#### 2. ¹¥»÷Â·¾¶×·×Ù
+- **Â·¾¶**£º`internet ¡ú firewall ¡ú internal_switch ¡ú internal_db`
+- **·çÏÕ·ÖÎö**£º
+  - **¸ß·çÏÕ**£º·À»ðÇ½¹æÔòÈÆ¹ýºÍVPNËíµÀÊ¹ÓÃ¡£
+  - **µÍ·çÏÕ**£ºÍøÂçÐáÌ½ºÍÁ÷Á¿ÖØ¶¨Ïò¡£
+- **½¨Òé**£º
+  - ¼ÓÇ¿ÍøÂç·Ö¶Î¡£
+  - ²¿ÊðÈëÇÖ¼ì²âÏµÍ³¡£
+  - ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹¡£
+
+#### 3. ÍþÐ²ÐÐÎªÕß»­Ïñ
+- **ÍþÐ²ÐÐÎªÕß**£ºÎ´ÖªÍþÐ²ÐÐÎªÕß
+- **¶¯»ú**£ºÎ´È·¶¨
+- **¹¥»÷¼¼Êõ**£º³£¼û¹¥»÷¼¼Êõ
+- **½¨Òé**£º
+  - ¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯¡£
+  - ²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³¡£
+  - ÊµÊ©ÐÐÎª·ÖÎö¼à¿Ø¡£
+
+#### 4. Êý×ÖÖ¤¾ÝÊÕ¼¯
+- **ÈÕÖ¾Ö¤¾Ý**£º³É¹¦ÊÕ¼¯ÁËÏµÍ³ÈÕÖ¾¡¢°²È«ÈÕÖ¾¡¢Ó¦ÓÃÈÕÖ¾ºÍ·À»ðÇ½ÈÕÖ¾¡£
+- **ÍøÂçÖ¤¾Ý**£º³É¹¦ÊÕ¼¯ÁËÍøÂçÁ÷Á¿²¶»ñ¡¢DNS²éÑ¯ºÍHTTPÇëÇó¼ÇÂ¼¡£
+- **Ö¤¾ÝÍêÕûÐÔ**£ºËùÓÐÖ¤¾Ý¾ùÍ¨¹ýSHA-256¹þÏ£ÑéÖ¤¡£
+
+#### 5. ¶ñÒâÈí¼þ·ÖÎö
+- Î´·¢ÏÖ¶ñÒâÈí¼þÑù±¾£¬ÎÞÐè½øÒ»²½·ÖÎö¡£
+
+#### 6. ×ÛºÏÊÂ¼þ±¨¸æ
+½ÓÏÂÀ´½«Éú³É×ÛºÏÊÂ¼þ±¨¸æ£¬°üÀ¨ÏêÏ¸µÄ·ÖÎö½á¹ûºÍ½¨Òé´ëÊ©¡£
+
+[0m[32;1m[1;3m
 Invoking: `generate_threat_actor_profile` with `{'indicators': ['¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ', '³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ', '³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ', 'ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú', '´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª']}`
 
 
 [0m[32;1m[1;3m
-Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs', 'target_system': 'internal_db'}`
-
-
-[0m[32;1m[1;3m
-Invoking: `collect_digital_evidence` with `{'evidence_type': 'network', 'target_system': 'internal_db'}`
-
-
-[0m[38;5;200m[1;3m{
-  "profile_id": "PROFILE_161891",
-  "analysis_date": "2025-08-08T01:24:32.780940",
-  "indicators_analyzed": [
-    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
-    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
-    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
-    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
-    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
-  ],
-  "matched_actors": [],
-  "primary_attribution": {
-    "actor_name": "Î´ÖªÍþÐ²ÐÐÎªÕß",
-    "confidence": 30,
-    "origin": "Î´Öª",
-    "motivation": "Î´È·¶¨",
-    "target_sectors": [
-      "¶àÐÐÒµ"
-    ],
-    "ttps": [
-      "³£¼û¹¥»÷¼¼Êõ"
-    ],
-    "tools": [
-      "Í¨ÓÃ¹¤¾ß"
-    ]
-  },
-  "attack_sophistication": "¸ß",
-  "campaign_assessment": {
-    "campaign_type": "»ú»áÖ÷Òå¹¥»÷",
-    "persistence_level": "ÖÐ",
-    "stealth_level": "ÖÐµÈ",
-    "resource_level": "ÓÐÏÞ"
-  },
-  "recommendations": [
-    "¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯",
-    "²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
-    "ÊµÊ©ÐÐÎª·ÖÎö¼à¿Ø",
-    "½¨Á¢ÍþÐ²ÁÔÉ±ÄÜÁ¦",
-    "¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ"
-  ]
-}[0m[31;1m[1;3m{
-  "collection_id": "EVIDENCE_564098",
-  "evidence_type": "logs",
-  "evidence_name": "ÏµÍ³ÈÕÖ¾",
-  "target_system": "internal_db",
-  "collection_started": "2025-08-08T01:24:33.778935",
-  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
-  "chain_of_custody": {
-    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
-    "collection_time": "2025-08-08T01:24:33.778944",
-    "hash_algorithm": "SHA-256",
-    "integrity_verified": true
-  },
-  "collected_files": [
-    {
-      "filename": "system.log",
-      "size_bytes": 35524113,
-      "hash_sha256": "12fc1901661ce323a229628a5b0c5005012939a0f72670578960411a4f0bf79d",
-      "created_time": "2025-08-07T01:24:33.779017",
-      "modified_time": "2025-08-07T09:24:33.779031"
-    },
-    {
-      "filename": "security.log",
-      "size_bytes": 11283093,
-      "hash_sha256": "503e8a4255481ec83aa4e8c7a28ba7fa9c9d2c276f1eb00dd0f3545cb7126cae",
-      "created_time": "2025-08-02T01:24:33.779052",
-      "modified_time": "2025-08-07T19:24:33.779056"
-    },
-    {
-      "filename": "application.log",
-      "size_bytes": 91822048,
-      "hash_sha256": "9cc3cc1c1129beb73dc057a7d15a361e8e0c9ba42ea0cc49ec2f99944fa43ab9",
-      "created_time": "2025-07-11T01:24:33.779067",
-      "modified_time": "2025-08-07T01:24:33.779070"
-    },
-    {
-      "filename": "firewall.log",
-      "size_bytes": 60954389,
-      "hash_sha256": "0381dbba5d830290a974c8374c0167689a3e62c7ea99c45d02887a7c63ead0ae",
-      "created_time": "2025-08-07T01:24:33.779079",
-      "modified_time": "2025-08-07T12:24:33.779082"
-    }
-  ],
-  "status": "success",
-  "collection_completed": "2025-08-08T01:24:33.779085",
-  "total_files": 4,
-  "total_size_mb": 190.33779430389404
-}[0m[31;1m[1;3m{
-  "collection_id": "EVIDENCE_685557",
-  "evidence_type": "network",
-  "evidence_name": "ÍøÂçÁ÷Á¿",
-  "target_system": "internal_db",
-  "collection_started": "2025-08-08T01:24:33.780404",
-  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
-  "chain_of_custody": {
-    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
-    "collection_time": "2025-08-08T01:24:33.780408",
-    "hash_algorithm": "SHA-256",
-    "integrity_verified": true
-  },
-  "collected_files": [
-    {
-      "filename": "network_capture.pcap",
-      "size_bytes": 103959806,
-      "hash_sha256": "e582c8b530c89d73a3cf05ce668b4177581306fef78f6092de8d75972bfa7532",
-      "created_time": "2025-07-12T01:24:33.780424",
-      "modified_time": "2025-08-07T16:24:33.780430"
-    },
-    {
-      "filename": "dns_queries.txt",
-      "size_bytes": 33310040,
-      "hash_sha256": "ac137782378bb853423c4564b09e1c3349b1087b657dd49e5965aa611f7d0c01",
-      "created_time": "2025-08-03T01:24:33.780443",
-      "modified_time": "2025-08-07T14:24:33.780446"
-    },
-    {
-      "filename": "http_requests.txt",
-      "size_bytes": 50586543,
-      "hash_sha256": "d945a62847765c479c08132e7d92812ef48bd13dada546f1023327526e413a27",
-      "created_time": "2025-07-09T01:24:33.780457",
-      "modified_time": "2025-08-07T19:24:33.780460"
-    }
-  ],
-  "status": "success",
-  "collection_completed": "2025-08-08T01:24:33.780464",
-  "total_files": 3,
-  "total_size_mb": 179.15381336212158
-}[0m2025-08-08 01:24:34,016 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:24:37,325 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:24:39,307 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:39,307 - mcp.client.streamable_http - INFO - Received session ID: 9a6879843730448a9cc446b68b4168b0
-2025-08-08 01:24:39,308 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 01:24:39,314 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 01:24:39,316 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:39,319 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:42,344 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:42,354 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:42,449 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:24:44,155 - attribution-agent - ERROR - ¹¥»÷ËÝÔ´ÈÎÎñÖ´ÐÐÊ§°Ü: 2 validation errors for analyze_attack_timeline
-start_time
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-end_time
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-
-
-[1m> Entering new AgentExecutor chain...[0m
-[32;1m[1;3m
-Invoking: `generate_incident_report` with `{'incident_id': 'INC_126638'}`
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs, network', 'target_system': 'internal_db'}`
 
 
 [0m[33;1m[1;3m{
-  "report_id": "INCIDENT_490055",
-  "incident_id": "INC_126638",
+  "report_id": "INCIDENT_144102",
+  "incident_id": "INC_183274",
   "incident_type": "apt_attack",
   "incident_name": "¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
-  "report_generated": "2025-08-08T01:24:42.336399",
+  "report_generated": "2025-08-08T17:08:52.712862",
   "executive_summary": {
     "incident_overview": "¼ì²âµ½Õë¶Ô×éÖ¯µÄ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
     "impact_assessment": "ÖÐµÈµ½¸ßµÈÓ°Ïì",
     "current_status": "ÒÑ¿ØÖÆ",
-    "estimated_cost": "$264,507"
+    "estimated_cost": "$158,267"
   },
   "timeline": {
-    "first_detection": "2025-08-07T01:24:42.336416",
-    "incident_declared": "2025-08-07T02:24:42.336425",
-    "containment_achieved": "2025-08-07T07:24:42.336428",
-    "eradication_completed": "2025-08-07T13:24:42.336431",
-    "recovery_started": "2025-08-07T19:24:42.336433"
+    "first_detection": "2025-08-07T17:08:52.712880",
+    "incident_declared": "2025-08-07T18:08:52.712891",
+    "containment_achieved": "2025-08-07T23:08:52.712895",
+    "eradication_completed": "2025-08-08T05:08:52.712898",
+    "recovery_started": "2025-08-08T11:08:52.712901"
   },
   "affected_systems": [
     {
@@ -444,172 +675,1127 @@ Invoking: `generate_incident_report` with `{'incident_id': 'INC_126638'}`
     "¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·",
     "½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó"
   ]
-}[0m[32;1m[1;3m
-Invoking: `analyze_attack_timeline` with `{'start_time': None, 'end_time': None}`
+}[0m2025-08-08 17:08:55,071 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:08:55,772 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:08:56,768 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:08:56,991 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:09:04,500 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:04,500 - mcp.client.streamable_http - INFO - Received session ID: c1e800ffeec24b99b5a3dc4d56657e46
+2025-08-08 17:09:04,501 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:09:04,507 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:09:04,508 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:04,514 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:04,517 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:09,544 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:09,545 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:09,555 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:09,890 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:09:16,419 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:16,419 - mcp.client.streamable_http - INFO - Received session ID: d1208a9a79b14c1286c6b27dcc7d9282
+2025-08-08 17:09:16,420 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:09:16,426 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:09:16,428 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:16,431 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:19,444 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:19,450 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:19,566 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:09:32,946 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:09:41,050 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:41,050 - mcp.client.streamable_http - INFO - Received session ID: a3e5fbbf14ea46638b83e3e7d35414af
+2025-08-08 17:09:41,051 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:09:41,056 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:09:41,056 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:41,062 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:41,064 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:43,087 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:44,085 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+[38;5;200m[1;3m{
+  "profile_id": "PROFILE_282085",
+  "analysis_date": "2025-08-08T17:08:53.721793",
+  "indicators_analyzed": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ],
+  "matched_actors": [],
+  "primary_attribution": {
+    "actor_name": "Î´ÖªÍþÐ²ÐÐÎªÕß",
+    "confidence": 30,
+    "origin": "Î´Öª",
+    "motivation": "Î´È·¶¨",
+    "target_sectors": [
+      "¶àÐÐÒµ"
+    ],
+    "ttps": [
+      "³£¼û¹¥»÷¼¼Êõ"
+    ],
+    "tools": [
+      "Í¨ÓÃ¹¤¾ß"
+    ]
+  },
+  "attack_sophistication": "¼«¸ß",
+  "campaign_assessment": {
+    "campaign_type": "»ú»áÖ÷Òå¹¥»÷",
+    "persistence_level": "ÖÐ",
+    "stealth_level": "ÖÐµÈ",
+    "resource_level": "ÓÐÏÞ"
+  },
+  "recommendations": [
+    "¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯",
+    "²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
+    "ÊµÊ©ÐÐÎª·ÖÎö¼à¿Ø",
+    "½¨Á¢ÍþÐ²ÁÔÉ±ÄÜÁ¦",
+    "¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ"
+  ]
+}[0m[31;1m[1;3m{"error": "Î´ÖªÖ¤¾ÝÀàÐÍ: logs, network"}[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs', 'target_system': 'internal_db'}`
 
 
 [0m[32;1m[1;3m
-Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': 'internal_db'}`
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'network', 'target_system': 'internal_db'}`
 
 
-[0mINFO:     127.0.0.1:53856 - "POST /execute_attack_attribution HTTP/1.1" 500 Internal Server Error
-2025-08-08 01:24:44,162 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:44,162 - mcp.client.streamable_http - INFO - Received session ID: 3e0a2714c65247a2a825805bdd8dbef3
-2025-08-08 01:24:44,163 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 01:24:44,169 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 01:24:44,170 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:44,174 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:46,194 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:24:46,201 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:25:21,885 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 01:25:28,521 - attribution-agent - WARNING - ·¢ËÍÏûÏ¢Ê§°Ü£¬³¢ÊÔÖØÐÂÁ¬½Ó: sent 1011 (internal error) keepalive ping timeout; no close frame received
-C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\attribution_agent.py:47: DeprecationWarning: websockets.client.connect is deprecated
-  backend_ws = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-08 01:25:28,523 - attribution-agent - ERROR - ¹¥»÷ËÝÔ´ÈÎÎñÖ´ÐÐÊ§°Ü: 2 validation errors for analyze_attack_timeline
-start_time
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-end_time
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-08-08 01:25:30,570 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
-2025-08-08 01:25:31,107 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
-[33;1m[1;3m{
-  "trace_id": "TRACE_445228",
-  "source_node": "internet",
-  "target_node": "internal_db",
-  "path_found": true,
-  "path_length": 4,
-  "attack_path": [
-    "internet",
-    "firewall",
-    "internal_switch",
-    "internal_db"
-  ],
-  "path_analysis": [
+[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_595429",
+  "evidence_type": "logs",
+  "evidence_name": "ÏµÍ³ÈÕÖ¾",
+  "target_system": "internal_db",
+  "collection_started": "2025-08-08T17:09:09.531860",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:09:09.531870",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
     {
-      "hop": 1,
-      "from": "internet",
-      "to": "firewall",
-      "from_type": "external",
-      "to_type": "security",
-      "possible_techniques": [
-        "¶Ë¿ÚÉ¨Ãè",
-        "Â©¶´É¨Ãè",
-        "·þÎñÃ¶¾Ù"
-      ],
-      "risk_level": "low"
+      "filename": "system.log",
+      "size_bytes": 101781810,
+      "hash_sha256": "d87be16bc931eba94d5b0943538d98aeaf2d6cc45a5f6144100b46276dcbe5ee",
+      "created_time": "2025-07-22T17:09:09.531894",
+      "modified_time": "2025-08-07T21:09:09.531908"
     },
     {
-      "hop": 2,
-      "from": "firewall",
-      "to": "internal_switch",
-      "from_type": "security",
-      "to_type": "network",
-      "possible_techniques": [
-        "·À»ðÇ½¹æÔòÈÆ¹ý",
-        "VPNËíµÀ",
-        "Ð­ÒéËíµÀ"
-      ],
-      "risk_level": "critical"
+      "filename": "security.log",
+      "size_bytes": 61529648,
+      "hash_sha256": "3cbcbd5bb1b5e986c041fa30c8d46e87e2fa2714a3e415638624d198c8d9386b",
+      "created_time": "2025-08-05T17:09:09.531926",
+      "modified_time": "2025-08-07T21:09:09.531930"
     },
     {
-      "hop": 3,
-      "from": "internal_switch",
-      "to": "internal_db",
-      "from_type": "network",
-      "to_type": "server",
-      "possible_techniques": [
-        "ÍøÂçÐáÌ½",
-        "ÖÐ¼äÈË¹¥»÷",
-        "Á÷Á¿ÖØ¶¨Ïò"
-      ],
-      "risk_level": "low"
+      "filename": "application.log",
+      "size_bytes": 71471382,
+      "hash_sha256": "52900d8b95448c2ff3d03d5a4bb21d71ebd4eb063562296ca02acf830b3f5560",
+      "created_time": "2025-07-17T17:09:09.531940",
+      "modified_time": "2025-08-08T03:09:09.531943"
+    },
+    {
+      "filename": "firewall.log",
+      "size_bytes": 88070040,
+      "hash_sha256": "fcb612a158bf4cec348e0ff53714de0901efff59956803cb36442d446c142538",
+      "created_time": "2025-07-23T17:09:09.531960",
+      "modified_time": "2025-08-08T07:09:09.531966"
     }
   ],
-  "overall_risk": "medium",
-  "recommendations": [
-    "¼ÓÇ¿ÍøÂç·Ö¶Î",
-    "²¿ÊðÈëÇÖ¼ì²âÏµÍ³",
-    "ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹",
-    "¶¨ÆÚ½øÐÐÉøÍ¸²âÊÔ"
-  ]
-}[0m[32;1m[1;3m### ÊÂ¼þ·ÖÎö±¨¸æ£¨INC_126638£©
+  "status": "success",
+  "collection_completed": "2025-08-08T17:09:09.531970",
+  "total_files": 4,
+  "total_size_mb": 307.89649963378906
+}[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_163738",
+  "evidence_type": "network",
+  "evidence_name": "ÍøÂçÁ÷Á¿",
+  "target_system": "internal_db",
+  "collection_started": "2025-08-08T17:09:09.533459",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:09:09.533464",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
+    {
+      "filename": "network_capture.pcap",
+      "size_bytes": 7028658,
+      "hash_sha256": "f556ca09621550bd83729cc42fc9be23f57661874376e66a45aeaa2ac88b463c",
+      "created_time": "2025-07-27T17:09:09.533491",
+      "modified_time": "2025-08-08T06:09:09.533498"
+    },
+    {
+      "filename": "dns_queries.txt",
+      "size_bytes": 29714251,
+      "hash_sha256": "25d3d401a31d0b3dfccb73916fb006f89a672d08838cf8e4237f733bc338dff6",
+      "created_time": "2025-08-07T17:09:09.533509",
+      "modified_time": "2025-08-07T17:09:09.533513"
+    },
+    {
+      "filename": "http_requests.txt",
+      "size_bytes": 29558754,
+      "hash_sha256": "5eeac64e1e349918b33432f9a42c639c1bfec9f748f229cf578f45fd8f6079b1",
+      "created_time": "2025-08-03T17:09:09.533524",
+      "modified_time": "2025-08-07T23:09:09.533526"
+    }
+  ],
+  "status": "success",
+  "collection_completed": "2025-08-08T17:09:09.533529",
+  "total_files": 3,
+  "total_size_mb": 63.23019313812256
+}[0m[32;1m[1;3m
+Invoking: `generate_incident_report` with `{'incident_id': 'INC_183305', 'incident_type': 'apt_attack'}`
 
-#### 1. **ÊÂ¼þ¸ÅÊö**
-- **ÊÂ¼þÀàÐÍ**: ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷£¨APT£©
+
+[0m[33;1m[1;3m{
+  "report_id": "INCIDENT_260436",
+  "incident_id": "INC_183305",
+  "incident_type": "apt_attack",
+  "incident_name": "¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
+  "report_generated": "2025-08-08T17:09:19.437145",
+  "executive_summary": {
+    "incident_overview": "¼ì²âµ½Õë¶Ô×éÖ¯µÄ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
+    "impact_assessment": "ÖÐµÈµ½¸ßµÈÓ°Ïì",
+    "current_status": "ÒÑ¿ØÖÆ",
+    "estimated_cost": "$89,763"
+  },
+  "timeline": {
+    "first_detection": "2025-08-07T17:09:19.437168",
+    "incident_declared": "2025-08-07T18:09:19.437177",
+    "containment_achieved": "2025-08-07T23:09:19.437180",
+    "eradication_completed": "2025-08-08T05:09:19.437183",
+    "recovery_started": "2025-08-08T11:09:19.437185"
+  },
+  "affected_systems": [
+    {
+      "system": "dmz_web",
+      "impact": "¸ß",
+      "status": "ÒÑ»Ö¸´"
+    },
+    {
+      "system": "internal_db",
+      "impact": "ÖÐ",
+      "status": "¼à¿ØÖÐ"
+    },
+    {
+      "system": "pc_user",
+      "impact": "¸ß",
+      "status": "ÒÑÖØ½¨"
+    }
+  ],
+  "attack_vectors": [
+    "µöÓãÓÊ¼þ",
+    "WebÓ¦ÓÃÂ©¶´",
+    "ºáÏòÒÆ¶¯",
+    "È¨ÏÞÌáÉý"
+  ],
+  "evidence_collected": [
+    "ÏµÍ³ÈÕÖ¾ (50GB)",
+    "ÍøÂçÁ÷Á¿²¶»ñ (200GB)",
+    "ÄÚ´æ¾µÏñ (32GB)",
+    "¶ñÒâÈí¼þÑù±¾ (15¸ö)"
+  ],
+  "lessons_learned": [
+    "ÐèÒª¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ",
+    "Ó¦ÊµÊ©¸üÑÏ¸ñµÄÍøÂç·Ö¶Î",
+    "ÐèÒª²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
+    "Ó¦½¨Á¢¸üÍêÉÆµÄÊÂ¼þÏìÓ¦Á÷³Ì"
+  ],
+  "recommendations": [
+    "ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹",
+    "²¿ÊðEDR½â¾ö·½°¸",
+    "¼ÓÇ¿ÍþÐ²Çé±¨ÄÜÁ¦",
+    "¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·",
+    "½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó"
+  ]
+}[0m[32;1m[1;3m### ×ÛºÏÊÂ¼þ·ÖÎö±¨¸æ
+
+#### **ÊÂ¼þ¸ÅÊö**
+- **ÊÂ¼þID**: INC_183274
+- **ÊÂ¼þÀàÐÍ**: ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷ (APT)
 - **Ó°ÏìÆÀ¹À**: ÖÐµÈµ½¸ßµÈÓ°Ïì
 - **µ±Ç°×´Ì¬**: ÒÑ¿ØÖÆ
-- **Ô¤¹ÀËðÊ§**: $264,507
+- **Ô¤¹ÀËðÊ§**: $158,267
 
-#### 2. **¹¥»÷Ê±¼äÏß**
-- **Ê×´Î¼ì²â**: 2025-08-07 01:24:42
-- **ÊÂ¼þÈ·ÈÏ**: 2025-08-07 02:24:42
-- **¿ØÖÆ´ï³É**: 2025-08-07 07:24:42
-- **¸ù³ýÍê³É**: 2025-08-07 13:24:42
-- **»Ö¸´¿ªÊ¼**: 2025-08-07 19:24:42
+#### **Ê±¼äÏß**
+- **Ê×´Î¼ì²â**: 2025-08-07T17:08:52
+- **ÊÂ¼þÐû¸æ**: 2025-08-07T18:08:52
+- **¿ØÖÆ´ï³É**: 2025-08-07T23:08:52
+- **Çå³ýÍê³É**: 2025-08-08T05:08:52
+- **»Ö¸´¿ªÊ¼**: 2025-08-08T11:08:52
 
-#### 3. **¹¥»÷Â·¾¶**
-¹¥»÷Õß´Ó»¥ÁªÍø·¢Æð¹¥»÷£¬Í¨¹ýÒÔÏÂÂ·¾¶ÉøÍ¸µ½ÄÚ²¿Êý¾Ý¿â£º
-1. **»¥ÁªÍø ¡ú ·À»ðÇ½**: ¶Ë¿ÚÉ¨ÃèºÍÂ©¶´É¨Ãè¡£
-2. **·À»ðÇ½ ¡ú ÄÚ²¿½»»»»ú**: ÈÆ¹ý·À»ðÇ½¹æÔò¡£
-3. **ÄÚ²¿½»»»»ú ¡ú ÄÚ²¿Êý¾Ý¿â**: ºáÏòÒÆ¶¯ºÍÊý¾ÝÇÔÈ¡¡£
+#### **ÊÜÓ°ÏìÏµÍ³**
+1. **DMZ Web·þÎñÆ÷**
+   - Ó°Ïì: ¸ß
+   - ×´Ì¬: ÒÑ»Ö¸´
+2. **ÄÚ²¿Êý¾Ý¿â**
+   - Ó°Ïì: ÖÐ
+   - ×´Ì¬: ¼à¿ØÖÐ
+3. **ÓÃ»§ÖÕ¶Ë**
+   - Ó°Ïì: ¸ß
+   - ×´Ì¬: ÒÑÖØ½¨
 
-#### 4. **ÍþÐ²ÐÐÎªÕß»­Ïñ**
-- **Ãû³Æ**: Î´ÖªÍþÐ²ÐÐÎªÕß
-- **¶¯»ú**: Î´È·¶¨
-- **¹¥»÷¼¼Êõ**: ¶à½×¶Î¹¥»÷²ßÂÔ£¬µöÓãÓÊ¼þ³õÊ¼·ÃÎÊ£¬³Ö¾Ã»¯·ÃÎÊ£¬ºáÏòÒÆ¶¯¡£
-- **¹¥»÷¸´ÔÓ¶È**: ¸ß
-- **½¨Òé**: ¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯ºÍÔ±¹¤°²È«ÒâÊ¶ÅàÑµ¡£
-
-#### 5. **Ö¤¾ÝÊÕ¼¯**
-- **ÏµÍ³ÈÕÖ¾**: 50GB£¨°üÀ¨°²È«ÈÕÖ¾¡¢Ó¦ÓÃÈÕÖ¾µÈ£©¡£
-- **ÍøÂçÁ÷Á¿²¶»ñ**: 200GB£¨PCAPÎÄ¼þ¡¢DNS²éÑ¯¼ÇÂ¼µÈ£©¡£
-- **¶ñÒâÈí¼þÑù±¾**: 15¸ö£¨´ý½øÒ»²½·ÖÎö£©¡£
-
-#### 6. **ÊÜÓ°ÏìÏµÍ³**
-- **DMZ Web·þÎñÆ÷**: ¸ßÓ°Ïì£¬ÒÑ»Ö¸´¡£
-- **ÄÚ²¿Êý¾Ý¿â**: ÖÐµÈÓ°Ïì£¬¼à¿ØÖÐ¡£
-- **ÓÃ»§PC**: ¸ßÓ°Ïì£¬ÒÑÖØ½¨¡£
-
-#### 7. **¹¥»÷ÏòÁ¿**
+#### **¹¥»÷ÏòÁ¿**
 - µöÓãÓÊ¼þ
 - WebÓ¦ÓÃÂ©¶´
 - ºáÏòÒÆ¶¯
 - È¨ÏÞÌáÉý
 
-#### 8. **¾­Ñé½ÌÑµ**
-- Ô±¹¤°²È«ÒâÊ¶ÅàÑµ²»×ã¡£
-- ÍøÂç·Ö¶Î²»¹»ÑÏ¸ñ¡£
-- È±·¦¸ß¼¶ÍþÐ²¼ì²âÏµÍ³¡£
+#### **ÊÕ¼¯µÄÖ¤¾Ý**
+- ÏµÍ³ÈÕÖ¾ (50GB)
+- ÍøÂçÁ÷Á¿²¶»ñ (200GB)
+- ÄÚ´æ¾µÏñ (32GB)
+- ¶ñÒâÈí¼þÑù±¾ (15¸ö)
 
-#### 9. **·À»¤½¨Òé**
-- ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹¡£
-- ²¿ÊðEDR½â¾ö·½°¸¡£
-- ¼ÓÇ¿ÍþÐ²Çé±¨ÄÜÁ¦¡£
-- ¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·¡£
-- ½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó¡£
+#### **¾­Ñé½ÌÑµ**
+1. ÐèÒª¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ¡£
+2. Ó¦ÊµÊ©¸üÑÏ¸ñµÄÍøÂç·Ö¶Î¡£
+3. ÐèÒª²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³¡£
+4. Ó¦½¨Á¢¸üÍêÉÆµÄÊÂ¼þÏìÓ¦Á÷³Ì¡£
 
-ÈçÐè½øÒ»²½·ÖÎö¶ñÒâÈí¼þÑù±¾»òÆäËûÖ¤¾Ý£¬Çë¸æÖª£¡[0m
+#### **·À»¤½¨Òé**
+1. **ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹**£ºÏÞÖÆÄÚ²¿ºáÏòÒÆ¶¯¡£
+2. **²¿ÊðEDR½â¾ö·½°¸**£ºÔöÇ¿ÖÕ¶Ë¼ì²âºÍÏìÓ¦ÄÜÁ¦¡£
+3. **¼ÓÇ¿ÍþÐ²Çé±¨ÄÜÁ¦**£º¼°Ê±»ñÈ¡×îÐÂµÄÍþÐ²ÐÅÏ¢¡£
+4. **¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·**£ºÌáÉýÍÅ¶ÓÓ¦¶ÔÄÜÁ¦¡£
+5. **½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó**£ºÖ÷¶¯·¢ÏÖÇ±ÔÚÍþÐ²¡£
+
+#### **ÏÂÒ»²½ÐÐ¶¯**
+- ³ÖÐø¼à¿ØÊÜÓ°ÏìÏµÍ³µÄ»Ö¸´Çé¿ö¡£
+- ¶¨ÆÚÉó²é°²È«²ßÂÔµÄÓÐÐ§ÐÔ¡£
+- ¸üÐÂ·À»¤´ëÊ©ÒÔÓ¦¶ÔÀàËÆ¹¥»÷¡£
+
+ÈçÐè½øÒ»²½·ÖÎö»òÖ§³Ö£¬ÇëËæÊ±ÁªÏµ¡£[0m
 
 [1m> Finished chain.[0m
 
 
 [1m> Entering new AgentExecutor chain...[0m
 [32;1m[1;3m
-Invoking: `analyze_attack_timeline` with `{'start_time': None, 'end_time': None}`
+Invoking: `analyze_attack_timeline` with `{'start_time': '2025-01-01T00:00:00', 'end_time': '2025-12-31T23:59:59'}`
 
 
 [0m[32;1m[1;3m
-Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': 'internal-db-01'}`
+Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '-'}`
 
 
-[0mINFO:     127.0.0.1:53889 - "POST /execute_attack_attribution HTTP/1.1" 500 Internal Server Error
-2025-08-08 01:25:31,116 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:25:31,116 - mcp.client.streamable_http - INFO - Received session ID: 03b89b761983494cabc80d2a641dd490
-2025-08-08 01:25:31,117 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 01:25:31,122 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 01:25:31,124 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:25:31,126 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:25:33,153 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 01:25:33,161 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+[0m[33;1m[1;3m{"error": "ÎÞ·¨ÕÒµ½´Ó internet µ½ - µÄÂ·¾¶"}[0m[36;1m[1;3m{
+  "analysis_id": "TIMELINE_915833",
+  "analysis_period": {
+    "start": "2025-01-01T00:00:00",
+    "end": "2025-12-31T23:59:59"
+  },
+  "total_events": 9,
+  "attack_duration": "8Ð¡Ê±45·ÖÖÓ",
+  "attack_stages": {
+    "reconnaissance": 2,
+    "weaponization": 1,
+    "delivery": 1,
+    "exploitation": 1,
+    "installation": 1,
+    "command_and_control": 1,
+    "actions_on_objectives": 2
+  },
+  "events": [
+    {
+      "timestamp": "2025-08-07T17:24:44.075446",
+      "stage": "reconnaissance",
+      "event": "¶Ë¿ÚÉ¨Ãè»î¶¯",
+      "source_ip": "203.0.113.100",
+      "target": "firewall",
+      "technique": "T1046 - Network Service Scanning",
+      "confidence": 95
+    },
+    {
+      "timestamp": "2025-08-07T17:39:44.075475",
+      "stage": "reconnaissance",
+      "event": "WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð",
+      "source_ip": "203.0.113.100",
+      "target": "dmz_web",
+      "technique": "T1590 - Gather Victim Network Information",
+      "confidence": 90
+    },
+    {
+      "timestamp": "2025-08-07T18:54:44.075482",
+      "stage": "weaponization",
+      "event": "µöÓãÓÊ¼þÖÆ×÷",
+      "source_ip": "unknown",
+      "target": "pc_user",
+      "technique": "T1566.001 - Spearphishing Attachment",
+      "confidence": 85
+    },
+    {
+      "timestamp": "2025-08-07T19:39:44.075488",
+      "stage": "delivery",
+      "event": "µöÓãÓÊ¼þÍ¶µÝ",
+      "source_ip": "198.51.100.50",
+      "target": "pc_user",
+      "technique": "T1566.002 - Spearphishing Link",
+      "confidence": 92
+    },
+    {
+      "timestamp": "2025-08-07T20:24:44.075494",
+      "stage": "exploitation",
+      "event": "¶ñÒâÁ´½Óµã»÷",
+      "source_ip": "pc_user",
+      "target": "198.51.100.50",
+      "technique": "T1204.002 - Malicious File",
+      "confidence": 88
+    },
+    {
+      "timestamp": "2025-08-07T21:49:44.075499",
+      "stage": "installation",
+      "event": "ºóÃÅ³ÌÐò°²×°",
+      "source_ip": "pc_user",
+      "target": "pc_user",
+      "technique": "T1547.001 - Registry Run Keys",
+      "confidence": 94
+    },
+    {
+      "timestamp": "2025-08-07T22:59:44.075502",
+      "stage": "command_and_control",
+      "event": "C2Í¨ÐÅ½¨Á¢",
+      "source_ip": "pc_user",
+      "target": "203.0.113.200",
+      "technique": "T1071.001 - Web Protocols",
+      "confidence": 96
+    },
+    {
+      "timestamp": "2025-08-08T00:39:44.075505",
+      "stage": "actions_on_objectives",
+      "event": "ºáÏòÒÆ¶¯³¢ÊÔ",
+      "source_ip": "pc_user",
+      "target": "internal_db",
+      "technique": "T1021.001 - Remote Desktop Protocol",
+      "confidence": 89
+    },
+    {
+      "timestamp": "2025-08-08T01:24:44.075508",
+      "stage": "actions_on_objectives",
+      "event": "Ãô¸ÐÊý¾Ý·ÃÎÊ",
+      "source_ip": "internal_db",
+      "target": "internal_db",
+      "technique": "T1005 - Data from Local System",
+      "confidence": 91
+    }
+  ],
+  "attack_path": [
+    "internet ¡ú firewall (¶Ë¿ÚÉ¨Ãè)",
+    "internet ¡ú dmz_web (WebÖ¸ÎÆÊ¶±ð)",
+    "internet ¡ú pc_user (µöÓãÓÊ¼þ)",
+    "pc_user ¡ú C2·þÎñÆ÷ (½¨Á¢Í¨ÐÅ)",
+    "pc_user ¡ú internal_db (ºáÏòÒÆ¶¯)",
+    "internal_db ¡ú Êý¾ÝÇÔÈ¡"
+  ],
+  "key_indicators": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ]
+}[0m2025-08-08 17:09:44,205 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:09:53,436 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:53,437 - mcp.client.streamable_http - INFO - Received session ID: b2ed6574e48948fbaedbd5c12011a8d7
+2025-08-08 17:09:53,437 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:09:53,443 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:09:53,444 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:53,449 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:53,450 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:57,468 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:58,466 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:09:58,719 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:10:06,347 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:06,347 - mcp.client.streamable_http - INFO - Received session ID: f1af154b639c46aba2b68511c46e2a3e
+2025-08-08 17:10:06,348 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:10:06,354 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:10:06,357 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:06,361 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:06,363 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:11,387 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:11,388 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:11,399 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:11,660 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:10:16,944 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:16,944 - mcp.client.streamable_http - INFO - Received session ID: 00989c492ab2499a8b2d8f1ed3b06eaa
+2025-08-08 17:10:16,945 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:10:16,955 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:10:16,956 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:16,959 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:19,975 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:19,983 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:10:20,110 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+[32;1m[1;3m### ÊÂ¼þ·ÖÎö±¨¸æ£ºINC_183305
+
+#### 1. **¹¥»÷Ê±¼äÏß·ÖÎö**
+- **¹¥»÷³ÖÐøÊ±¼ä**: 8Ð¡Ê±45·ÖÖÓ
+- **¹¥»÷½×¶Î**:
+  - **Õì²ì½×¶Î**: ¶Ë¿ÚÉ¨ÃèºÍWebÓ¦ÓÃÖ¸ÎÆÊ¶±ð
+  - **ÎäÆ÷»¯½×¶Î**: µöÓãÓÊ¼þÖÆ×÷
+  - **Í¶µÝ½×¶Î**: µöÓãÓÊ¼þÍ¶µÝ
+  - **ÀûÓÃ½×¶Î**: ¶ñÒâÁ´½Óµã»÷
+  - **°²×°½×¶Î**: ºóÃÅ³ÌÐò°²×°
+  - **ÃüÁîÓë¿ØÖÆ½×¶Î**: C2Í¨ÐÅ½¨Á¢
+  - **Ä¿±êÐÐ¶¯½×¶Î**: ºáÏòÒÆ¶¯ºÍÊý¾ÝÇÔÈ¡
+
+#### 2. **¹¥»÷Â·¾¶×·×Ù**
+- **Â·¾¶**: `internet ¡ú firewall ¡ú internal_switch ¡ú internal_db`
+- **¹Ø¼ü½Úµã**:
+  - **·À»ðÇ½**: ¹¥»÷ÕßÈÆ¹ý·À»ðÇ½¹æÔò
+  - **ÄÚ²¿½»»»»ú**: ¿ÉÄÜÍ¨¹ýÖÐ¼äÈË¹¥»÷»òÁ÷Á¿ÖØ¶¨Ïò
+  - **ÄÚ²¿Êý¾Ý¿â**: ×îÖÕÄ¿±ê£¬Êý¾Ý±»ÇÔÈ¡
+
+#### 3. **ÍþÐ²ÐÐÎªÕß»­Ïñ**
+- **¹¥»÷ÕßÌØÕ÷**:
+  - Ê¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ
+  - ³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ
+  - ³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ
+  - ºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú
+  - ´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª
+- **¹¥»÷ÕßÉí·Ý**: Î´ÖªÍþÐ²ÐÐÎªÕß£¬¶¯»úÎ´Ã÷È·
+- **¹¥»÷¸´ÔÓ¶È**: ¼«¸ß
+
+#### 4. **Êý×ÖÖ¤¾ÝÊÕ¼¯**
+- **ÈÕÖ¾Ö¤¾Ý**:
+  - ÏµÍ³ÈÕÖ¾¡¢°²È«ÈÕÖ¾¡¢Ó¦ÓÃÈÕÖ¾¡¢·À»ðÇ½ÈÕÖ¾
+  - ×Ü´óÐ¡: 307.9 MB
+- **ÍøÂçÖ¤¾Ý**:
+  - ÍøÂçÁ÷Á¿²¶»ñ¡¢DNS²éÑ¯¼ÇÂ¼¡¢HTTPÇëÇó¼ÇÂ¼
+  - ×Ü´óÐ¡: 63.2 MB
+
+#### 5. **·À»¤½¨Òé**
+- **¼¼Êõ´ëÊ©**:
+  - ¼ÓÇ¿ÍøÂç·Ö¶Î
+  - ²¿ÊðÈëÇÖ¼ì²âÏµÍ³
+  - ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹
+  - ¶¨ÆÚ½øÐÐÉøÍ¸²âÊÔ
+- **¹ÜÀí´ëÊ©**:
+  - ¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ
+  - ½¨Á¢ÍþÐ²ÁÔÉ±ÄÜÁ¦
+  - ²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³
+
+#### 6. **×ÛºÏ±¨¸æ**
+- **ÊÂ¼þÀàÐÍ**: ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷
+- **Ó°ÏìÆÀ¹À**: ÖÐµÈµ½¸ßµÈÓ°Ïì
+- **µ±Ç°×´Ì¬**: ÒÑ¿ØÖÆ
+- **¹Ø¼ü½ÌÑµ**:
+  - ÐèÒª¼ÓÇ¿°²È«ÒâÊ¶ÅàÑµ
+  - Ó¦ÊµÊ©¸üÑÏ¸ñµÄÍøÂç·Ö¶Î
+  - ²¿ÊðEDR½â¾ö·½°¸
+
+ÈçÐè½øÒ»²½·ÖÎö»ò²ÉÈ¡ÐÐ¶¯£¬Çë¸æÖª£¡[0m
+
+[1m> Finished chain.[0m
+[32;1m[1;3m
+Invoking: `generate_threat_actor_profile` with `{'indicators': ['¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ', '³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ', '³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ', 'ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú', '´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª']}`
+
+
+[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs, network', 'target_system': 'pc_user, internal_db'}`
+
+
+[0m[38;5;200m[1;3m{
+  "profile_id": "PROFILE_430330",
+  "analysis_date": "2025-08-08T17:09:57.459583",
+  "indicators_analyzed": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ],
+  "matched_actors": [],
+  "primary_attribution": {
+    "actor_name": "Î´ÖªÍþÐ²ÐÐÎªÕß",
+    "confidence": 30,
+    "origin": "Î´Öª",
+    "motivation": "Î´È·¶¨",
+    "target_sectors": [
+      "¶àÐÐÒµ"
+    ],
+    "ttps": [
+      "³£¼û¹¥»÷¼¼Êõ"
+    ],
+    "tools": [
+      "Í¨ÓÃ¹¤¾ß"
+    ]
+  },
+  "attack_sophistication": "ÖÐ",
+  "campaign_assessment": {
+    "campaign_type": "»ú»áÖ÷Òå¹¥»÷",
+    "persistence_level": "ÖÐ",
+    "stealth_level": "ÖÐµÈ",
+    "resource_level": "ÓÐÏÞ"
+  },
+  "recommendations": [
+    "¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯",
+    "²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
+    "ÊµÊ©ÐÐÎª·ÖÎö¼à¿Ø",
+    "½¨Á¢ÍþÐ²ÁÔÉ±ÄÜÁ¦",
+    "¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ"
+  ]
+}[0m[31;1m[1;3m{"error": "Î´ÖªÖ¤¾ÝÀàÐÍ: logs, network"}[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'logs', 'target_system': 'pc_user'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `collect_digital_evidence` with `{'evidence_type': 'network', 'target_system': 'internal_db'}`
+
+
+[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_552229",
+  "evidence_type": "logs",
+  "evidence_name": "ÏµÍ³ÈÕÖ¾",
+  "target_system": "pc_user",
+  "collection_started": "2025-08-08T17:10:11.375513",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:10:11.375528",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
+    {
+      "filename": "system.log",
+      "size_bytes": 20390070,
+      "hash_sha256": "96aaed6f92f4635b06b6ed03093897945f3ca365313b50828f7166f103cdecf9",
+      "created_time": "2025-07-12T17:10:11.375549",
+      "modified_time": "2025-08-08T06:10:11.375559"
+    },
+    {
+      "filename": "security.log",
+      "size_bytes": 95665792,
+      "hash_sha256": "1ba743af1f418983e3c71d2daf4f4e6e6e05c6beb0b06ec43baaa68e20ad171b",
+      "created_time": "2025-07-09T17:10:11.375579",
+      "modified_time": "2025-08-08T14:10:11.375584"
+    },
+    {
+      "filename": "application.log",
+      "size_bytes": 33882001,
+      "hash_sha256": "d3cb53ac9b0c6a53ab7c105c465dbfd069e7e9bb3a0683718d8a782d198ae03e",
+      "created_time": "2025-08-05T17:10:11.375599",
+      "modified_time": "2025-08-08T16:10:11.375604"
+    },
+    {
+      "filename": "firewall.log",
+      "size_bytes": 2220083,
+      "hash_sha256": "0314e3d4fe68e38bd26655f2f0959afa7886e8a582648b2c140f54392abb192e",
+      "created_time": "2025-08-03T17:10:11.375617",
+      "modified_time": "2025-08-08T09:10:11.375621"
+    }
+  ],
+  "status": "success",
+  "collection_completed": "2025-08-08T17:10:11.375627",
+  "total_files": 4,
+  "total_size_mb": 145.1091251373291
+}[0m[31;1m[1;3m{
+  "collection_id": "EVIDENCE_194453",
+  "evidence_type": "network",
+  "evidence_name": "ÍøÂçÁ÷Á¿",
+  "target_system": "internal_db",
+  "collection_started": "2025-08-08T17:10:11.377190",
+  "collection_method": "Ô¶³ÌÈ¡Ö¤¹¤¾ß",
+  "chain_of_custody": {
+    "collector": "Êý×ÖÈ¡Ö¤×¨¼Ò",
+    "collection_time": "2025-08-08T17:10:11.377199",
+    "hash_algorithm": "SHA-256",
+    "integrity_verified": true
+  },
+  "collected_files": [
+    {
+      "filename": "network_capture.pcap",
+      "size_bytes": 13285647,
+      "hash_sha256": "c915ce0e4bfcda6222f92726c8a6bf0ada712024a98aed294b62f69616e497c8",
+      "created_time": "2025-08-03T17:10:11.377223",
+      "modified_time": "2025-08-07T18:10:11.377232"
+    },
+    {
+      "filename": "dns_queries.txt",
+      "size_bytes": 65225815,
+      "hash_sha256": "ea7f78c3ef0c0555ac3736493a5c88639fc872e38ea22bf66757e2f7096766bf",
+      "created_time": "2025-07-09T17:10:11.377251",
+      "modified_time": "2025-08-07T20:10:11.377257"
+    },
+    {
+      "filename": "http_requests.txt",
+      "size_bytes": 438337,
+      "hash_sha256": "1d55be662bbf553c35a67f293cd2383fe8779431bace7a57a96ac64e8c200c75",
+      "created_time": "2025-07-10T17:10:11.377272",
+      "modified_time": "2025-08-08T07:10:11.377277"
+    }
+  ],
+  "status": "success",
+  "collection_completed": "2025-08-08T17:10:11.377283",
+  "total_files": 3,
+  "total_size_mb": 75.29239559173584
+}[0m[32;1m[1;3m
+Invoking: `generate_incident_report` with `{'incident_id': 'INC_183368'}`
+
+
+[0m[33;1m[1;3m{
+  "report_id": "INCIDENT_884466",
+  "incident_id": "INC_183368",
+  "incident_type": "apt_attack",
+  "incident_name": "¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
+  "report_generated": "2025-08-08T17:10:19.968951",
+  "executive_summary": {
+    "incident_overview": "¼ì²âµ½Õë¶Ô×éÖ¯µÄ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷",
+    "impact_assessment": "ÖÐµÈµ½¸ßµÈÓ°Ïì",
+    "current_status": "ÒÑ¿ØÖÆ",
+    "estimated_cost": "$287,345"
+  },
+  "timeline": {
+    "first_detection": "2025-08-07T17:10:19.968965",
+    "incident_declared": "2025-08-07T18:10:19.968974",
+    "containment_achieved": "2025-08-07T23:10:19.968977",
+    "eradication_completed": "2025-08-08T05:10:19.968979",
+    "recovery_started": "2025-08-08T11:10:19.968982"
+  },
+  "affected_systems": [
+    {
+      "system": "dmz_web",
+      "impact": "¸ß",
+      "status": "ÒÑ»Ö¸´"
+    },
+    {
+      "system": "internal_db",
+      "impact": "ÖÐ",
+      "status": "¼à¿ØÖÐ"
+    },
+    {
+      "system": "pc_user",
+      "impact": "¸ß",
+      "status": "ÒÑÖØ½¨"
+    }
+  ],
+  "attack_vectors": [
+    "µöÓãÓÊ¼þ",
+    "WebÓ¦ÓÃÂ©¶´",
+    "ºáÏòÒÆ¶¯",
+    "È¨ÏÞÌáÉý"
+  ],
+  "evidence_collected": [
+    "ÏµÍ³ÈÕÖ¾ (50GB)",
+    "ÍøÂçÁ÷Á¿²¶»ñ (200GB)",
+    "ÄÚ´æ¾µÏñ (32GB)",
+    "¶ñÒâÈí¼þÑù±¾ (15¸ö)"
+  ],
+  "lessons_learned": [
+    "ÐèÒª¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ",
+    "Ó¦ÊµÊ©¸üÑÏ¸ñµÄÍøÂç·Ö¶Î",
+    "ÐèÒª²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³",
+    "Ó¦½¨Á¢¸üÍêÉÆµÄÊÂ¼þÏìÓ¦Á÷³Ì"
+  ],
+  "recommendations": [
+    "ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹",
+    "²¿ÊðEDR½â¾ö·½°¸",
+    "¼ÓÇ¿ÍþÐ²Çé±¨ÄÜÁ¦",
+    "¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·",
+    "½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó"
+  ]
+}[0m[32;1m[1;3m### ÊÂ¼þ·ÖÎö±¨¸æÕªÒª
+
+**ÊÂ¼þID**: INC_183368  
+**ÊÂ¼þÀàÐÍ**: ¸ß¼¶³ÖÐøÐÔÍþÐ²¹¥»÷ (APT)  
+**¹¥»÷Ê±¼äÏß**: 2025Äê8ÔÂ7ÈÕÖÁ8ÔÂ8ÈÕ  
+**¹¥»÷³ÖÐøÊ±¼ä**: 8Ð¡Ê±45·ÖÖÓ  
+**¹¥»÷Ó°Ïì**: ÖÐµÈµ½¸ßµÈ  
+
+---
+
+#### **¹¥»÷Â·¾¶Óë½×¶Î**
+1. **Õì²ì½×¶Î**:
+   - ¶Ë¿ÚÉ¨Ãè»î¶¯ (Ô´IP: 203.0.113.100)
+   - WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð (Ä¿±ê: DMZ Web·þÎñÆ÷)
+2. **ÎäÆ÷»¯ÓëÍ¶µÝ**:
+   - µöÓãÓÊ¼þÖÆ×÷ÓëÍ¶µÝ (Ô´IP: 198.51.100.50)
+3. **ÀûÓÃÓë³Ö¾Ã»¯**:
+   - ¶ñÒâÁ´½Óµã»÷µ¼ÖÂºóÃÅ³ÌÐò°²×°
+   - ³É¹¦½¨Á¢C2Í¨ÐÅ (Ä¿±êIP: 203.0.113.200)
+4. **ºáÏòÒÆ¶¯ÓëÊý¾ÝÇÔÈ¡**:
+   - ºáÏòÒÆ¶¯µ½ÄÚ²¿Êý¾Ý¿â (Ä¿±ê: internal_db)
+   - Ãô¸ÐÊý¾Ý·ÃÎÊÐÐÎª
+
+---
+
+#### **ÍþÐ²ÐÐÎªÕß»­Ïñ**
+- **Éí·Ý**: Î´ÖªÍþÐ²ÐÐÎªÕß  
+- **¶¯»ú**: Î´È·¶¨  
+- **¹¥»÷¼¼Êõ**:
+  - ¶à½×¶Î¹¥»÷²ßÂÔ
+  - µöÓãÓÊ¼þ³õÊ¼·ÃÎÊ
+  - ³Ö¾Ã»¯·ÃÎÊÓëºáÏòÒÆ¶¯
+- **¹¥»÷¸´ÔÓ¶È**: ÖÐµÈ  
+- **½¨Òé**: ¼ÓÇ¿ÍþÐ²Çé±¨ÊÕ¼¯ÓëÐÐÎª·ÖÎö¼à¿Ø¡£
+
+---
+
+#### **ÊÕ¼¯µÄÊý×ÖÖ¤¾Ý**
+1. **ÏµÍ³ÈÕÖ¾** (Ä¿±ê: pc_user)
+   - ÎÄ¼þ: `system.log`, `security.log`, `application.log`, `firewall.log`
+   - ÍêÕûÐÔÒÑÑéÖ¤ (SHA-256¹þÏ£)
+2. **ÍøÂçÁ÷Á¿** (Ä¿±ê: internal_db)
+   - ÎÄ¼þ: `network_capture.pcap`, `dns_queries.txt`, `http_requests.txt`
+   - ÍêÕûÐÔÒÑÑéÖ¤ (SHA-256¹þÏ£)
+
+---
+
+#### **·À»¤½¨Òé**
+1. **¼¼Êõ´ëÊ©**:
+   - ²¿Êð¸ß¼¶ÍþÐ²¼ì²âÏµÍ³ (ÈçEDR)¡£
+   - ÊµÊ©ÁãÐÅÈÎÍøÂç¼Ü¹¹¡£
+2. **Á÷³Ì¸Ä½ø**:
+   - ¶¨ÆÚ½øÐÐ°²È«ÑÝÁ·¡£
+   - ½¨Á¢ÍþÐ²ÁÔÉ±ÍÅ¶Ó¡£
+3. **ÈËÔ±ÅàÑµ**:
+   - ¼ÓÇ¿Ô±¹¤°²È«ÒâÊ¶ÅàÑµ£¬ÌØ±ðÊÇµöÓãÓÊ¼þÊ¶±ð¡£
+
+---
+
+#### **ÍêÕû±¨¸æ**
+ÈçÐèÏêÏ¸±¨¸æ£¬Çë²Î¿¼Éú³ÉµÄ±¨¸æID: `INCIDENT_884466`¡£[0m2025-08-08 17:10:51,015 - attribution-agent - WARNING - ·¢ËÍÏûÏ¢Ê§°Ü£¬³¢ÊÔÖØÐÂÁ¬½Ó: sent 1011 (internal error) keepalive ping timeout; no close frame received
+C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\attribution_agent.py:49: DeprecationWarning: websockets.client.connect is deprecated
+  websockets.client.connect(
+2025-08-08 17:10:53,051 - attribution-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
+2025-08-08 17:10:56,768 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:11:04,329 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:04,329 - mcp.client.streamable_http - INFO - Received session ID: 20bf66f755d4430cbb7efd9e0f87b457
+2025-08-08 17:11:04,330 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:11:04,335 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:11:04,336 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:04,340 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:04,341 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:06,365 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:07,364 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:07,478 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:11:28,323 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:11:36,568 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:36,569 - mcp.client.streamable_http - INFO - Received session ID: 9393f9d1c7714d2ea698348174ef1c44
+2025-08-08 17:11:36,569 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:11:36,575 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:11:36,576 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:36,581 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:36,582 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:38,593 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:39,604 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+
+
+[1m> Finished chain.[0m
+
+
+[1m> Entering new AgentExecutor chain...[0m
+[32;1m[1;3m
+Invoking: `analyze_attack_timeline` with `{'start_time': '2025-01-01T00:00:00', 'end_time': '2025-12-31T23:59:59'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '¿ª·Å¶Ë¿Ú'}`
+
+
+[0m[33;1m[1;3m{"error": "ÎÞ·¨ÕÒµ½´Ó internet µ½ ¿ª·Å¶Ë¿Ú µÄÂ·¾¶"}[0m[36;1m[1;3m{
+  "analysis_id": "TIMELINE_467511",
+  "analysis_period": {
+    "start": "2025-01-01T00:00:00",
+    "end": "2025-12-31T23:59:59"
+  },
+  "total_events": 9,
+  "attack_duration": "8Ð¡Ê±45·ÖÖÓ",
+  "attack_stages": {
+    "reconnaissance": 2,
+    "weaponization": 1,
+    "delivery": 1,
+    "exploitation": 1,
+    "installation": 1,
+    "command_and_control": 1,
+    "actions_on_objectives": 2
+  },
+  "events": [
+    {
+      "timestamp": "2025-08-07T17:26:07.356179",
+      "stage": "reconnaissance",
+      "event": "¶Ë¿ÚÉ¨Ãè»î¶¯",
+      "source_ip": "203.0.113.100",
+      "target": "firewall",
+      "technique": "T1046 - Network Service Scanning",
+      "confidence": 95
+    },
+    {
+      "timestamp": "2025-08-07T17:41:07.356207",
+      "stage": "reconnaissance",
+      "event": "WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð",
+      "source_ip": "203.0.113.100",
+      "target": "dmz_web",
+      "technique": "T1590 - Gather Victim Network Information",
+      "confidence": 90
+    },
+    {
+      "timestamp": "2025-08-07T18:56:07.356213",
+      "stage": "weaponization",
+      "event": "µöÓãÓÊ¼þÖÆ×÷",
+      "source_ip": "unknown",
+      "target": "pc_user",
+      "technique": "T1566.001 - Spearphishing Attachment",
+      "confidence": 85
+    },
+    {
+      "timestamp": "2025-08-07T19:41:07.356220",
+      "stage": "delivery",
+      "event": "µöÓãÓÊ¼þÍ¶µÝ",
+      "source_ip": "198.51.100.50",
+      "target": "pc_user",
+      "technique": "T1566.002 - Spearphishing Link",
+      "confidence": 92
+    },
+    {
+      "timestamp": "2025-08-07T20:26:07.356224",
+      "stage": "exploitation",
+      "event": "¶ñÒâÁ´½Óµã»÷",
+      "source_ip": "pc_user",
+      "target": "198.51.100.50",
+      "technique": "T1204.002 - Malicious File",
+      "confidence": 88
+    },
+    {
+      "timestamp": "2025-08-07T21:51:07.356228",
+      "stage": "installation",
+      "event": "ºóÃÅ³ÌÐò°²×°",
+      "source_ip": "pc_user",
+      "target": "pc_user",
+      "technique": "T1547.001 - Registry Run Keys",
+      "confidence": 94
+    },
+    {
+      "timestamp": "2025-08-07T23:01:07.356231",
+      "stage": "command_and_control",
+      "event": "C2Í¨ÐÅ½¨Á¢",
+      "source_ip": "pc_user",
+      "target": "203.0.113.200",
+      "technique": "T1071.001 - Web Protocols",
+      "confidence": 96
+    },
+    {
+      "timestamp": "2025-08-08T00:41:07.356235",
+      "stage": "actions_on_objectives",
+      "event": "ºáÏòÒÆ¶¯³¢ÊÔ",
+      "source_ip": "pc_user",
+      "target": "internal_db",
+      "technique": "T1021.001 - Remote Desktop Protocol",
+      "confidence": 89
+    },
+    {
+      "timestamp": "2025-08-08T01:26:07.356240",
+      "stage": "actions_on_objectives",
+      "event": "Ãô¸ÐÊý¾Ý·ÃÎÊ",
+      "source_ip": "internal_db",
+      "target": "internal_db",
+      "technique": "T1005 - Data from Local System",
+      "confidence": 91
+    }
+  ],
+  "attack_path": [
+    "internet ¡ú firewall (¶Ë¿ÚÉ¨Ãè)",
+    "internet ¡ú dmz_web (WebÖ¸ÎÆÊ¶±ð)",
+    "internet ¡ú pc_user (µöÓãÓÊ¼þ)",
+    "pc_user ¡ú C2·þÎñÆ÷ (½¨Á¢Í¨ÐÅ)",
+    "pc_user ¡ú internal_db (ºáÏòÒÆ¶¯)",
+    "internal_db ¡ú Êý¾ÝÇÔÈ¡"
+  ],
+  "key_indicators": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ]
+}[0m
+
+[1m> Entering new AgentExecutor chain...[0m
+[32;1m[1;3m### ¹¥»÷Ê±¼äÏß·ÖÎö
+¹¥»÷Ê±¼äÏß·ÖÎöÒÑÍê³É£¬ÒÔÏÂÊÇ¹Ø¼ü·¢ÏÖ£º
+- **¹¥»÷³ÖÐøÊ±¼ä**£º8Ð¡Ê±45·ÖÖÓ
+- **¹¥»÷½×¶Î**£º
+  1. **Õì²ì½×¶Î**£º¹¥»÷Õß½øÐÐÁË¶Ë¿ÚÉ¨ÃèºÍWebÓ¦ÓÃÖ¸ÎÆÊ¶±ð¡£
+  2. **ÎäÆ÷»¯½×¶Î**£ºÖÆ×÷ÁËµöÓãÓÊ¼þ¡£
+  3. **Í¶µÝ½×¶Î**£ºÍ¨¹ýµöÓãÓÊ¼þÍ¶µÝ¶ñÒâÁ´½Ó¡£
+  4. **ÀûÓÃ½×¶Î**£ºÓÃ»§µã»÷¶ñÒâÁ´½Ó¡£
+  5. **°²×°½×¶Î**£ººóÃÅ³ÌÐò°²×°³É¹¦¡£
+  6. **ÃüÁîÓë¿ØÖÆ**£º½¨Á¢ÁËC2Í¨ÐÅ¡£
+  7. **Ä¿±êÐÐ¶¯**£º³¢ÊÔºáÏòÒÆ¶¯²¢·ÃÎÊÃô¸ÐÊý¾Ý¡£
+
+- **¹Ø¼üÖ¸±ê**£º
+  - ¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ¡£
+  - ³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ¡£
+  - ³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ¡£
+  - ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú¡£
+  - ´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª¡£
+
+### ¹¥»÷Â·¾¶×·×Ù
+Î´ÄÜÕÒµ½´Ó¡°internet¡±µ½¡°¿ª·Å¶Ë¿Ú¡±µÄÖ±½Ó¹¥»÷Â·¾¶¡£¿ÉÄÜµÄÔ­Òò°üÀ¨£º
+- ¹¥»÷Â·¾¶¿ÉÄÜÉæ¼°¶à¸öÌø°å»òÖÐ¼ä½Úµã¡£
+- ¿ª·Å¶Ë¿Ú¿ÉÄÜÎ´±»Ö±½ÓÀûÓÃ£¬¶øÊÇÍ¨¹ýÆäËû·½Ê½£¨ÈçµöÓãÓÊ¼þ£©¼ä½ÓÀûÓÃ¡£
+
+### ÏÂÒ»²½ÐÐ¶¯
+1. **Éú³ÉÍþÐ²ÐÐÎªÕß»­Ïñ**£º»ùÓÚ¹¥»÷Ö¸±ê£¨ÈçµöÓãÓÊ¼þ¡¢C2Í¨ÐÅIPµÈ£©Éú³É¹¥»÷Õß»­Ïñ¡£
+2. **ÊÕ¼¯Êý×ÖÖ¤¾Ý**£º´ÓÈÕÖ¾ºÍÍøÂçÖÐÊÕ¼¯Ïà¹ØÖ¤¾Ý¡£
+3. **¶ñÒâÈí¼þ·ÖÎö**£ºÈç¹û·¢ÏÖ¶ñÒâÈí¼þÑù±¾£¬½«½øÐÐÉî¶È·ÖÎö¡£
+4. **Éú³ÉÊÂ¼þ±¨¸æ**£ºÕûºÏËùÓÐ·ÖÎö½á¹ûÉú³É×ÛºÏ±¨¸æ¡£
+
+ÇëÈ·ÈÏÊÇ·ñ¼ÌÐøÖ´ÐÐºóÐøÈÎÎñ¡£[0m
+
+[1m> Finished chain.[0m
+[32;1m[1;3m
+Invoking: `analyze_attack_timeline` with `{'start_time': '2025-01-01T00:00:00', 'end_time': '2025-12-31T23:59:59'}`
+
+
+[0m[32;1m[1;3m
+Invoking: `trace_attack_path` with `{'source_node': 'internet', 'target_node': '-'}`
+
+
+[0m[33;1m[1;3m{"error": "ÎÞ·¨ÕÒµ½´Ó internet µ½ - µÄÂ·¾¶"}[0m[36;1m[1;3m{
+  "analysis_id": "TIMELINE_516513",
+  "analysis_period": {
+    "start": "2025-01-01T00:00:00",
+    "end": "2025-12-31T23:59:59"
+  },
+  "total_events": 9,
+  "attack_duration": "8Ð¡Ê±45·ÖÖÓ",
+  "attack_stages": {
+    "reconnaissance": 2,
+    "weaponization": 1,
+    "delivery": 1,
+    "exploitation": 1,
+    "installation": 1,
+    "command_and_control": 1,
+    "actions_on_objectives": 2
+  },
+  "events": [
+    {
+      "timestamp": "2025-08-07T17:26:39.595969",
+      "stage": "reconnaissance",
+      "event": "¶Ë¿ÚÉ¨Ãè»î¶¯",
+      "source_ip": "203.0.113.100",
+      "target": "firewall",
+      "technique": "T1046 - Network Service Scanning",
+      "confidence": 95
+    },
+    {
+      "timestamp": "2025-08-07T17:41:39.596000",
+      "stage": "reconnaissance",
+      "event": "WebÓ¦ÓÃÖ¸ÎÆÊ¶±ð",
+      "source_ip": "203.0.113.100",
+      "target": "dmz_web",
+      "technique": "T1590 - Gather Victim Network Information",
+      "confidence": 90
+    },
+    {
+      "timestamp": "2025-08-07T18:56:39.596007",
+      "stage": "weaponization",
+      "event": "µöÓãÓÊ¼þÖÆ×÷",
+      "source_ip": "unknown",
+      "target": "pc_user",
+      "technique": "T1566.001 - Spearphishing Attachment",
+      "confidence": 85
+    },
+    {
+      "timestamp": "2025-08-07T19:41:39.596013",
+      "stage": "delivery",
+      "event": "µöÓãÓÊ¼þÍ¶µÝ",
+      "source_ip": "198.51.100.50",
+      "target": "pc_user",
+      "technique": "T1566.002 - Spearphishing Link",
+      "confidence": 92
+    },
+    {
+      "timestamp": "2025-08-07T20:26:39.596018",
+      "stage": "exploitation",
+      "event": "¶ñÒâÁ´½Óµã»÷",
+      "source_ip": "pc_user",
+      "target": "198.51.100.50",
+      "technique": "T1204.002 - Malicious File",
+      "confidence": 88
+    },
+    {
+      "timestamp": "2025-08-07T21:51:39.596023",
+      "stage": "installation",
+      "event": "ºóÃÅ³ÌÐò°²×°",
+      "source_ip": "pc_user",
+      "target": "pc_user",
+      "technique": "T1547.001 - Registry Run Keys",
+      "confidence": 94
+    },
+    {
+      "timestamp": "2025-08-07T23:01:39.596028",
+      "stage": "command_and_control",
+      "event": "C2Í¨ÐÅ½¨Á¢",
+      "source_ip": "pc_user",
+      "target": "203.0.113.200",
+      "technique": "T1071.001 - Web Protocols",
+      "confidence": 96
+    },
+    {
+      "timestamp": "2025-08-08T00:41:39.596034",
+      "stage": "actions_on_objectives",
+      "event": "ºáÏòÒÆ¶¯³¢ÊÔ",
+      "source_ip": "pc_user",
+      "target": "internal_db",
+      "technique": "T1021.001 - Remote Desktop Protocol",
+      "confidence": 89
+    },
+    {
+      "timestamp": "2025-08-08T01:26:39.596039",
+      "stage": "actions_on_objectives",
+      "event": "Ãô¸ÐÊý¾Ý·ÃÎÊ",
+      "source_ip": "internal_db",
+      "target": "internal_db",
+      "technique": "T1005 - Data from Local System",
+      "confidence": 91
+    }
+  ],
+  "attack_path": [
+    "internet ¡ú firewall (¶Ë¿ÚÉ¨Ãè)",
+    "internet ¡ú dmz_web (WebÖ¸ÎÆÊ¶±ð)",
+    "internet ¡ú pc_user (µöÓãÓÊ¼þ)",
+    "pc_user ¡ú C2·þÎñÆ÷ (½¨Á¢Í¨ÐÅ)",
+    "pc_user ¡ú internal_db (ºáÏòÒÆ¶¯)",
+    "internal_db ¡ú Êý¾ÝÇÔÈ¡"
+  ],
+  "key_indicators": [
+    "¹¥»÷ÕßÊ¹ÓÃ¶à½×¶Î¹¥»÷²ßÂÔ",
+    "³õÊ¼·ÃÎÊÍ¨¹ýµöÓãÓÊ¼þÊµÏÖ",
+    "³É¹¦½¨Á¢³Ö¾Ã»¯·ÃÎÊ",
+    "ÊµÏÖÁËºáÏòÒÆ¶¯µ½¹Ø¼ü×Ê²ú",
+    "´æÔÚÊý¾ÝÇÔÈ¡ÐÐÎª"
+  ]
+}[0m2025-08-08 17:11:39,714 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:11:48,795 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:48,795 - mcp.client.streamable_http - INFO - Received session ID: 258e14826bcc44d8bf31ab81f2c4ff66
+2025-08-08 17:11:48,796 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:11:48,803 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:11:48,805 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:48,810 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:48,812 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:52,833 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:53,827 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:11:54,037 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:12:02,288 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:02,288 - mcp.client.streamable_http - INFO - Received session ID: c211a63b24b34040b6d18b141afcd4da
+2025-08-08 17:12:02,289 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:12:02,295 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:12:02,297 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:02,302 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:02,304 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:07,328 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:07,331 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:07,344 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:07,674 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-08 17:12:13,388 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:13,388 - mcp.client.streamable_http - INFO - Received session ID: e619075e37504c2fa3c247e95ffec796
+2025-08-08 17:12:13,388 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
+2025-08-08 17:12:13,394 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 202 Accepted"
+2025-08-08 17:12:13,397 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:13,399 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:16,419 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:16,424 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8010/mcp/ "HTTP/1.1 200 OK"
+2025-08-08 17:12:16,565 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"

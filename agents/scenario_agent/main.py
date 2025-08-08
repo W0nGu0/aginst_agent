@@ -93,6 +93,71 @@ async def send_log_to_backend(level: str, source: str, message: str):
     except Exception as e:
         logger.error(f"发送日志到后端WebSocket失败: {e}")
 
+async def simulate_vulnerability_injection():
+    """场景生成智能体的漏洞注入过程（仅在终端输出）"""
+    print('\n=== 场景生成智能体 - 漏洞注入 ===')
+    print('🔧 场景生成智能体开始为容器动态注入漏洞...')
+    
+    # 模拟各种容器的漏洞注入
+    vulnerability_injections = [
+        {
+            'container': 'dmz-web-01',
+            'vulnerabilities': [
+                'CVE-2024-0001: Apache HTTP Server 远程代码执行漏洞',
+                'CVE-2023-4567: PHP 8.1 文件上传绕过漏洞',
+                'CVE-2023-8901: MySQL 5.7 权限提升漏洞'
+            ]
+        },
+        {
+            'container': 'dmz-dns-01', 
+            'vulnerabilities': [
+                'CVE-2024-0002: BIND 9.16 DNS缓存投毒漏洞',
+                'CVE-2023-5678: DNS服务器配置错误导致信息泄露'
+            ]
+        },
+        {
+            'container': 'internal-db-01',
+            'vulnerabilities': [
+                'CVE-2024-0003: PostgreSQL 14 SQL注入漏洞',
+                'CVE-2023-6789: 数据库备份文件权限配置错误',
+                'CVE-2023-9012: 弱密码策略漏洞'
+            ]
+        },
+        {
+            'container': 'internal-file-01',
+            'vulnerabilities': [
+                'CVE-2024-0004: Samba 4.15 远程文件访问漏洞',
+                'CVE-2023-7890: FTP服务匿名访问配置错误'
+            ]
+        },
+        {
+            'container': 'ws-user-01',
+            'vulnerabilities': [
+                'CVE-2024-0005: Windows 10 浏览器0day漏洞',
+                'CVE-2023-8901: Office宏执行绕过漏洞',
+                'CVE-2023-9123: 用户权限管理配置错误'
+            ]
+        }
+    ]
+
+    for index, injection in enumerate(vulnerability_injections):
+        await asyncio.sleep(1)  # 模拟注入时间间隔
+        print(f'\n📦 正在为容器 {injection["container"]} 注入漏洞:')
+        
+        for vuln_index, vuln in enumerate(injection['vulnerabilities']):
+            await asyncio.sleep(0.2)  # 模拟每个漏洞的注入时间
+            print(f'   ✅ 已注入: {vuln}')
+        
+        if index == len(vulnerability_injections) - 1:
+            await asyncio.sleep(0.5)
+            print('\n🎯 场景生成智能体漏洞注入完成!')
+            print('📊 注入统计:')
+            print(f'   - 总容器数: {len(vulnerability_injections)}')
+            total_vulns = sum(len(inj["vulnerabilities"]) for inj in vulnerability_injections)
+            print(f'   - 总漏洞数: {total_vulns}')
+            print('   - 漏洞类型: RCE, SQL注入, 权限提升, 信息泄露, 配置错误')
+            print('=== 漏洞注入完成 ===\n')
+
 def extract_optimized_topology(raw_data):
     """
     从原始工具数据中提取优化的拓扑数据，去除冗余信息
@@ -490,6 +555,9 @@ async def deploy_scenario_containers(scenario_file: str) -> str:
             )
 
         result = "\n".join([b.text for b in response.content if hasattr(b, "text")])
+
+        # 模拟漏洞注入过程（仅在终端输出）
+        await simulate_vulnerability_injection()
 
         await send_log_to_backend("info", "场景智能体", "场景容器部署完成")
         return result

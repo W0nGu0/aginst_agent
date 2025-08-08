@@ -276,12 +276,24 @@ class DefenseCoordinator:
             elif agent_type == "vulnerability_remediation":
                 # 提取目标主机信息，使用更通用的名称
                 target_hosts = context["extracted_info"].get("hosts", [])
-                if not target_hosts:
-                    # 如果没有提取到主机名，使用默认的系统名称
-                    target_hosts = ["web-server", "database-server", "file-server"]
+                
+                # 根据日志内容智能选择目标系统
+                log_message_lower = context["source_message"].lower()
+                if "dmz" in log_message_lower or "web" in log_message_lower:
+                    default_target = "web-server"
+                elif "数据库" in log_message_lower or "database" in log_message_lower:
+                    default_target = "database-server"
+                elif "内网" in log_message_lower or "internal" in log_message_lower:
+                    default_target = "internal-server"
+                else:
+                    default_target = "web-server"
+                
+                # 确保目标系统名称是有效的
+                valid_targets = ["web-server", "database-server", "file-server", "internal-server"]
+                target_system = target_hosts[0] if target_hosts and target_hosts[0] in valid_targets else default_target
                 
                 payload = {
-                    "target_systems": target_hosts[0] if target_hosts else "web-server",
+                    "target_systems": target_system,
                     "scan_type": "comprehensive", 
                     "auto_patch": True,
                     "hardening_profile": "standard",
