@@ -1,37 +1,13 @@
-2025-08-08 17:45:08,734 - vulnerability-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
-2025-08-08 17:45:08,751 - vulnerability-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8009/mcp/
+2025-08-09 18:54:48,585 - vulnerability-agent - INFO - ChatDeepSeek³õÊ¼»¯³É¹¦
+2025-08-09 18:54:48,596 - vulnerability-agent - INFO - FastMCP´úÀíÁ¬½Ó³É¹¦: http://127.0.0.1:8009/mcp/
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\langchain_core\tools\base.py:1314: PydanticDeprecatedSince20: The `__fields__` attribute is deprecated, use `model_fields` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
   fields = getattr(cls, "model_fields", {}) or getattr(cls, "__fields__", {})
-2025-08-08 17:45:08,773 - vulnerability-agent - INFO - Â©¶´ÐÞ¸´ÖÇÄÜÌå´´½¨³É¹¦
+2025-08-09 18:54:48,618 - vulnerability-agent - INFO - Â©¶´ÐÞ¸´ÖÇÄÜÌå´´½¨³É¹¦
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [67092]
+INFO:     Started server process [51552]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8012 (Press CTRL+C to quit)
-C:\Users\LEGION\Desktop\sec_agent\agents\defense_agent\vulnerability_agent.py:47: DeprecationWarning: websockets.client.connect is deprecated
-  backend_ws = await websockets.client.connect(BACKEND_WS_URL)
-2025-08-08 17:49:47,627 - vulnerability-agent - INFO - ÒÑÁ¬½Óµ½ºó¶ËWebSocket: ws://localhost:8080/ws/logs
-2025-08-08 17:49:48,133 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-2025-08-08 17:49:54,326 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8009/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 17:49:54,327 - mcp.client.streamable_http - INFO - Received session ID: 2502573e0db3465c87df74fdf48b96bd
-2025-08-08 17:49:54,328 - mcp.client.streamable_http - INFO - Negotiated protocol version: 2025-06-18
-2025-08-08 17:49:54,336 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8009/mcp/ "HTTP/1.1 202 Accepted"
-2025-08-08 17:49:54,339 - httpx - INFO - HTTP Request: GET http://127.0.0.1:8009/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 17:49:54,341 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8009/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 17:49:57,365 - httpx - INFO - HTTP Request: POST http://127.0.0.1:8009/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 17:49:57,374 - httpx - INFO - HTTP Request: DELETE http://127.0.0.1:8009/mcp/ "HTTP/1.1 200 OK"
-2025-08-08 17:49:57,453 - httpx - INFO - HTTP Request: POST https://api.deepseek.com/v1/chat/completions "HTTP/1.1 200 OK"
-
-
-[1m> Entering new AgentExecutor chain...[0m
-[32;1m[1;3m
-Invoking: `scan_system_vulnerabilities` with `{'target_system': 'web-server', 'scan_type': 'comprehensive'}`
-
-
-[0m[36;1m[1;3m{"error": "Î´ÖªÏµÍ³: ws-web-01"}[0m[32;1m[1;3mÉ¨ÃèÄ¿±êÏµÍ³Ê±Óöµ½´íÎó£¬ÌáÊ¾ÏµÍ³ "ws-web-01" Î´Öª¡£ÇëÈ·ÈÏÄ¿±êÏµÍ³µÄÃû³ÆÊÇ·ñÕýÈ·£¬»òÕßÊÇ·ñÐèÒªÖØÐÂÅäÖÃÉ¨Ãè¹¤¾ßÒÔÊ¶±ð¸ÃÏµÍ³¡£Èç¹ûÐèÒª½øÒ»²½°ïÖú£¬ÇëÌá¹©ÕýÈ·µÄÏµÍ³Ãû³Æ»òÆäËûÏà¹ØÐÅÏ¢¡£[0m
-
-[1m> Finished chain.[0m
-INFO:     127.0.0.1:55503 - "POST /execute_vulnerability_remediation HTTP/1.1" 200 OK

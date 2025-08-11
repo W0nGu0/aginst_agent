@@ -30,7 +30,7 @@
 +-----------------------------------------------------------------------------+
 
 
-[08/08/25 17:45:10] INFO     Starting MCP server                 server.py:1429
+[08/09/25 18:54:58] INFO     Starting MCP server                 server.py:1429
                              'Attack_Attribution_Service' with                 
                              transport 'http' on                               
                              http://127.0.0.1:8010/mcp/                        
@@ -38,132 +38,7 @@ C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__in
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [34796]
+INFO:     Started server process [39508]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
-
---- ¹¥»÷ËÝÔ´·þÎñ (Attack Attribution Service) is starting... ---
-
-INFO:     127.0.0.1:55369 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55370 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55371 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55372 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55373 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55375 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55382 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55389 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55390 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55391 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55392 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55393 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55397 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55398 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55404 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55405 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55406 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55407 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55408 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55411 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55412 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55413 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55416 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55417 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55418 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55419 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55420 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55421 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55422 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55423 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55424 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55425 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55426 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55427 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55428 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55429 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55430 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55431 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55432 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55433 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55434 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55435 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55443 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55444 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55445 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55446 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55447 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55450 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55451 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55452 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55463 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55464 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55465 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55466 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55473 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55474 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55478 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55479 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55480 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55481 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55482 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55483 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55484 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55489 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55623 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55624 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55625 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55626 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55627 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55628 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55632 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55646 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55647 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55648 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55649 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55650 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55651 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55652 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55657 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55658 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55659 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55660 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55661 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55662 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55663 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55664 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55665 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55666 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55683 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55684 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55685 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55686 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55701 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55702 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55721 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55722 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55723 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55724 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55725 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55727 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55728 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55734 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55735 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55736 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55737 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55738 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55741 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55742 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55746 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55747 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55748 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55749 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55750 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55753 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55754 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55755 - "DELETE /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55761 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55762 - "POST /mcp/ HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:55763 - "GET /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55764 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55765 - "POST /mcp/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55766 - "DELETE /mcp/ HTTP/1.1" 200 OK
