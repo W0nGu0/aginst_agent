@@ -30,7 +30,7 @@
 +-----------------------------------------------------------------------------+
 
 
-[08/09/25 18:54:51] INFO     Starting MCP server                 server.py:1429
+[08/12/25 08:30:25] INFO     Starting MCP server                 server.py:1429
                              'Threat_Blocking_Service' with                    
                              transport 'http' on                               
                              http://127.0.0.1:8008/mcp/                        
@@ -38,7 +38,7 @@ C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\websockets\legacy\__in
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 C:\Users\LEGION\Desktop\sec_agent\.venv\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:14: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [47996]
+INFO:     Started server process [44328]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8008 (Press CTRL+C to quit)

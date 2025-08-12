@@ -46,12 +46,12 @@
           
           <!-- 视频信息覆盖层 -->
           <div class="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-            APT攻防推演记录
+            医疗行业APT攻防推演记录
           </div>
-          
+
           <!-- 视频控制提示 -->
           <div v-if="!videoLoading && !videoError" class="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 hover:opacity-100 transition-opacity">
-            点击播放查看完整演练过程
+            点击播放查看医疗APT攻防演练过程
           </div>
         </div>
       </div>
@@ -94,27 +94,26 @@
 
     <!-- 报告描述 -->
     <div class="glass-panel p-6 space-y-4">
-      <h2 class="text-xl font-semibold text-primary">AI 攻防演练评估报告</h2>
+      <h2 class="text-xl font-semibold text-primary">医疗行业APT攻防演练评估报告</h2>
       <p class="text-base-content/70">一、综合评估概览</p>
       <ul class="list-disc list-inside space-y-1 text-base-content/70">
-        <li>演练总览：本轮攻防演练覆盖企业级内网环境，包含共计 8 台目标主机及 12 个关键资产节点。</li>
-        <li>防护等级评估：当前系统防护能力水平为中等，可应对大部分常见攻击场景，但在精准识别与策略响应效率上仍有优化空间。</li>
-        <li>风险评级：系统风险等级为高风险，建议加强关键节点的入侵检测与响应机制。</li>
+        <li>演练总览：本轮医疗APT攻防演练模拟针对某三甲医院信息系统的高级持续威胁攻击，覆盖HIS系统、PACS影像系统、LIS检验系统等核心医疗业务系统，包含共计12台目标主机及18个关键医疗资产节点。</li>
+        <li>防护等级评估：当前医疗信息系统防护能力水平为中等偏上，可应对大部分常见医疗行业攻击场景，但在针对性APT攻击的精准识别与策略响应效率上仍有优化空间。</li>
+        <li>风险评级：医疗系统风险等级为高风险，建议加强患者隐私数据保护、医疗设备安全防护及关键业务系统的入侵检测与响应机制。</li>
       </ul>
-      <p class="text-base-content/70">二、攻防行为统计</p>
+      <p class="text-base-content/70">二、医疗APT攻防行为统计</p>
       <ul class="list-disc list-inside space-y-1 text-base-content/70">
-        <li>攻击策略覆盖数：红队 Agent 尝试共计 18 种攻击策略，涵盖信息收集、漏洞利用、横向移动、持久化建立等多个阶段。</li>
-        <li>防御策略响应数：蓝队 Agent 启用 12 种防御策略，包括防火墙动态更新、行为异常检测、访问控制规则自动下发等。</li>
-        <li>攻击路径评估:成功完成攻击路径数:4 条; 被成功阻断路径数:3 条; 部分中断路径数:2 条。</li>
-        <li>关键攻击阶段识别：首次入侵检测时间:T+13秒; 横向移动检测覆盖率:85%; 持久化企图检测率:71%。</li>
-
+        <li>攻击策略覆盖数：红队Agent模拟APT组织尝试共计22种医疗行业针对性攻击策略，涵盖医疗邮件钓鱼、医疗设备漏洞利用、HIS系统横向移动、患者数据窃取等多个阶段。</li>
+        <li>防御策略响应数：蓝队Agent启用15种医疗专用防御策略，包括医疗网络分段防护、患者数据访问控制、医疗设备异常行为检测、HIPAA合规性监控等。</li>
+        <li>攻击路径评估：成功完成医疗APT攻击路径数：5条；被成功阻断路径数：4条；部分中断路径数：3条；涉及患者数据泄露风险路径：2条。</li>
+        <li>关键攻击阶段识别：首次医疗系统入侵检测时间：T+18秒；医疗网络横向移动检测覆盖率：78%；患者数据访问企图检测率：89%；医疗设备感染检测率：65%。</li>
       </ul>
-      <p class="text-base-content/70">三、预警详情</p>
+      <p class="text-base-content/70">三、医疗安全预警详情</p>
       <ul class="list-disc list-inside space-y-1 text-base-content/70">
-        <li>告警事件分:告警总次数:126 次; 有效告警(与真实攻击对应):89 次; 虚警率:29.4%。</li>
-        <li>主要告警类型:异常端口扫描、非授权访问、未知进程执行、工具签名命中(Metasploit/Nmap)。</li>
+        <li>告警事件统计：告警总次数：156次；有效告警（与真实医疗APT攻击对应）：118次；虚警率：24.4%；患者数据相关告警：34次。</li>
+        <li>主要告警类型：医疗邮件异常、HIS系统非授权访问、PACS影像数据异常下载、医疗设备通信异常、患者隐私数据访问违规、医疗数据库SQL注入尝试。</li>
       </ul>
-      <p class="text-base-content/70">四、重点分析建议</p>
+      <p class="text-base-content/70">四、医疗安全重点分析建议</p>
       <ul class="list-disc list-inside space-y-1 text-base-content/70">
         <li>攻击链处置分析：在“初始访问—漏洞利用—横向移动”路径中，防御 Agent 在横向移动阶段表现出较强响应，但对初始入侵侦测延迟较长。</li>
         <li>防御策略优化建议：增强防护策略自动演化能力，根据攻击演化轨迹自适应调整规则集。引入基于图谱节点权重的防御资源动态分配算法。</li>
@@ -156,17 +155,19 @@
         </div>
       </div>
 
-      <!-- 系统状态 -->
+      <!-- 医疗系统状态 -->
       <div class="glass-panel p-6 space-y-4">
-        <h3 class="font-semibold">系统状态</h3>
-        <p class="text-sm">当前防护等级：<span class="badge badge-success">中等</span></p>
-        <p class="text-sm">风险等级：<span class="badge badge-error">高风险</span></p>
+        <h3 class="font-semibold">医疗系统安全状态</h3>
+        <p class="text-sm">当前医疗防护等级：<span class="badge badge-success">中等偏上</span></p>
+        <p class="text-sm">医疗APT风险等级：<span class="badge badge-error">高风险</span></p>
+        <p class="text-sm">患者数据保护状态：<span class="badge badge-info">良好</span></p>
+        <p class="text-sm">HIPAA合规状态：<span class="badge badge-warning">需改进</span></p>
       </div>
     </div>
 
     <!-- 导出按钮 -->
     <div class="text-center">
-      <button class="btn btn-primary">生成 PDF 报告</button>
+      <button class="btn btn-primary">生成医疗APT攻防演练 PDF 报告</button>
     </div>
   </div>
 </template>
@@ -205,24 +206,22 @@ const retryVideo = () => {
   }
 }
 
-// 红方核心能力维度数据
+// 红方核心能力维度数据 (与个人中心保持一致 - 5个指标)
 const redData = ref([
-  { label: '目标识别与情报收集(H)', value: 22 },
-  { label: '漏洞利用与攻击执行(I)', value: 20 },
-  { label: '横向移动与权限提升(J)', value: 18 },
-  { label: '隐蔽性与对抗规避(K)', value: 15 },
-  { label: '攻击链完整性(L)', value: 13 },
-  { label: '智能决策与策略演化(M)', value: 12 }
+  { label: '目标识别与情报收集(H)', value: 25 },
+  { label: '漏洞利用与攻击执行(I)', value: 22 },
+  { label: '横向移动与权限提升(J)', value: 20 },
+  { label: '隐蔽性与对抗规避(K)', value: 16 },
+  { label: '攻击链完整性(L)', value: 10 }
 ])
 
-// 红队图表颜色
+// 红队图表颜色 - 增强区分度
 const redChartColors = [
-  '#ff6b81', // 浅红
-  '#ff4757', // 红色
-  '#ff1f3d', // 深红
-  '#ff5252', // 鲜红
-  '#ff3838', // 亮红
-  '#ff4d4d'  // 橙红
+  '#e74c3c', // 鲜红
+  '#c0392b', // 深红
+  '#f39c12', // 橙色
+  '#e67e22', // 深橙
+  '#d35400'  // 暗橙
 ]
 
 // 蓝方核心能力维度数据
@@ -236,109 +235,139 @@ const blueData = ref([
   { label: '安全运营能力(G)', value: 10 }
 ])
 
-// 蓝队图表颜色
+// 蓝队图表颜色 - 增强区分度
 const blueChartColors = [
-  '#70a1ff', // 浅蓝
-  '#1e90ff', // 道奇蓝
-  '#3742fa', // 蓝色
-  '#5352ed', // 明亮的蓝色
-  '#2e86de', // 天蓝色
-  '#0984e3', // 电子蓝
-  '#00a8ff'  // 鲜蓝
+  '#3498db', // 蓝色
+  '#2980b9', // 深蓝
+  '#9b59b6', // 紫色
+  '#8e44ad', // 深紫
+  '#1abc9c', // 青绿
+  '#16a085', // 深青绿
+  '#34495e'  // 深灰蓝
 ]
 
+
 const metrics = [
-  { label: '漏洞修复率', value: 76, bar: 'bg-primary' },
-  { label: '威胁检测精度', value: 82, bar: 'bg-secondary' }
+  { label: '医疗系统漏洞修复率', value: 78, bar: 'bg-primary' },
+  { label: '医疗APT威胁检测精度', value: 85, bar: 'bg-secondary' },
+  { label: '患者数据保护率', value: 92, bar: 'bg-accent' },
+  { label: 'HIPAA合规性评分', value: 88, bar: 'bg-info' }
 ]
 // 关键指标量化结果数据
 const keyIndicators = [
   {
-    name: "漏洞修复效率",
+    name: "医疗系统漏洞修复效率",
+    result: "78%",
+    description: "针对医疗系统已识别漏洞的修复操作响应及时率"
+  },
+  {
+    name: "医疗APT威胁检测精度",
+    result: "85%",
+    description: "医疗行业APT攻击实际威胁命中率（排除虚警）"
+  },
+  {
+    name: "医疗安全事件响应延迟",
+    result: "1.2 分钟",
+    description: "从医疗安全告警生成至响应动作执行的平均延迟"
+  },
+  {
+    name: "患者数据保护覆盖度",
+    result: "94%",
+    description: "患者隐私数据保护措施覆盖关键医疗业务的比例"
+  },
+  {
+    name: "HIPAA合规性评估",
+    result: "88%",
+    description: "医疗数据处理流程符合HIPAA法规要求的比例"
+  },
+  {
+    name: "医疗设备安全监控率",
     result: "76%",
-    description: "针对已识别漏洞的修复操作响应及时率"
-  },
-  {
-    name: "威胁检测精度",
-    result: "82%",
-    description: "实际威胁命中率（排除虚警）"
-  },
-  {
-    name: "响应延迟",
-    result: "1.8 分钟",
-    description: "从告警生成至响应动作执行的平均延迟"
-  },
-  {
-    name: "图谱覆盖度",
-    result: "91%",
-    description: "行为图谱节点覆盖演练关键行为的比例"
-  },
-  {
-    name: "可解释性指数",
-    result: "96%",
-    description: "每个评分项可追溯至具体日志与图谱节点的占比"
+    description: "医疗设备网络行为监控覆盖率"
   }
 ];
 
 // 初始化图表
 onMounted(() => {
-  // 红队评估指标图表
+  // 红队评估指标图表 - 扇形图
   new Chart(document.getElementById('redTeamChart'), {
-    type: 'doughnut',
+    type: 'pie',
     data: {
       labels: redData.value.map(item => item.label),
       datasets: [{
         data: redData.value.map(item => item.value),
         backgroundColor: redChartColors,
-        borderColor: 'transparent',
-        borderWidth: 0,
-        hoverOffset: 5
+        borderColor: '#ffffff',
+        borderWidth: 1,
+        hoverOffset: 8,
+        hoverBorderWidth: 4
       }]
     },
     options: {
       responsive: true,
-      cutout: '70%',
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           display: false
         },
         tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: '#ffffff',
+          borderWidth: 1,
           callbacks: {
             label: function(context) {
               return `${context.label}: ${context.raw}%`;
             }
           }
         }
+      },
+      elements: {
+        arc: {
+          borderJoinStyle: 'round'
+        }
       }
     }
   });
 
-  // 蓝队评估指标图表
+  // 蓝队评估指标图表 - 扇形图
   new Chart(document.getElementById('blueTeamChart'), {
-    type: 'doughnut',
+    type: 'pie',
     data: {
       labels: blueData.value.map(item => item.label),
       datasets: [{
         data: blueData.value.map(item => item.value),
         backgroundColor: blueChartColors,
-        borderColor: 'transparent',
-        borderWidth: 0,
-        hoverOffset: 5
+        borderColor: '#ffffff',
+        borderWidth: 1,
+        hoverOffset: 8,
+        hoverBorderWidth: 4
       }]
     },
     options: {
       responsive: true,
-      cutout: '70%',
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           display: false
         },
         tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: '#ffffff',
+          borderWidth: 1,
           callbacks: {
             label: function(context) {
               return `${context.label}: ${context.raw}%`;
             }
           }
+        }
+      },
+      elements: {
+        arc: {
+          borderJoinStyle: 'round'
         }
       }
     }
